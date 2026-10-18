@@ -241,7 +241,7 @@ function groupsView(t){
  +(ms.length?ms.map(m=>`<div class="card">${m.img?`<img class="ph" src="${esc(m.img)}" alt="">`:vids[m.id]?`<video class="ph" controls playsinline src="${vids[m.id]}"></video>`:m.vid?`<div class="meta">${t.video_lost}</div>`:''}<h3>${esc(m.place)}</h3>${m.cap?`<div class="meta">${esc(m.cap)}</div>`:''}<div class="row"><button class="g" data-md="${m.id}">${t.del}</button></div></div>`).join(''):`<div class="empty">${t.no_mem}</div>`);
 }
 // Partenaires publicitaires. Format : {name:'Showroom X',kind:'Motos',city:'Alger',addr:'Adresse',phone:'+213555000000'}
-const PARTNERS=[{name:'Simou Cycle',kind:'Showroom moto',city:'Alger'},{name:'Planète Moto',kind:'Showroom moto',city:'Blida'},{name:'Iyade Moto',kind:'Showroom moto',city:'Oran'},{slot:true}];
+const PARTNERS=[{name:'Simou Cycle',kind:'Showroom moto',city:'Alger',phone:'+213550318368'},{name:'Planète Moto',kind:'Showroom moto',city:'Blida'},{name:'Iyade Moto',kind:'Showroom moto',city:'Oran'},{slot:true}];
 function partnersHtml(t){return `<div class="meta" style="color:#fff;font-weight:600;margin:4px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+PARTNERS.map(p=>p.slot?`<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${t.slot_name}</h3><div class="meta">${t.slot_txt}</div></div>`:`<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${esc(p.name)}</h3><div class="meta">${esc(p.kind||'')} · ${esc(p.city||'')}</div>${p.addr?`<div class="meta">${esc(p.addr)}</div>`:''}<div class="row" style="justify-content:flex-start">${p.phone?`<a class="lnk" href="tel:${esc(p.phone)}">${t.call}</a><a class="lnk" target="_blank" rel="noopener" href="https://wa.me/${esc(p.phone.replace(/\D/g,''))}">${t.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.name||'')+' '+(p.addr||p.city||''))}">${t.route}</a></div></div>`).join('')}
 function routeView(t){
  const hz=['gravel','acc','ctrl','wet','hole'];
@@ -1339,6 +1339,7 @@ function seedFor(name){
 }
 function get(p){
  if(!DB[p.name])DB[p.name]={about:'',phone:p.phone||'',addr:p.addr||'',hours:'',items:seedFor(p.name),stats:{views:0,wa:0,call:0,route:0}};
+ if(!DB[p.name].phone&&p.phone)DB[p.name].phone=p.phone;
  return DB[p.name];
 }
 const partners=()=>(typeof PARTNERS!=='undefined'?PARTNERS:[]);
