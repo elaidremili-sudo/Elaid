@@ -51,13 +51,24 @@ jobs:
         run: |
           chmod +x gradlew
           OUT=../MotoRoute-test-$RUN.apk
-          if [ -z "$MR_KEYSTORE" ] || [ -z "$MR_KEY_PASS" ]; then
+          # MR_KEYSTORE peut contenir soit le texte de la clé, soit tout le fichier motoroute-cle-secrets.txt
+          if printf '%s' "$MR_KEYSTORE" | grep -q "=== Secret 2"; then
+            P1=$(printf '%s\n' "$MR_KEYSTORE" | awk '/=== Secret 1/{getline; print; exit}' | tr -d '[:space:]')
+            KS=$(printf '%s\n' "$MR_KEYSTORE" | awk '/=== Secret 2/{f=1;next} f&&/^[[:space:]]*$/{exit} f' | tr -d '[:space:]')
+            [ -z "$MR_KEY_PASS" ] && MR_KEY_PASS="$P1"
+          else
+            KS=$(printf '%s' "$MR_KEYSTORE" | tr -d '[:space:]')
+          fi
+          MR_KEY_PASS=$(printf '%s' "$MR_KEY_PASS" | tr -d '[:space:]')
+          export MR_KEY_PASS
+          if [ -z "$KS" ] || [ -z "$MR_KEY_PASS" ]; then
             echo "::warning::Clé MotoRoute absente des secrets : APK de test non signée (debug)."
             ./gradlew assembleDebug --no-daemon
             cp app/build/outputs/apk/debug/app-debug.apk "$OUT"
             exit 0
           fi
-          echo "$MR_KEYSTORE" | base64 -d > ../mr.keystore
+          printf '%s' "$KS" | base64 -d > ../mr.keystore
+          keytool -list -keystore ../mr.keystore -storepass "$MR_KEY_PASS" -alias motoroute >/dev/null || { echo "::error::Clé ou mot de passe MotoRoute incorrect dans les secrets."; exit 1; }
           ./gradlew assembleRelease bundleRelease --no-daemon
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           "$BT/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk ../aligned.apk
