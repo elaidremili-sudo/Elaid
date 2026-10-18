@@ -40,6 +40,7 @@ jobs:
         run: |
           npx cap add android
           node scripts/patch-android.js
+          npx capacitor-assets generate --android --iconBackgroundColor '#101316' --iconBackgroundColorDark '#101316' --splashBackgroundColor '#101316' --splashBackgroundColorDark '#101316'
           npx cap sync android
 
       - name: Fabriquer l'appli (version signée si la clé MotoRoute est dans les secrets)
