@@ -32,3 +32,12 @@ for (const f of features) {
 xml = xml.replace('</manifest>', add + '</manifest>');
 fs.writeFileSync(path, xml);
 console.log('Autorisations ajoutées :\n' + (add || '(déjà présentes)'));
+
+// Numéro de version : augmente à chaque fabrication (obligatoire pour Google Play)
+const gradlePath = 'android/app/build.gradle';
+const run = parseInt(process.env.GITHUB_RUN_NUMBER || '1', 10);
+let gradle = fs.readFileSync(gradlePath, 'utf8');
+gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${100 + run}`)
+               .replace(/versionName\s+"[^"]*"/, `versionName "1.0.${run}"`);
+fs.writeFileSync(gradlePath, gradle);
+console.log(`Version : 1.0.${run} (code ${100 + run})`);

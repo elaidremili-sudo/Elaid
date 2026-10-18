@@ -42,18 +42,40 @@ jobs:
           node scripts/patch-android.js
           npx cap sync android
 
-      - name: Fabriquer l'APK de test
+      - name: Fabriquer l'appli (version signée si la clé MotoRoute est dans les secrets)
         working-directory: android
+        env:
+          MR_KEYSTORE: ${{ secrets.MR_KEYSTORE }}
+          MR_KEY_PASS: ${{ secrets.MR_KEY_PASS }}
+          RUN: ${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../MotoRoute-test-${{ github.run_number }}.apk
+          OUT=../MotoRoute-test-$RUN.apk
+          if [ -z "$MR_KEYSTORE" ] || [ -z "$MR_KEY_PASS" ]; then
+            echo "::warning::Clé MotoRoute absente des secrets : APK de test non signée (debug)."
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk "$OUT"
+            exit 0
+          fi
+          echo "$MR_KEYSTORE" | base64 -d > ../mr.keystore
+          ./gradlew assembleRelease bundleRelease --no-daemon
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk ../aligned.apk
+          "$BT/apksigner" sign --ks ../mr.keystore --ks-key-alias motoroute --ks-pass env:MR_KEY_PASS --key-pass env:MR_KEY_PASS --out "$OUT" ../aligned.apk
+          "$BT/apksigner" verify --print-certs "$OUT" | head -3
+          cp app/build/outputs/bundle/release/app-release.aab ../MotoRoute-$RUN.aab
+          jarsigner -keystore ../mr.keystore -storepass "$MR_KEY_PASS" -keypass "$MR_KEY_PASS" -sigalg SHA256withRSA -digestalg SHA-256 ../MotoRoute-$RUN.aab motoroute
+          jarsigner -verify ../MotoRoute-$RUN.aab | tail -1
+          rm -f ../mr.keystore ../aligned.apk
 
-      - name: Garder l'APK (onglet Actions)
+      - name: Garder les fichiers (onglet Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: MotoRoute-test-${{ github.run_number }}
-          path: MotoRoute-test-${{ github.run_number }}.apk
+          name: MotoRoute-${{ github.run_number }}
+          path: |
+            MotoRoute-test-${{ github.run_number }}.apk
+            MotoRoute-${{ github.run_number }}.aab
+          if-no-files-found: ignore
 
       - name: Publier l'APK à télécharger (onglet Releases)
         uses: softprops/action-gh-release@v2
@@ -61,4 +83,7 @@ jobs:
           tag_name: test-${{ github.run_number }}
           name: MotoRoute – version de test ${{ github.run_number }}
           prerelease: true
-          files: MotoRoute-test-${{ github.run_number }}.apk
+          fail_on_unmatched_files: false
+          files: |
+            MotoRoute-test-${{ github.run_number }}.apk
+            MotoRoute-${{ github.run_number }}.aab
