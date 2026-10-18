@@ -810,7 +810,7 @@ async function pull(){
   const ok=s=>s!='pending'&&s!='rejected'&&s!='refused';
   const cnt={},mine={};
   (R[1].data||[]).forEach(x=>{if(ok(x.status))cnt[x.group_id]=(cnt[x.group_id]||0)+1;if(x.user_id==u.id)mine[x.group_id]=x.status});
-  const G=(R[0].data||[]).map(r=>{const m=(r.id in mine)&&ok(mine[r.id]);return{id:idOf(r.id),uid:r.id,srv:true,name:r.name,city:r.city||'',wa:r.whatsapp_link||'',code:r.invite_code||'',priv:!!r.is_private,owner:r.owner_id==u.id,mem:Math.max(0,(cnt[r.id]||0)-(m?1:0)),me:m}});
+  const G=(R[0].data||[]).map(r=>{const m=(r.id in mine)&&ok(mine[r.id]);return{id:idOf(r.id),uid:r.id,srv:true,name:r.name,city:r.city||'',wa:r.whatsapp_link||'',code:r.invite_code||'',priv:!!r.is_private,owner:r.owner_id==u.id,mem:Math.max(0,(cnt[r.id]||0)-(m?1:0)),me:m,appr:!!r.requires_approval,pend:mine[r.id]=='pending',reqs:r.owner_id==u.id?(R[1].data||[]).filter(x=>x.group_id==r.id&&x.status=='pending').map(x=>({uid:x.user_id,name:nm[x.user_id]||'?'})):[]}});
   const gl={};G.forEach(g=>gl[g.uid]=g.id);
   const pp={};(R[3].data||[]).forEach(x=>(pp[x.ride_id]=pp[x.ride_id]||[]).push(x.user_id));
   const oldS={};S.sorties.filter(s=>s.srv).forEach(s=>oldS[s.uid]=s);
@@ -840,17 +840,17 @@ groupsView=function(t){
 };
 /* case « groupe privé » dans le formulaire */
 const acts=$('d3').querySelector('.acts');
-acts.insertAdjacentHTML('beforebegin','<label class="chk" style="margin-top:10px"><input type="checkbox" id="g_pv"> <span id="g_pv_t"></span></label>');
-$('fab').addEventListener('click',()=>{const e=$('g_pv_t');if(e)e.textContent=W('Groupe privé (sur invitation, avec un code)','مجموعة خاصة (بدعوة ورمز)','Private group (invite only, with a code)')},true);
+acts.insertAdjacentHTML('beforebegin','<label class="chk" style="margin-top:10px"><input type="checkbox" id="g_pv"> <span id="g_pv_t"></span></label><label class="chk" style="margin-top:6px"><input type="checkbox" id="g_ap"> <span id="g_ap_t"></span></label>');
+$('fab').addEventListener('click',()=>{const e=$('g_pv_t');if(e)e.textContent=W('Groupe privé (sur invitation, avec un code)','مجموعة خاصة (بدعوة ورمز)','Private group (invite only, with a code)');const f=$('g_ap_t');if(f)f.textContent=W('Sur validation : j’accepte chaque nouveau membre','بموافقة: أقبل كل عضو جديد بنفسي','Approval needed: I accept each new member')},true);
 const og=$('g_ok').onclick;
 $('g_ok').onclick=async function(){
  const u=me();if(!u||!sbc())return og.apply(this,arguments);
  const n=$('g_n').value.trim();if(!n){alert(T().err3);return}
  const w=$('g_w').value.trim();if(w&&!waOk(w)){alert(T().err6);return}
- const r=await ins('groups',{name:n,owner_id:u.id,is_private:$('g_pv').checked,whatsapp_link:w||null,invite_code:code(),city:$('g_c').value.trim()||null},true);
+ const r=await ins('groups',{name:n,owner_id:u.id,is_private:$('g_pv').checked,requires_approval:$('g_ap').checked,whatsapp_link:w||null,invite_code:code(),city:$('g_c').value.trim()||null},true);
  if(r.error){err(r.error);return}
  try{const mm=await sbc().from('group_members').select('user_id').eq('group_id',r.data.id).eq('user_id',u.id);if(!mm.data||!mm.data.length)await ins('group_members',{group_id:r.data.id,user_id:u.id,role:'owner'})}catch(e){}
- $('g_n').value=$('g_c').value=$('g_w').value='';$('g_pv').checked=false;$('d3').close();
+ $('g_n').value=$('g_c').value=$('g_w').value='';$('g_pv').checked=$('g_ap').checked=false;$('d3').close();
  await window.mrSync();
 };
 /* sortie partagée */
@@ -898,8 +898,11 @@ $('main').addEventListener('click',async e=>{
     if(r.error){err(r.error);return}
    }else{
     if(g.priv){alert(W('Groupe privé : utilise le code d’invitation.','مجموعة خاصة: استعمل رمز الدعوة.','Private group: use the invite code.'));return}
-    const r=await ins('group_members',{group_id:g.uid,user_id:u.id,role:'member'});
-    if(r.error){err(r.error);return}
+    if(g.pend){alert(W('Ta demande est déjà envoyée : le chef du groupe doit l’accepter.','طلبك مُرسل: يجب أن يقبله رئيس المجموعة.','Your request is already sent: the group leader must accept it.'));return}
+    const q=await sbc().rpc('request_join_group',{p_group:g.uid});
+    if(q.error&&/Could not find the function|PGRST202|schema cache/i.test(String(q.error.message||'')+(q.error.code||''))){const r=await ins('group_members',{group_id:g.uid,user_id:u.id,role:'member'});if(r.error){err(r.error);return}}
+    else if(q.error){err(q.error);return}
+    else if(q.data=='pending')alert(W('Demande envoyée ✓ Le chef du groupe doit l’accepter.','تم إرسال الطلب ✓ يجب أن يقبله رئيس المجموعة.','Request sent ✓ The group leader must accept it.'));
    }
    await window.mrSync();
   }
@@ -1201,7 +1204,7 @@ button.g.mr-danger{color:#d7263d;border-color:rgba(215,38,61,.55)}
 const W=(f,a,e)=>lang=='ar'?a:lang=='en'?e:f;
 const sbc=()=>window.mrSb||null,me=()=>(window.mrUser&&window.mrUser())||null;
 const main=document.getElementById('main');
-const notReady=()=>W('Le serveur n’est pas encore prêt pour la suppression : exécute le script SQL « suppression » dans Supabase (SQL Editor).','الخادم غير جاهز بعد للحذف: نفّذ سكربت SQL «suppression» في Supabase.','The server is not ready for deleting yet: run the “suppression” SQL script in Supabase (SQL Editor).');
+const notReady=()=>W('Le serveur n’est pas encore prêt pour cette fonction : exécute le dernier script SQL dans Supabase (SQL Editor).','الخادم غير جاهز بعد لهذه الميزة: نفّذ آخر سكربت SQL في Supabase.','The server is not ready for this feature yet: run the latest SQL script in Supabase (SQL Editor).');
 const fail=e=>{const m=String((e&&e.message)||e||'');alert(/Could not find the function|PGRST202|schema cache/i.test(m+((e&&e.code)||''))?notReady():m||W('Erreur réseau.','خطأ في الشبكة.','Network error.'))};
 const gOf=id=>S.groups.find(x=>String(x.id)==String(id));
 const canRide=s=>!s.srv||(me()&&(s.creator||(gOf(s.g)&&gOf(s.g).owner)));
@@ -1214,7 +1217,21 @@ function post(){
    if(!s||!c||c.querySelector('[data-rdel]')||!canRide(s))return;
    c.insertAdjacentHTML('beforeend',btn('rdel',s.id,W('Supprimer la sortie','حذف الرحلة','Delete ride')));
   });
- }else if(tab==3&&gid){
+ }else if(tab==3&&!gid){
+  main.querySelectorAll('button[data-mj]').forEach(b=>{
+   const g=gOf(b.dataset.mj),c=b.closest('.card');if(!g||!c||c.dataset.mrv)return;c.dataset.mrv=1;
+   if(g.pend){b.textContent='⏳ '+W('En attente','قيد الانتظار','Pending');b.classList.add('done')}
+   const tags=[];if(g.appr&&!g.me&&!g.pend)tags.push('✋ '+W('Sur validation','بموافقة الرئيس','Approval needed'));
+   if(g.reqs&&g.reqs.length)tags.push('🔔 '+g.reqs.length+' '+W('demande(s)','طلب(ات)','request(s)'));
+   if(tags.length)c.querySelector('h3').insertAdjacentHTML('afterend','<div>'+tags.map(x=>'<span class="tag">'+x+'</span>').join(' ')+'</div>');
+  });
+ }
+ if(tab==3&&gid){
+  const g0=gOf(gid);
+  if(g0&&g0.reqs&&g0.reqs.length&&!main.querySelector('[data-gok]')){
+   const h=g0.reqs.map(r=>`<div class="row" style="align-items:center"><b>${String(r.name).replace(/[&<>"]/g,'')}</b><span><button class="g" data-gno="${r.uid}">✕ ${W('Refuser','رفض','Decline')}</button> <button class="p" data-gok="${r.uid}">✓ ${W('Accepter','قبول','Accept')}</button></span></div>`).join('');
+   const back=main.querySelector('.filters');(back||main).insertAdjacentHTML(back?'afterend':'afterbegin',`<div class="card"><h3>🔔 ${W('Demandes pour rejoindre','طلبات الانضمام','Join requests')}</h3>${h}</div>`);
+  }
   const g=gOf(gid);
   if(g&&canGroup(g)&&!main.querySelector('[data-gdel]'))main.insertAdjacentHTML('beforeend',`<div class="card">${btn('gdel',g.id,W('Supprimer le groupe','حذف المجموعة','Delete group'))}</div>`);
  }
@@ -1231,6 +1248,13 @@ main.addEventListener('click',async e=>{
   if(s.srv){b.disabled=true;const r=await sbc().rpc('delete_ride',{p_ride:String(s.uid)});b.disabled=false;if(r.error){fail(r.error);return}S.sorties=S.sorties.filter(x=>x!==s);save();render();if(window.mrSync)await window.mrSync();return}
   S.sorties=S.sorties.filter(x=>x!==s);save();render();return;
  }
+ if(D.gok!==undefined||D.gno!==undefined){
+  e.stopImmediatePropagation();
+  const g=gOf(gid);if(!g||!g.srv)return;b.disabled=true;
+  const r=await sbc().rpc('decide_member',{p_group:g.uid,p_user:D.gok!==undefined?D.gok:D.gno,p_accept:D.gok!==undefined});
+  b.disabled=false;if(r.error){fail(r.error);return}
+  if(window.mrSync)await window.mrSync();return;
+ }
  if(D.gdel!==undefined){
   e.stopImmediatePropagation();
   const g=gOf(D.gdel);if(!g)return;
@@ -1246,5 +1270,27 @@ render();
 })();
 </script>
 
+<!-- ===================== Publicités AdMob (application Android uniquement) ===================== -->
+<script>
+(function(){
+// Identifiant de bannière : test Google tant que l'identifiant MotoRoute n'est pas renseigné ici.
+const BANNER_ID='ca-app-pub-3940256099942544/6300978111',TESTING=true;
+const A=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.AdMob;
+if(!A())return;
+let ready=false,shown=false,busy=false;
+const want=()=>tab==2||(tab==3&&!gid)||tab==5; // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties
+const margin=()=>{const n=document.querySelector('nav');return n?Math.round(n.getBoundingClientRect().height):64};
+async function sync(){
+ if(!ready||busy)return;busy=true;
+ try{
+  if(want()&&!shown){await A().showBanner({adId:BANNER_ID,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:margin(),isTesting:TESTING});shown=true;document.body.classList.add('mr-ad')}
+  else if(!want()&&shown){await A().removeBanner();shown=false;document.body.classList.remove('mr-ad')}
+ }catch(e){console.error('admob',e)}finally{busy=false}
+}
+A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
+const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
+document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}</style>');
+})();
+</script>
 </body>
 </html>

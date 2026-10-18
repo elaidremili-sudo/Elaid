@@ -37,6 +37,8 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Créer le projet Android
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
         run: |
           npx cap add android
           node scripts/patch-android.js
