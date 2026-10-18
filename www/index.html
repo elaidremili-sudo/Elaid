@@ -334,14 +334,15 @@ function render(){
  $('fab').textContent=tab==1?t.fab1:tab==2?t.fab2:tab==5?t.add_trip:(gid?t.fab4:t.fab3);$('fab').hidden=tab==4||tab==6;
  const m=$('main');
  if(tab==1){
-  const l=[...S.sorties].sort((a,b)=>a.d>b.d?1:-1);
+  const td0=new Date(),td=td0.getFullYear()+'-'+String(td0.getMonth()+1).padStart(2,'0')+'-'+String(td0.getDate()).padStart(2,'0'),all=[...S.sorties].sort((a,b)=>a.d>b.d?1:-1),isP=s=>!!s.d&&s.d<td,nPast=all.filter(isP).length,l=window.mrShowPast?all.filter(isP).reverse():all.filter(s=>!isP(s));
   m.innerHTML=l.length?l.map(s=>`<div class="card"><h3>${esc(s.t)}${dayBadge(s)}</h3>${s.g&&gname(s.g)?`<div><span class="tag">${esc(gname(s.g))}</span></div>`:''}
   <div class="meta">${fd(s.d)}${s.dest?` · <a class="lnk" target="_blank" rel="noopener" href="${esc(wxUrl(s.dest,s.d))}">🌤 ${t.wx_now.replace('{p}',esc(s.dest))}</a>`:''}</div>
   <div class="meta">${esc(s.dep)} → ${esc(s.dest)} · ${esc(s.km)} km</div>
   ${s.dep?`<div class="row" style="justify-content:flex-start;margin-top:8px"><a class="lnk" target="_blank" rel="noopener" href="${esc(mapUrl(s))}">${t.openmap}</a></div>`:''}
   <div class="row" style="justify-content:flex-start;gap:14px;margin-top:8px"><button class="g" data-sd="${s.id}">${t.sd_btn}</button><a class="lnk" target="_blank" rel="noopener" href="${esc(waShare(s,t))}">💬 ${t.wa}</a>${s.rt?`<span class="tag">${t['rt_'+s.rt]}</span>`:''}</div>
   <div class="row"><span><span class="tag">${t[s.n]||esc(s.n)}</span><span class="meta">${participantsLine(s,t)}</span></span>
-  <button class="p ${s.joined?'done':''}" data-j="${s.id}">${s.joined?t.joined:t.join}</button></div></div>`).join(''):`<div class="empty">${t.empty1}</div>`;
+  <button class="p ${s.joined?'done':''}" data-j="${s.id}">${s.joined?t.joined:t.join}</button></div></div>`).join(''):`<div class="empty">${window.mrShowPast?(lang=='ar'?'لا توجد رحلات سابقة.':lang=='en'?'No past rides.':'Aucune sortie passée.'):t.empty1}</div>`;
+  if(nPast||window.mrShowPast)m.innerHTML+=`<div class="row" style="justify-content:center;margin:6px 0 10px"><button class="g" data-past="1">${window.mrShowPast?(lang=='ar'?'→ الرحلات القادمة':lang=='en'?'← Upcoming rides':'← Sorties à venir'):'🕓 '+(lang=='ar'?'الرحلات السابقة':lang=='en'?'Past rides':'Sorties passées')+' ('+nPast+')'}</button></div>`;
  }else if(tab==3){m.innerHTML=groupsView(t)}else if(tab==4){m.innerHTML=routeView(t)}else if(tab==6){m.innerHTML=window.mrRideView?window.mrRideView(t):''}else if(tab==5){m.innerHTML=logView(t)}else{
   const fl=(cur,key,list,lab)=>list.map(x=>`<button class="g ${cur==x?'on':''}" data-${key}="${x}">${t[lab[x]]}</button>`).join('');
   const l=S.annonces.filter(a=>(fT=='all'||a.ty==fT)&&(fC=='all'||a.cat==fC)&&!S.rep.includes(a.id)&&(!fF||S.fav.includes(a.id))&&(!q||(a.t+' '+a.de+' '+a.v).toLowerCase().includes(q)));
@@ -721,9 +722,9 @@ render();
 (function(){
 const U='https://ixtqlxltwuktpdznbhnx.supabase.co',K='sb_publishable_PKw5lXyvnQCgUT_5S1r__w_HW2gbW-K';
 const TX={
-fr:{acc:'Mon compte',in:'Connexion',up:'Créer un compte',fn:'Prénom',em:'E-mail',pw:'Mot de passe (6 caractères min.)',go_in:'Se connecter',go_up:'Créer mon compte',sw_in:'J’ai déjà un compte',sw_up:'Pas encore de compte ?',out:'Se déconnecter',close:'Fermer',hi:'Connecté :',chk:'Compte créé. Vérifie ta boîte e-mail pour confirmer, puis connecte-toi.',off:'Connexion indisponible ici. Ouvre l’app depuis son lien Netlify.',wait:'…',need:'Remplis tous les champs.'},
-ar:{acc:'حسابي',in:'تسجيل الدخول',up:'إنشاء حساب',fn:'الاسم الأول',em:'البريد الإلكتروني',pw:'كلمة المرور (6 أحرف على الأقل)',go_in:'دخول',go_up:'إنشاء حسابي',sw_in:'لدي حساب بالفعل',sw_up:'ليس لدي حساب؟',out:'تسجيل الخروج',close:'إغلاق',hi:'متصل:',chk:'تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.',off:'تسجيل الدخول غير متاح هنا. افتح التطبيق من رابط Netlify.',wait:'…',need:'املأ كل الحقول.'},
-en:{acc:'My account',in:'Log in',up:'Create account',fn:'First name',em:'Email',pw:'Password (min. 6 characters)',go_in:'Log in',go_up:'Create my account',sw_in:'I already have an account',sw_up:'No account yet?',out:'Log out',close:'Close',hi:'Signed in:',chk:'Account created. Check your email to confirm, then log in.',off:'Login unavailable here. Open the app from its Netlify link.',wait:'…',need:'Fill in all fields.'}};
+fr:{acc:'Mon compte',in:'Connexion',up:'Créer un compte',fn:'Prénom',em:'E-mail',pw:'Mot de passe (6 caractères min.)',go_in:'Se connecter',go_up:'Créer mon compte',sw_in:'J’ai déjà un compte',sw_up:'Pas encore de compte ?',out:'Se déconnecter',close:'Fermer',hi:'Connecté :',chk:'Compte créé. Vérifie ta boîte e-mail pour confirmer, puis connecte-toi.',off:'Connexion indisponible ici. Ouvre l’app depuis son lien Netlify.',wait:'…',need:'Remplis tous les champs.',dl:'Supprimer mon compte',dlq:'Supprimer définitivement ton compte MotoRoute ?\n\nTes groupes (dont tu es le chef), tes sorties, tes participations, ta fiche d’urgence et ton profil seront effacés du serveur. C’est irréversible.',dlq2:'Pour confirmer, écris SUPPRIMER :',dlw:'SUPPRIMER',dlok:'Ton compte et tes données ont été supprimés.'},
+ar:{acc:'حسابي',in:'تسجيل الدخول',up:'إنشاء حساب',fn:'الاسم الأول',em:'البريد الإلكتروني',pw:'كلمة المرور (6 أحرف على الأقل)',go_in:'دخول',go_up:'إنشاء حسابي',sw_in:'لدي حساب بالفعل',sw_up:'ليس لدي حساب؟',out:'تسجيل الخروج',close:'إغلاق',hi:'متصل:',chk:'تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.',off:'تسجيل الدخول غير متاح هنا. افتح التطبيق من رابط Netlify.',wait:'…',need:'املأ كل الحقول.',dl:'حذف حسابي',dlq:'هل تريد حذف حسابك في MotoRoute نهائيًا؟\n\nستُحذف من الخادم مجموعاتك (التي أنشأتها) ورحلاتك ومشاركاتك وبطاقة الطوارئ وملفك الشخصي. لا يمكن التراجع.',dlq2:'للتأكيد، اكتب SUPPRIMER :',dlw:'SUPPRIMER',dlok:'تم حذف حسابك وبياناتك.'},
+en:{acc:'My account',in:'Log in',up:'Create account',fn:'First name',em:'Email',pw:'Password (min. 6 characters)',go_in:'Log in',go_up:'Create my account',sw_in:'I already have an account',sw_up:'No account yet?',out:'Log out',close:'Close',hi:'Signed in:',chk:'Account created. Check your email to confirm, then log in.',off:'Login unavailable here. Open the app from its Netlify link.',wait:'…',need:'Fill in all fields.',dl:'Delete my account',dlq:'Permanently delete your MotoRoute account?\n\nYour groups (that you lead), your rides, your participations, your emergency card and your profile will be erased from the server. This cannot be undone.',dlq2:'To confirm, type SUPPRIMER:',dlw:'SUPPRIMER',dlok:'Your account and your data have been deleted.'}};
 const t=k=>(TX[lang]||TX.fr)[k],esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let sb=null,mode='in',user=null,msg='';
 try{sb=window.supabase.createClient(U,K)}catch(e){}
@@ -733,13 +734,22 @@ document.querySelector('.tools').insertBefore(b,document.getElementById('help'))
 const nm=u=>(u&&u.user_metadata&&u.user_metadata.first_name)||(u&&u.email)||'';
 const mark=()=>{b.textContent=user?'🔑 '+esc(nm(user)).slice(0,8):'🔑'};
 const draw=()=>{
-if(user){d.innerHTML='<h2 class="dt">'+t('acc')+'</h2><p class="meta">'+t('hi')+' <b>'+esc(nm(user))+'</b><br>'+esc(user.email||'')+'</p><div class="acts"><button class="g" data-x>'+t('close')+'</button><button class="p" data-o>'+t('out')+'</button></div>';return}
+if(user){d.innerHTML='<h2 class="dt">'+t('acc')+'</h2><p class="meta">'+t('hi')+' <b>'+esc(nm(user))+'</b><br>'+esc(user.email||'')+'</p><div class="acts"><button class="g" data-x>'+t('close')+'</button><button class="p" data-o>'+t('out')+'</button></div>'+(msg?'<p class="meta" style="margin-top:10px">'+esc(msg)+'</p>':'')+'<p style="text-align:center;margin-top:18px"><a class="lnk" href="#" data-dl style="color:#d7263d">🗑 '+t('dl')+'</a></p>';return}
 const up=mode=='up';
 d.innerHTML='<h2 class="dt">'+t(up?'up':'in')+'</h2>'+(up?'<label>'+t('fn')+'</label><input id="a_n" autocomplete="given-name">':'')+'<label>'+t('em')+'</label><input id="a_e" type="email" inputmode="email" autocomplete="email"><label>'+t('pw')+'</label><input id="a_p" type="password" autocomplete="'+(up?'new-password':'current-password')+'">'+(msg?'<p class="meta" style="margin-top:10px">'+esc(msg)+'</p>':'')+'<div class="acts"><button class="g" data-x>'+t('close')+'</button><button class="p" data-go>'+t(up?'go_up':'go_in')+'</button></div><p style="text-align:center;margin-top:12px"><a class="lnk" href="#" data-sw>'+t(up?'sw_in':'sw_up')+'</a></p>'};
 const show=()=>{msg='';draw();if(!d.open)d.showModal()};
 b.onclick=show;
 d.onclick=async e=>{
-const x=e.target.closest('[data-x],[data-o],[data-go],[data-sw]');if(!x)return;e.preventDefault();
+const x=e.target.closest('[data-x],[data-o],[data-go],[data-sw],[data-dl]');if(!x)return;e.preventDefault();
+if(x.hasAttribute('data-dl')){
+ if(!sb||!user)return;
+ if(!confirm(t('dlq')))return;
+ const w=prompt(t('dlq2'),'');if(w==null||w.trim().toUpperCase()!=t('dlw'))return;
+ x.textContent=t('wait');
+ const r=await sb.rpc('delete_my_account');
+ if(r.error){const m=String(r.error.message||'');msg=/Could not find the function|PGRST202|schema cache/i.test(m+(r.error.code||''))?(lang=='ar'?'الخادم غير جاهز بعد: نفّذ سكربت SQL «suppression» في Supabase.':lang=='en'?'The server is not ready yet: run the “suppression” SQL script in Supabase.':'Le serveur n’est pas encore prêt : exécute le script SQL « suppression » dans Supabase.'):m;draw();return}
+ try{await sb.auth.signOut({scope:'local'})}catch(e2){}
+ user=null;mark();d.close();alert(t('dlok'));return}
 if(x.hasAttribute('data-x')){d.close();return}
 if(x.hasAttribute('data-sw')){mode=mode=='in'?'up':'in';msg='';draw();return}
 if(!sb){msg=t('off');draw();return}
@@ -1175,6 +1185,62 @@ render();
 })();
 </script>
 <!-- ===================== fin MotoRoute Plus ===================== -->
+<!-- ===================== Suppression : sorties, groupes ===================== -->
+<style>
+main{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+button.g.mr-danger{color:#d7263d;border-color:rgba(215,38,61,.55)}
+.mr-delrow{display:flex;justify-content:flex-end;margin-top:10px}
+[dir=rtl] .mr-delrow{justify-content:flex-start}
+</style>
+<script>
+(function(){
+const W=(f,a,e)=>lang=='ar'?a:lang=='en'?e:f;
+const sbc=()=>window.mrSb||null,me=()=>(window.mrUser&&window.mrUser())||null;
+const main=document.getElementById('main');
+const notReady=()=>W('Le serveur n’est pas encore prêt pour la suppression : exécute le script SQL « suppression » dans Supabase (SQL Editor).','الخادم غير جاهز بعد للحذف: نفّذ سكربت SQL «suppression» في Supabase.','The server is not ready for deleting yet: run the “suppression” SQL script in Supabase (SQL Editor).');
+const fail=e=>{const m=String((e&&e.message)||e||'');alert(/Could not find the function|PGRST202|schema cache/i.test(m+((e&&e.code)||''))?notReady():m||W('Erreur réseau.','خطأ في الشبكة.','Network error.'))};
+const gOf=id=>S.groups.find(x=>String(x.id)==String(id));
+const canRide=s=>!s.srv||(me()&&(s.creator||(gOf(s.g)&&gOf(s.g).owner)));
+const canGroup=g=>!g.srv||(me()&&g.owner);
+const btn=(k,v,txt)=>`<div class="mr-delrow"><button class="g mr-danger" data-${k}="${v}">🗑 ${txt}</button></div>`;
+function post(){
+ if(tab==1){
+  main.querySelectorAll('button[data-j]').forEach(b=>{
+   const s=S.sorties.find(x=>String(x.id)==b.dataset.j),c=b.closest('.card');
+   if(!s||!c||c.querySelector('[data-rdel]')||!canRide(s))return;
+   c.insertAdjacentHTML('beforeend',btn('rdel',s.id,W('Supprimer la sortie','حذف الرحلة','Delete ride')));
+  });
+ }else if(tab==3&&gid){
+  const g=gOf(gid);
+  if(g&&canGroup(g)&&!main.querySelector('[data-gdel]'))main.insertAdjacentHTML('beforeend',`<div class="card">${btn('gdel',g.id,W('Supprimer le groupe','حذف المجموعة','Delete group'))}</div>`);
+ }
+}
+const _r=render;render=function(){const r=_r.apply(this,arguments);try{post()}catch(e){console.error('del',e)}return r};
+main.addEventListener('click',async e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const D=b.dataset;
+ if(D.past!==undefined){e.stopImmediatePropagation();window.mrShowPast=!window.mrShowPast;render();window.scrollTo(0,0);return}
+ if(D.rdel!==undefined){
+  e.stopImmediatePropagation();
+  const s=S.sorties.find(x=>String(x.id)==D.rdel);if(!s)return;
+  if(!confirm(W('Supprimer la sortie « '+s.t+' » ?'+(s.srv?'\nElle disparaîtra pour tous les participants.':''),'هل تريد حذف الرحلة «'+s.t+'»؟'+(s.srv?'\nستختفي عند جميع المشاركين.':''),'Delete the ride “'+s.t+'”?'+(s.srv?'\nIt will disappear for all participants.':''))))return;
+  if(s.srv){b.disabled=true;const r=await sbc().rpc('delete_ride',{p_ride:String(s.uid)});b.disabled=false;if(r.error){fail(r.error);return}S.sorties=S.sorties.filter(x=>x!==s);save();render();if(window.mrSync)await window.mrSync();return}
+  S.sorties=S.sorties.filter(x=>x!==s);save();render();return;
+ }
+ if(D.gdel!==undefined){
+  e.stopImmediatePropagation();
+  const g=gOf(D.gdel);if(!g)return;
+  if(!confirm(W('Supprimer le groupe « '+g.name+' » ?\nSes sorties'+(g.srv?', ses membres et sa discussion':' et ses souvenirs')+' seront aussi supprimés. C’est irréversible.','هل تريد حذف المجموعة «'+g.name+'»؟\nستُحذف أيضًا رحلاتها'+(g.srv?' وأعضاؤها ومحادثتها':' وذكرياتها')+'. لا يمكن التراجع.','Delete the group “'+g.name+'”?\nIts rides'+(g.srv?', members and chat':' and memories')+' will also be deleted. This cannot be undone.')))return;
+  if(g.srv){b.disabled=true;const r=await sbc().rpc('delete_group',{p_group:String(g.uid)});b.disabled=false;if(r.error){fail(r.error);return}}
+  else S.mems=S.mems.filter(m=>String(m.g)!=String(g.id));
+  S.sorties=S.sorties.filter(x=>String(x.g)!=String(g.id));S.groups=S.groups.filter(x=>x!==g);gid=null;save();render();
+  if(g.srv&&window.mrSync)await window.mrSync();
+  return;
+ }
+},true);
+render();
+})();
+</script>
 
 </body>
 </html>
