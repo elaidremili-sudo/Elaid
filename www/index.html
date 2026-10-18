@@ -1293,5 +1293,263 @@ const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sy
 document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}</style>');
 })();
 </script>
+<script>
+/* ===== Vitrines partenaires + Espace annonceur (démo) + icônes de la barre du bas — test-10 ===== */
+(function(){
+const K='mr_vitrines_v1';
+const T={
+fr:{see:'Voir la vitrine',manage:'Espace annonceur',official:'Partenaire officiel MotoRoute',promos:'Promotions',news:'Nouveautés',prods:'Produits',interested:'Je suis intéressé',until:'jusqu’au',ex:'Exemple',empty:'Ce partenaire n’a encore rien publié.',nophone:'Le numéro du partenaire n’est pas encore renseigné.',call:'Appeler',wa:'WhatsApp',route:'Itinéraire',close:'Fermer',hours:'Horaires',
+ demo:'Mode démonstration : en version finale, seul le compte du partenaire pourra modifier sa vitrine. Pour l’instant, tout reste sur ce téléphone.',
+ dash:'Statistiques',shop:'Ma vitrine',pub:'Publier',views:'Vues de la vitrine',waC:'Clics WhatsApp',callC:'Appels',routeC:'Itinéraires',items:'Publications',
+ about:'Présentation',phone:'Téléphone (WhatsApp)',addr:'Adresse',save:'Enregistrer',saved:'Enregistré ✓',
+ type:'Type',t_prod:'Produit',t_promo:'Promotion',t_news:'Nouveauté',title:'Titre',price:'Prix (DA)',old:'Ancien prix (DA)',photo:'Photo',desc:'Description',end:'Fin de la promotion',feat:'À la une (visible sur la carte du partenaire)',publish:'Publier',del:'Supprimer',edit:'Modifier',preview:'Aperçu client',cancel:'Annuler',update:'Mettre à jour',
+ needTitle:'Ajoute au moins un titre.',confirmDel:'Supprimer cette publication ?',featured:'À la une',tip:'Astuce : une promotion avec photo et date de fin attire plus de clics.',
+ wamsg:'Bonjour {p}, j’ai vu « {i} » sur MotoRoute. Est-ce encore disponible ?',cur:'DA',reset:'Remettre la démo à zéro',resetQ:'Effacer les publications et les statistiques de cette vitrine ?',full:'Mémoire du téléphone pleine : utilise une photo plus petite ou supprime une publication.',none:'Aucune publication pour l’instant.'},
+ar:{see:'عرض المتجر',manage:'فضاء المعلن',official:'شريك رسمي لـ MotoRoute',promos:'عروض',news:'جديد',prods:'منتجات',interested:'أنا مهتم',until:'حتى',ex:'مثال',empty:'لم ينشر هذا الشريك شيئًا بعد.',nophone:'رقم الشريك غير متوفر بعد.',call:'اتصال',wa:'واتساب',route:'الطريق',close:'إغلاق',hours:'أوقات العمل',
+ demo:'وضع تجريبي: في النسخة النهائية، حساب الشريك وحده يمكنه تعديل متجره. حاليًا تبقى كل البيانات على هذا الهاتف.',
+ dash:'الإحصاءات',shop:'متجري',pub:'نشر',views:'مشاهدات المتجر',waC:'نقرات واتساب',callC:'مكالمات',routeC:'طلبات الطريق',items:'المنشورات',
+ about:'تقديم',phone:'الهاتف (واتساب)',addr:'العنوان',save:'حفظ',saved:'تم الحفظ ✓',
+ type:'النوع',t_prod:'منتج',t_promo:'عرض',t_news:'جديد',title:'العنوان',price:'السعر (دج)',old:'السعر القديم (دج)',photo:'صورة',desc:'الوصف',end:'نهاية العرض',feat:'مميز (يظهر على بطاقة الشريك)',publish:'نشر',del:'حذف',edit:'تعديل',preview:'معاينة الزبون',cancel:'إلغاء',update:'تحديث',
+ needTitle:'أضف عنوانًا على الأقل.',confirmDel:'حذف هذا المنشور؟',featured:'مميز',tip:'نصيحة: عرض مع صورة وتاريخ نهاية يجذب نقرات أكثر.',
+ wamsg:'مرحبًا {p}، رأيت «{i}» على MotoRoute. هل ما زال متوفرًا؟',cur:'دج',reset:'إعادة تعيين العرض التجريبي',resetQ:'مسح منشورات وإحصاءات هذا المتجر؟',full:'ذاكرة الهاتف ممتلئة: استعمل صورة أصغر أو احذف منشورًا.',none:'لا توجد منشورات حاليًا.'},
+en:{see:'View shop',manage:'Advertiser space',official:'Official MotoRoute partner',promos:'Promotions',news:'New arrivals',prods:'Products',interested:'I’m interested',until:'until',ex:'Example',empty:'This partner hasn’t posted anything yet.',nophone:'The partner’s number hasn’t been added yet.',call:'Call',wa:'WhatsApp',route:'Directions',close:'Close',hours:'Opening hours',
+ demo:'Demo mode: in the final version, only the partner’s account will be able to edit its shop. For now, everything stays on this phone.',
+ dash:'Stats',shop:'My shop',pub:'Post',views:'Shop views',waC:'WhatsApp clicks',callC:'Calls',routeC:'Directions',items:'Posts',
+ about:'About',phone:'Phone (WhatsApp)',addr:'Address',save:'Save',saved:'Saved ✓',
+ type:'Type',t_prod:'Product',t_promo:'Promotion',t_news:'New arrival',title:'Title',price:'Price (DA)',old:'Old price (DA)',photo:'Photo',desc:'Description',end:'Promotion ends',feat:'Featured (shown on the partner card)',publish:'Post',del:'Delete',edit:'Edit',preview:'Customer preview',cancel:'Cancel',update:'Update',
+ needTitle:'Add at least a title.',confirmDel:'Delete this post?',featured:'Featured',tip:'Tip: a promotion with a photo and an end date gets more clicks.',
+ wamsg:'Hello {p}, I saw “{i}” on MotoRoute. Is it still available?',cur:'DA',reset:'Reset the demo',resetQ:'Erase this shop’s posts and statistics?',full:'Phone storage is full: use a smaller photo or delete a post.',none:'No posts yet.'}};
+const D=()=>T[lang]||T.fr;
+const h=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const day=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ---------- données (sur le téléphone pour la démo) ---------- */
+let DB={};try{DB=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch(e){DB={}}
+function save(){try{localStorage.setItem(K,JSON.stringify(DB));return true}catch(e){alert(D().full);return false}}
+function seedFor(name){
+ if(name!=='Simou Cycle')return[];
+ return[
+  {id:uid(),kind:'promo',title:'Révision complète',price:6500,old:8500,desc:'Vidange, filtres, chaîne et freins contrôlés. Offre réservée aux membres MotoRoute.',until:day(14),feat:true,ex:true},
+  {id:uid(),kind:'news',title:'Nouvel arrivage de casques',desc:'Casques intégraux et modulables homologués, toutes tailles.',feat:true,ex:true},
+  {id:uid(),kind:'prod',title:'Gants été ventilés',price:4500,ex:true},
+  {id:uid(),kind:'prod',title:'Kit chaîne + pignons',price:12000,ex:true},
+  {id:uid(),kind:'prod',title:'Pneus route (la paire)',price:28000,ex:true},
+  {id:uid(),kind:'prod',title:'Blouson renforcé',price:19500,old:23000,ex:true}];
+}
+function get(p){
+ if(!DB[p.name])DB[p.name]={about:'',phone:p.phone||'',addr:p.addr||'',hours:'',items:seedFor(p.name),stats:{views:0,wa:0,call:0,route:0}};
+ return DB[p.name];
+}
+const partners=()=>(typeof PARTNERS!=='undefined'?PARTNERS:[]);
+const pAt=i=>partners()[+i];
+const money=n=>(Number(n)||0).toLocaleString(lang=='ar'?'ar-DZ':lang=='en'?'en-GB':'fr-FR')+' '+D().cur;
+const promoOn=i=>i.kind=='promo'&&(!i.until||i.until>=new Date().toISOString().slice(0,10));
+const pct=i=>i.old&&i.price&&+i.old>+i.price?Math.round((1-i.price/i.old)*100):0;
+const fdate=s=>{try{return new Date(s+'T12:00').toLocaleDateString(lang=='ar'?'ar-DZ':lang=='en'?'en-GB':'fr-FR',{day:'numeric',month:'long'})}catch(e){return s}};
+const ICO={prod:'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',promo:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',news:'<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'};
+const pic=(i,cls)=>i.img?`<img class="${cls}" src="${h(i.img)}" alt="">`:`<div class="${cls} vt-ph vt-${i.kind}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICO[i.kind]||ICO.prod}</svg></div>`;
+function waLink(p,v,item){
+ const ph=(v.phone||'').replace(/\D/g,'');if(!ph)return'';
+ const msg=item?D().wamsg.replace('{p}',p.name).replace('{i}',item.title):'';
+ return 'https://wa.me/'+ph+(msg?'?text='+encodeURIComponent(msg):'');
+}
+const mapLink=(p,v)=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+(v.addr||p.city||''));
+
+/* ---------- carte partenaire dans « Annonces » ---------- */
+partnersHtml=function(t){
+ const d=D();
+ return `<div class="meta" style="color:#fff;font-weight:600;margin:4px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+partners().map((p,ix)=>{
+  if(p.slot)return `<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${t.slot_name}</h3><div class="meta">${t.slot_txt}</div></div>`;
+  const v=get(p),feat=v.items.filter(i=>i.feat).slice(0,3),hot=v.items.some(promoOn),wl=waLink(p,v);
+  return `<div class="card partner vt-card"><div class="vt-top"><span class="tag a">${t.ad_label}</span>${hot?`<span class="vt-hot">${d.promos}</span>`:''}</div>
+  <h3 style="margin-top:8px">${h(p.name)}</h3><div class="meta">${h(p.kind||'')} · ${h(p.city||'')}</div>
+  ${feat.length?`<div class="vt-strip" data-vt="${ix}">${feat.map(i=>`<div class="vt-mini">${pic(i,'vt-mimg')}<div class="vt-mt">${h(i.title)}</div>${i.price?`<div class="vt-mp">${money(i.price)}</div>`:''}</div>`).join('')}</div>`:''}
+  <div class="vt-acts"><button class="p" data-vt="${ix}">${d.see}</button>${v.phone?`<a class="lnk" href="tel:${h(v.phone)}" data-vs="${ix}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${ix}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p,v))}" data-vs="${ix}|route">${d.route}</a></div>
+  <button class="vt-admin" data-va="${ix}">⚙ ${d.manage}</button></div>`;
+ }).join('');
+};
+
+/* ---------- boîtes de dialogue ---------- */
+document.body.insertAdjacentHTML('beforeend','<dialog id="vtD" class="mp-dlg vt-dlg"></dialog><dialog id="vaD" class="mp-dlg vt-dlg"></dialog>');
+const vtD=document.getElementById('vtD'),vaD=document.getElementById('vaD');
+let curP=null,vaTab='dash',vaEdit=null,vaImg=null;
+
+function openShop(ix,count){
+ const p=pAt(ix);if(!p)return;curP=+ix;const v=get(p),d=D();
+ if(count!==false){v.stats.views++;save()}
+ const pro=v.items.filter(i=>i.kind=='promo'),nw=v.items.filter(i=>i.kind=='news'),pr=v.items.filter(i=>i.kind=='prod');
+ const card=(i,big)=>{const off=pct(i),wl=waLink(p,v,i);
+  return `<div class="vt-item${big?' big':''}">${pic(i,'vt-img')}<div class="vt-ib">
+  <div class="vt-it">${h(i.title)}${i.ex?` <span class="vt-ex">${d.ex}</span>`:''}</div>
+  ${i.price?`<div class="vt-pr">${money(i.price)}${i.old&&off?` <s>${money(i.old)}</s> <span class="vt-off">-${off} %</span>`:''}</div>`:''}
+  ${i.desc?`<div class="meta">${h(i.desc)}</div>`:''}
+  ${i.kind=='promo'&&i.until?`<div class="vt-until">${promoOn(i)?'⏳ '+d.until+' '+fdate(i.until):'⌛ '+fdate(i.until)}</div>`:''}
+  ${wl?`<a class="vt-int" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${ix}|wa">${d.interested}</a>`:`<button class="vt-int" data-vnp="1">${d.interested}</button>`}
+  </div></div>`};
+ const sec=(lab,arr,big)=>arr.length?`<div class="vt-sec">${lab}</div><div class="${big?'vt-list':'vt-grid'}">${arr.map(i=>card(i,big)).join('')}</div>`:'';
+ vtD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">✔ ${d.official}</div><h2>${h(p.name)}</h2><div class="meta">${h(p.kind||'')} · ${h(p.city||'')}</div></div></div>
+ <div class="vt-b">${v.about?`<p class="vt-about">${h(v.about)}</p>`:''}
+ ${v.addr||v.hours?`<div class="meta">${v.addr?'📍 '+h(v.addr):''}${v.addr&&v.hours?'<br>':''}${v.hours?'🕘 '+h(v.hours):''}</div>`:''}
+ <div class="vt-acts">${v.phone?`<a class="lnk" href="tel:${h(v.phone)}" data-vs="${ix}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(waLink(p,v))}" data-vs="${ix}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p,v))}" data-vs="${ix}|route">${d.route}</a></div>
+ ${v.items.length?sec(d.promos,pro,true)+sec(d.news,nw,true)+sec(d.prods,pr,false):`<div class="empty">${d.empty}</div>`}</div>
+ <div class="vt-f"><button class="g" data-vclose="vtD">${d.close}</button></div>`;
+ if(!vtD.open)vtD.showModal();vtD.querySelector('.vt-b').scrollTop=0;
+}
+
+function openAdmin(ix){curP=+ix;vaTab='dash';vaEdit=null;vaImg=null;drawAdmin();if(!vaD.open)vaD.showModal()}
+function drawAdmin(){
+ const p=pAt(curP);if(!p)return;const v=get(p),d=D(),s=v.stats;
+ const tabs=['dash','shop','pub'].map(k=>`<button class="${vaTab==k?'on':''}" data-vtab="${k}">${d[k]}</button>`).join('');
+ let body='';
+ if(vaTab=='dash'){
+  const st=(n,l)=>`<div class="vt-stat"><b>${n}</b><span>${l}</span></div>`;
+  body=`<div class="vt-stats">${st(s.views,d.views)}${st(s.wa,d.waC)}${st(s.call,d.callC)}${st(s.route,d.routeC)}</div>
+  <div class="meta" style="margin:10px 0">${d.tip}</div>
+  <div class="vt-sec">${d.items} (${v.items.length})</div>
+  ${v.items.length?v.items.map(i=>`<div class="vt-row">${pic(i,'vt-rimg')}<div class="vt-rb"><div class="vt-it">${h(i.title)}</div><div class="meta">${d['t_'+i.kind]}${i.price?' · '+money(i.price):''}${i.feat?' · ★ '+d.featured:''}</div></div>
+  <div class="vt-rbtn"><button class="g" data-vfeat="${i.id}" title="${d.featured}">${i.feat?'★':'☆'}</button><button class="g" data-vedit="${i.id}">${d.edit}</button><button class="g" data-vdel="${i.id}">${d.del}</button></div></div>`).join(''):`<div class="meta">${d.none}</div>`}
+  <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="g" data-vreset="1">${d.reset}</button></div>`;
+ }else if(vaTab=='shop'){
+  body=`<label>${d.about}</label><textarea id="va_ab" rows="3">${h(v.about)}</textarea>
+  <label>${d.phone}</label><input id="va_ph" inputmode="tel" placeholder="+213…" value="${h(v.phone)}">
+  <label>${d.addr}</label><input id="va_ad" value="${h(v.addr)}">
+  <label>${d.hours}</label><input id="va_hr" placeholder="Sam–Jeu 9h–18h" value="${h(v.hours)}">
+  <div class="row" style="justify-content:flex-end;margin-top:12px"><span id="va_ok" class="meta"></span><button class="p" data-vsaveshop="1">${d.save}</button></div>`;
+ }else{
+  const e=vaEdit?v.items.find(i=>i.id==vaEdit):null,k=e?e.kind:'promo';
+  const shown=vaImg!==null?vaImg:(e&&e.img)||'';
+  body=`<label>${d.type}</label><div class="vt-seg" id="va_ty">${['promo','prod','news'].map(x=>`<button class="${k==x?'on':''}" data-vty="${x}">${d['t_'+x]}</button>`).join('')}</div>
+  <label>${d.title}</label><input id="va_t" maxlength="60" value="${h(e?e.title:'')}">
+  <div class="vt-2"><div><label>${d.price}</label><input id="va_p" inputmode="numeric" value="${h(e&&e.price?e.price:'')}"></div><div class="vt-old"><label>${d.old}</label><input id="va_o" inputmode="numeric" value="${h(e&&e.old?e.old:'')}"></div></div>
+  <label>${d.photo}</label><div class="vt-pick">${shown?`<img src="${h(shown)}" alt="">`:''}<input id="va_img" type="file" accept="image/*"></div>
+  <label>${d.desc}</label><textarea id="va_d" rows="3" maxlength="300">${h(e?e.desc||'':'')}</textarea>
+  <div class="vt-end"><label>${d.end}</label><input id="va_e" type="date" value="${h(e&&e.until?e.until:day(14))}"></div>
+  <label class="vt-chk"><input id="va_f" type="checkbox" ${!e||e.feat?'checked':''}> ${d.feat}</label>
+  <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px">${e?`<button class="g" data-vcancel="1">${d.cancel}</button>`:''}<button class="p" data-vpub="1">${e?d.update:d.publish}</button></div>`;
+ }
+ vaD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">⚙ ${d.manage}</div><h2>${h(p.name)}</h2></div></div>
+ <div class="vt-b"><div class="vt-demo">${d.demo}</div><div class="vt-seg vt-tabs">${tabs}</div>${body}</div>
+ <div class="vt-f"><button class="g" data-vprev="1">👁 ${d.preview}</button><button class="g" data-vclose="vaD">${d.close}</button></div>`;
+ if(vaTab=='pub')setKind(vaD.querySelector('#va_ty .on').dataset.vty);
+}
+function setKind(k){
+ vaD.querySelectorAll('[data-vty]').forEach(b=>b.classList.toggle('on',b.dataset.vty==k));
+ const o=vaD.querySelector('.vt-old'),e=vaD.querySelector('.vt-end');
+ if(o)o.style.display=k=='news'?'none':'';if(e)e.style.display=k=='promo'?'':'none';
+ const pr=vaD.querySelector('#va_p');if(pr)pr.closest('div').style.display=k=='news'?'none':'';
+}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.78))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+const refresh=()=>{try{if(tab==2)render()}catch(e){}};
+
+document.addEventListener('change',async ev=>{
+ if(ev.target.id!=='va_img'||!ev.target.files[0])return;
+ try{vaImg=await shrink(ev.target.files[0]);const box=vaD.querySelector('.vt-pick');let im=box.querySelector('img');if(!im){im=document.createElement('img');box.prepend(im)}im.src=vaImg}catch(e){console.error('vt img',e)}
+});
+document.addEventListener('click',ev=>{
+ const el=ev.target.closest('[data-vt],[data-va],[data-vs],[data-vnp],[data-vclose],[data-vtab],[data-vty],[data-vpub],[data-vcancel],[data-vedit],[data-vdel],[data-vfeat],[data-vsaveshop],[data-vprev],[data-vreset]');
+ if(!el)return;const ds=el.dataset,d=D();
+ if(ds.vs){const[ix,k]=ds.vs.split('|'),p=pAt(ix);if(p){get(p).stats[k]++;save()}return}
+ ev.preventDefault();
+ if(ds.vt!==undefined){openShop(ds.vt);return}
+ if(ds.va!==undefined){openAdmin(ds.va);return}
+ if(ds.vnp){alert(d.nophone);return}
+ if(ds.vclose){document.getElementById(ds.vclose).close();refresh();return}
+ if(ds.vprev){openShop(curP,false);return}
+ const p=pAt(curP);if(!p)return;const v=get(p);
+ if(ds.vtab){vaTab=ds.vtab;vaEdit=null;vaImg=null;drawAdmin();return}
+ if(ds.vty){setKind(ds.vty);return}
+ if(ds.vcancel){vaEdit=null;vaImg=null;drawAdmin();return}
+ if(ds.vedit){vaEdit=ds.vedit;vaImg=null;vaTab='pub';drawAdmin();return}
+ if(ds.vfeat){const i=v.items.find(x=>x.id==ds.vfeat);if(i){i.feat=!i.feat;save();drawAdmin()}return}
+ if(ds.vdel){if(confirm(d.confirmDel)){v.items=v.items.filter(x=>x.id!=ds.vdel);save();drawAdmin()}return}
+ if(ds.vreset){if(confirm(d.resetQ)){delete DB[p.name];save();get(p);save();drawAdmin()}return}
+ if(ds.vsaveshop){v.about=vaD.querySelector('#va_ab').value.trim();v.phone=vaD.querySelector('#va_ph').value.trim();v.addr=vaD.querySelector('#va_ad').value.trim();v.hours=vaD.querySelector('#va_hr').value.trim();if(save())vaD.querySelector('#va_ok').textContent=d.saved;return}
+ if(ds.vpub){
+  const q=id=>vaD.querySelector(id),title=q('#va_t').value.trim();if(!title){alert(d.needTitle);return}
+  const kind=q('#va_ty .on').dataset.vty,num=x=>+(String(x).replace(/\D/g,''))||0;
+  const it={id:vaEdit||uid(),kind,title,desc:q('#va_d').value.trim(),feat:q('#va_f').checked,
+   price:kind=='news'?0:num(q('#va_p').value),old:kind=='news'?0:num(q('#va_o').value),until:kind=='promo'?q('#va_e').value:''};
+  const prev=vaEdit?v.items.find(x=>x.id==vaEdit):null;it.img=vaImg!==null?vaImg:(prev&&prev.img)||'';
+  const before=JSON.stringify(v.items);
+  v.items=prev?v.items.map(x=>x.id==vaEdit?it:x):[it].concat(v.items);
+  if(!save()){v.items=JSON.parse(before);return}
+  vaEdit=null;vaImg=null;vaTab='dash';drawAdmin();return;
+ }
+});
+
+/* ---------- styles ---------- */
+const svg=(b)=>'url("data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`)+'")';
+const NAV={
+ t1:'<path d="M3.5 21L10.2 4M20.5 21L13.8 4"/><path d="M12 20v-2.6M12 14v-2.2M12 8.6V7"/>',
+ t2:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.4"/>',
+ t3:'<path d="M12 3l7.5 3v5.2c0 4.6-3.2 8.3-7.5 9.8-4.3-1.5-7.5-5.2-7.5-9.8V6z"/><path d="M8.8 11.2L12 9l3.2 2.2M8.8 14.6L12 12.4l3.2 2.2"/>',
+ t4:'<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.3 4.9-4.9 2.3 2.3-4.9z"/>',
+ t6:'<path d="M4.3 17.5a8.5 8.5 0 1 1 15.4 0"/><path d="M12 6.6v1.6M6.4 9.2l1.1 1.1M17.6 9.2l-1.1 1.1M4.6 13.6h1.5M17.9 13.6h1.5"/><path d="M12 15.2l3.6-4.1"/><circle cx="12" cy="15.2" r="1.3"/>',
+ t5:'<path d="M5 19.5V5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2 2 2 0 0 0 2 2h12"/><path d="M14 3v6.5l-1.75-1.3L10.5 9.5V3"/>'};
+const css=Object.keys(NAV).map(k=>`nav button#${k}::before{content:"";--ic:${svg(NAV[k])}}`).join('')+`
+nav button::before{width:23px;height:23px}
+.vt-card .vt-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vt-hot{font:700 11px Barlow,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#1b1f24;background:linear-gradient(135deg,#ffd33d,#f29b05);padding:4px 9px;border-radius:999px}
+.vt-strip{display:flex;gap:8px;overflow-x:auto;margin:12px 0 4px;padding-bottom:4px;cursor:pointer;scrollbar-width:none}
+.vt-strip::-webkit-scrollbar{display:none}
+.vt-mini{flex:0 0 118px;background:rgba(127,127,127,.06);border:1px solid rgba(127,127,127,.22);border-radius:12px;overflow:hidden}
+.vt-mimg{display:block;width:100%;height:74px;object-fit:cover}
+.vt-mt{font:600 13px Barlow,sans-serif;padding:6px 8px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vt-mp{font:700 12px Barlow,sans-serif;color:var(--ink);opacity:.8;padding:0 8px 7px}
+.vt-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}
+.vt-acts .p{padding:9px 16px}
+.vt-admin{display:block;margin:12px 0 0 auto;background:none;border:0;color:inherit;opacity:.6;font:600 12px Barlow,sans-serif;padding:4px 0;letter-spacing:.02em}
+.vt-dlg .vt-h{padding:18px 18px 12px;border-bottom:1px solid rgba(127,127,127,.2)}
+.vt-dlg .vt-h h2{margin:4px 0 2px;font-size:24px}
+.vt-off-badge{font:700 11px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#b86e00;color:color-mix(in srgb,var(--acc) 60%,var(--ink))}
+.vt-dlg .vt-b{padding:14px 18px;overflow:auto;flex:1}
+.vt-dlg .vt-f{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid rgba(127,127,127,.2)}
+.vt-about{margin:0 0 8px;line-height:1.45}
+.vt-sec{font:700 12px Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin:18px 0 8px}
+.vt-list{display:flex;flex-direction:column;gap:10px}
+.vt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vt-item{border:1px solid rgba(127,127,127,.22);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.vt-img{display:block;width:100%;height:120px;object-fit:cover}
+.vt-item.big .vt-img{height:160px}.vt-item .vt-ph.vt-img{height:96px}
+.vt-ph{display:flex;align-items:center;justify-content:center}
+.vt-ph svg{width:38px;height:38px;opacity:.8}
+.vt-promo{background:linear-gradient(135deg,#3a1d0b,#a85a07);color:#ffd9a0}
+.vt-news{background:linear-gradient(135deg,#0f2a2a,#1f6b66);color:#b6f0e6}
+.vt-prod{background:linear-gradient(135deg,#1e2329,#3a434d);color:#cfd6dd}
+.vt-ib{padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.vt-it{font:700 15px Barlow,sans-serif;line-height:1.25}
+.vt-ex{font:600 10px Barlow,sans-serif;text-transform:uppercase;letter-spacing:.06em;border:1px solid currentColor;opacity:.55;border-radius:6px;padding:1px 5px;vertical-align:middle}
+.vt-pr{font:700 16px Barlow,sans-serif;color:var(--ink)}
+.vt-pr s{font-weight:500;font-size:13px;opacity:.55;color:var(--ink)}
+.vt-off{font-size:12px;background:#c62828;color:#fff;border-radius:6px;padding:1px 6px}
+.vt-until{font:600 12px Barlow,sans-serif;opacity:.8}
+.vt-int{margin-top:auto;align-self:flex-start;text-decoration:none;font:700 13px Barlow,sans-serif;color:var(--on-acc,#1b1f24);background:var(--acc);border:0;border-radius:999px;padding:7px 14px}
+.vt-demo{font-size:13px;line-height:1.4;background:rgba(242,155,5,.12);border:1px solid rgba(242,155,5,.4);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.vt-seg{display:flex;gap:4px;background:rgba(127,127,127,.15);border-radius:12px;padding:4px;margin:6px 0 4px}
+.vt-seg button{flex:1;border:0;background:none;color:inherit;font:600 14px Barlow,sans-serif;padding:9px 4px;border-radius:9px}
+.vt-seg button.on{background:var(--acc);color:var(--on-acc,#1b1f24)}
+.vt-tabs{margin-bottom:12px}
+.vt-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vt-stat{border:1px solid rgba(127,127,127,.22);border-radius:12px;padding:12px}
+.vt-stat b{display:block;font:700 28px Barlow,sans-serif;line-height:1}
+.vt-stat span{font-size:12px;opacity:.7}
+.vt-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 0;border-bottom:1px solid rgba(127,127,127,.15)}
+.vt-rimg{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px}
+.vt-rimg svg{width:22px;height:22px}
+.vt-rb{flex:1;min-width:0}.vt-rb .vt-it{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vt-rbtn{display:flex;gap:6px;width:100%;justify-content:flex-end}
+.vt-rbtn .g{padding:6px 9px;font-size:13px}
+.vt-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vt-pick{display:flex;align-items:center;gap:10px}
+.vt-pick img{width:64px;height:64px;border-radius:10px;object-fit:cover}
+.vt-chk{display:flex;align-items:center;gap:8px;margin-top:12px}
+.vt-chk input{width:auto}
+body.mr-ad .vt-dlg{max-height:calc(100dvh - 210px);margin-top:16px}
+`;
+document.head.insertAdjacentHTML('beforeend','<style>'+css+'</style>');
+refresh();
+})();
+</script>
 </body>
 </html>

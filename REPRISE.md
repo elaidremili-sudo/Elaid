@@ -8,8 +8,8 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-9**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-9.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-10**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-10.aab` |
 | Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
 | Images Play Store | dossier `play-store/` (icône 512, bannière 1024×500, 5 captures) |
@@ -28,6 +28,14 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-10 (18/10, soir)
+
+- **Icônes de la barre du bas** redessinées, plus sobres : route, étiquette, blason (Groupes), boussole, compteur, carnet.
+- **Vitrines partenaires** dans Annonces : bouton « Voir la vitrine » (promotions avec prix barré et date de fin, nouveautés, produits, bouton « Je suis intéressé » → WhatsApp avec message prêt), produits « à la une » affichés sur la carte du partenaire.
+- **Espace annonceur (démo)** : lien « ⚙ Espace annonceur » sous chaque partenaire → statistiques (vues, clics WhatsApp, appels, itinéraires), « Ma vitrine » (présentation, téléphone, adresse, horaires), « Publier » (promo / produit / nouveauté avec photo), « Aperçu client ».
+- Simou Cycle a 6 publications marquées « Exemple » pour la démonstration (bouton « Remettre la démo à zéro »).
+- ⚠️ Démo : tout est enregistré sur le téléphone. Pour la vraie version : un compte partenaire sur Supabase (table des vitrines + photos) pour que Simou gère sa vitrine depuis son propre téléphone.
 
 ## Fait le 18 octobre 2026
 
@@ -55,4 +63,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 3. **AdMob** : créer le compte et l'app MotoRoute, puis donner à Claude l'ID d'application et l'ID de bannière (remplacent ceux de test).
 4. ~~E-mails : brancher Brevo~~ ✅ fait et testé le 18/10.
 5. **12 testeurs** (adresses Gmail de motards) pour le test fermé obligatoire de 14 jours.
-6. Idées de la feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges, espace annonceur pour Simou Cycle, icônes de la barre du bas plus « nobles ».
+6. Idées de la feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges, espace annonceur relié au serveur (compte partenaire).
