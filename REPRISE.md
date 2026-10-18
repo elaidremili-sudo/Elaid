@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 18 octobre 2026, 22 h.**
+**Dernière mise à jour : 18 octobre 2026, 22 h 15.**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -57,11 +57,20 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 
 `elaidremilipro@gmail.com` (compte principal dans l'app), `elaidremili@gmail.com` (chef du groupe « Fd »), `elaidremili@yahoo.fr` (débloqué le 18/10). Les deux comptes Zina appartiennent à quelqu'un d'autre.
 
-## À faire ensuite
+## À faire ensuite (ordre conseillé, mis à jour le 18/10 à 22 h 15)
 
-1. **Tester « Sur validation »** : créer un groupe en cochant « Sur validation » avec un compte, demander à rejoindre avec un autre, accepter.
-2. **Google Play** : envoyer un justificatif d'adresse (facture ou relevé à ton nom, même adresse que le compte) → compte validé → suivre la checklist de la fiche.
-3. **AdMob** : créer le compte et l'app MotoRoute, puis donner à Claude l'ID d'application et l'ID de bannière (remplacent ceux de test).
-4. ~~E-mails : brancher Brevo~~ ✅ fait et testé le 18/10.
-5. **12 testeurs** (adresses Gmail de motards) pour le test fermé obligatoire de 14 jours.
-6. Idées de la feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges, espace annonceur relié au serveur (compte partenaire).
+**Elaid, rapidement :**
+1. Installer **test-10** et tester : vitrine Simou, ajout d'une photo dans « Publier », bouton « Je suis intéressé » → WhatsApp, compteur des statistiques.
+2. Tester **« Sur validation »** avec deux comptes (créer le groupe en cochant « Sur validation », demander à rejoindre avec l'autre compte, accepter).
+3. **Montrer la démo à Simou** (avec test-10 : mettre son numéro dans ⚙ Espace annonceur → Ma vitrine ; il est déjà inscrit dans le code pour test-11).
+
+**Publication Google Play (le plus long) :**
+4. **Justificatif d'adresse** pour Google Play (facture ou relevé à son nom, même adresse que le compte) — c'est ce qui bloque tout le reste.
+5. **12 testeurs** (adresses Gmail de motards) pour le test fermé obligatoire de 14 jours — commencer à les rassembler.
+6. **AdMob** : créer le compte et l'app MotoRoute, puis donner à Claude l'ID d'application et l'ID de bannière.
+
+**Claude, quand Elaid le demande :**
+7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
+8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
+
+Prochaine fabrication = **test-11** (contiendra le numéro de Simou). Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
