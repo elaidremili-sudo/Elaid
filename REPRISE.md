@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-26 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
+**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-27 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
@@ -38,6 +38,12 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
 - 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
+## Version test-27 (19/10, 21 h) — comparaison plus facile à trouver
+
+- Elaid ne trouvait pas la comparaison : le bouton n'apparaissait que sur les trajets enregistrés à partir de test-26 (ses anciens n'ont pas de départ/arrivée).
+- Onglet **Conduite**, sous la carte vitesse/inclinaison : nouvelle carte **« 📊 Comparaison du trajet »** qui explique où toucher, dit si aucun trajet n'est encore comparable, et propose **« 👀 Voir un exemple »** (données fictives marquées « Exemple », onglets Mon évolution et Membres).
+- Le bouton « 📊 Comparer » est maintenant visible sous **tous** les trajets ; sur un ancien trajet il explique pourquoi la comparaison est impossible.
 
 ## Version test-26 (19/10, 20 h 40) — comparaison d'un même trajet + pub
 
