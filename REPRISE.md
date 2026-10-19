@@ -30,7 +30,7 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
 
-## Version test-20 (19/10)
+## Version test-22 (19/10)
 
 - **Présentation en vidéos réalistes** : chaque scène (9) a son clip vidéo réaliste en fond, généré par IA (Veo 3.1 Lite, 8 s, vertical) — col de Tikjda à l'aube avec une hyper naked type Z H2 (ouverture), groupe qui monte vers le Djurdjura, club à la station, photo de groupe au sommet, moto orange dans un virage, entraide au coucher du soleil, file de motos sur la crête au crépuscule, boutique moto de village la nuit, survol du Djurdjura au lever du soleil. Fichiers `www/video/scene1.mp4` à `scene9.mp4` (540×960, sans son, 8,4 Mo en tout). Textes, maquettes et voix inchangés ; le décor 3D reste en secours si une vidéo ne se charge pas (et ne tourne plus pendant les vidéos, économie de batterie).
 - Les clips sont arrivés dans le dépôt par l'action GitHub « Récupérer les vidéos de la présentation » (`.github/workflows/videos.yml`, liste `www/video/sources.txt`). Pour remplacer un clip : changer son lien dans `sources.txt`.
