@@ -30,6 +30,12 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
 
+## Version web pour iPhone (19/10, 19 h 45)
+
+- Adresse : **https://elaidremili-sudo.github.io/Elaid/app/** — même app que l'APK (dossier `docs/app` = copie de `www`). Sur iPhone : ouvrir dans **Safari** → bouton Partager → « Sur l'écran d'accueil ».
+- Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
+- Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
 ## Version test-24 (19/10, 19 h 30)
 
 - **Barre du haut complète** (langue, 🔑 compte, ?, 🎨, 🪪, 🎬) : elle était décalée de 14 px vers la gauche en style Futuriste, et trop large sur téléphone → « FR » coupé. Corrigé (marges égales, boutons un peu plus compacts sous 440 px de large), vérifié à 360 et 393 px.
