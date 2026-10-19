@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 17 h 55 — dernière version : test-23 (validée par Elaid).**
+**Dernière mise à jour : 19 octobre 2026, 19 h 30 — dernière version : test-24 (à tester).**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -29,6 +29,12 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-24 (19/10, 19 h 30)
+
+- **Barre du haut complète** (langue, 🔑 compte, ?, 🎨, 🪪, 🎬) : elle était décalée de 14 px vers la gauche en style Futuriste, et trop large sur téléphone → « FR » coupé. Corrigé (marges égales, boutons un peu plus compacts sous 440 px de large), vérifié à 360 et 393 px.
+- **Paysage plein écran** : l'app s'affiche aussi du côté de la caméra (plus de bande noire à gauche) — réglage Android `windowLayoutInDisplayCutoutMode = shortEdges` ajouté par `scripts/patch-android.js` ; marges de sécurité CSS (`safe-area-inset-left/right`) pour la barre du bas et le bouton ＋.
+- **Pub AdMob masquée en paysage** (elle recouvrait la moitié de l'écran et la barre du bas) ; elle revient en portrait.
 
 ## Versions test-22 et test-23 (19/10, soir) — style Futuriste + vidéos dans les rubriques
 

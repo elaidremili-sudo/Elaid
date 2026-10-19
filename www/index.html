@@ -1349,7 +1349,7 @@ const BANNER_ID='ca-app-pub-3940256099942544/6300978111',TESTING=true;
 const A=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.AdMob;
 if(!A())return;
 let ready=false,shown=false,busy=false;
-const want=()=>tab==2||(tab==3&&!gid)||tab==5; // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties
+const want=()=>innerHeight>innerWidth&&(tab==2||(tab==3&&!gid)||tab==5); // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties, ni en paysage (test-24)
 const margin=()=>{const n=document.querySelector('nav');return n?Math.round(n.getBoundingClientRect().height):64};
 async function sync(){
  if(!ready||busy)return;busy=true;
@@ -1359,6 +1359,7 @@ async function sync(){
  }catch(e){console.error('admob',e)}finally{busy=false}
 }
 try{A().addListener('bannerAdSizeChanged',i=>{document.documentElement.style.setProperty('--mu-ad',((i&&i.height)||0)+'px')})}catch(e){}
+addEventListener('resize',()=>setTimeout(sync,350));
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
 document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}</style>');
@@ -2140,5 +2141,24 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
 })();
 </script>
 
+<style>
+/* ===== test-24 : barre du haut toujours complète + écran complet en paysage ===== */
+.tools{justify-content:safe flex-end!important}
+.tools>*{flex:0 0 auto}
+#acct{white-space:nowrap}
+:root[data-ui=futur] .hero .tools{left:auto!important;right:auto!important;inset-inline-end:auto!important;top:14px;
+  margin-left:max(8px,env(safe-area-inset-left,0px));margin-right:max(8px,env(safe-area-inset-right,0px));max-width:none}
+@media (max-width:440px){
+  .tools{gap:4px!important}
+  .tools .hb{width:32px}
+  .tools>.lang{padding:6px 8px}
+  .tools>div.lang{padding:3px!important}
+  .tools>div.lang button{padding:4px 7px!important;font-size:13px!important}
+}
+/* Paysage : l'app occupe tout l'écran, y compris à côté de la caméra */
+body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+:root[data-ui=futur] nav{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px))}
+.fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
+</style>
 </body>
 </html>

@@ -50,3 +50,16 @@ if (!man.includes('com.google.android.gms.ads.APPLICATION_ID')) {
   fs.writeFileSync(path, man);
 }
 console.log('AdMob : ' + (process.env.ADMOB_APP_ID ? 'identifiant MotoRoute' : 'identifiant de test Google'));
+
+// Écran complet en paysage : l'app s'affiche aussi à côté de la caméra (plus de bande noire) — test-24
+const stylesPath = 'android/app/src/main/res/values/styles.xml';
+if (fs.existsSync(stylesPath)) {
+  let st = fs.readFileSync(stylesPath, 'utf8');
+  if (!st.includes('windowLayoutInDisplayCutoutMode')) {
+    st = st.replace(/(<style name="AppTheme\.NoActionBar(?:Launch)?"[^>]*>)/g,
+      '$1\n        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>');
+    if (!st.includes('xmlns:tools')) st = st.replace('<resources>', '<resources xmlns:tools="http://schemas.android.com/tools">');
+    fs.writeFileSync(stylesPath, st);
+  }
+  console.log('Écran complet (encoche/caméra) : activé');
+}
