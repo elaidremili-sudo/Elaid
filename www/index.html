@@ -1619,6 +1619,34 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     {fr:'Rock', ar:'روك', en:'Rock', q:'tag=rock'},
     {fr:'Monde', ar:'العالم', en:'World', q:''}
   ];
+  // Morceaux à la demande : catalogue libre Audius (écoute gratuite, sans compte pour les membres).
+  const AUDIUS = 'https://api.audius.co/v1', AU_APP = 'MotoRoute', AU_KEY = ''; // clé développeur gratuite à coller ici si Audius l'exige
+  const auQ = () => 'app_name=' + AU_APP + (AU_KEY ? '&api_key=' + encodeURIComponent(AU_KEY) : '');
+  let tracks = null, tMsg = '', tLoading = false, tq = '', tchip = 0;
+  const TCHIPS = [
+    {fr:'Tendances', ar:'الرائج', en:'Trending', p:'/tracks/trending?time=week&limit=40'},
+    {fr:'Raï', ar:'الراي', en:'Raï', p:'/tracks/search?query=rai&limit=40'},
+    {fr:'Chaabi', ar:'الشعبي', en:'Chaabi', p:'/tracks/search?query=chaabi&limit=40'},
+    {fr:'Rap', ar:'راب', en:'Rap', p:'/tracks/trending?genre=Hip-Hop%2FRap&time=week&limit=40'},
+    {fr:'Électro', ar:'إلكترو', en:'Electro', p:'/tracks/trending?genre=Electronic&time=week&limit=40'},
+    {fr:'Rock', ar:'روك', en:'Rock', p:'/tracks/trending?genre=Rock&time=week&limit=40'}
+  ];
+  const mmss = s => { s = Math.round(s || 0); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  async function loadTracks(path, label){
+    tLoading = true; tMsg = W3('Recherche des morceaux…','جارٍ البحث عن الأغاني…','Searching tracks…'); rerender();
+    try {
+      const r = await fetch(AUDIUS + path + (path.includes('?') ? '&' : '?') + auQ());
+      if (!r.ok) throw r.status;
+      const j = await r.json();
+      tracks = (j.data || []).filter(x => x && x.id && x.is_streamable !== false && !x.is_stream_gated)
+        .map(x => ({name:x.title || 'Morceau', url:AUDIUS + '/tracks/' + encodeURIComponent(x.id) + '/stream?' + auQ(), info:((x.user && x.user.name) || '') + (x.duration ? ' · ' + mmss(x.duration) : ''), live:false}));
+      tMsg = tracks.length ? '' : W3('Aucun morceau trouvé pour « ' + label + ' ».','لم يتم العثور على أغانٍ لـ « ' + label + ' ».','No track found for “' + label + '”.');
+    } catch(e) {
+      tracks = []; tMsg = (e === 401 || e === 403) ? W3('Audius demande une clé : il faut l’ajouter dans l’app.','يطلب Audius مفتاحًا: يجب إضافته في التطبيق.','Audius requires a key: it must be added to the app.')
+        : W3('Pas de connexion au catalogue de musique. Vérifie Internet et réessaie.','تعذّر الاتصال بكتالوج الموسيقى. تحقّق من الإنترنت.','Could not reach the music catalog. Check your connection.');
+    }
+    tLoading = false; rerender();
+  }
   const API = ['https://de1.api.radio-browser.info','https://fi1.api.radio-browser.info','https://de2.api.radio-browser.info'];
   async function api(path){
     let last;
@@ -1669,7 +1697,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       document.documentElement.style.setProperty('--mu-h', (show ? b.offsetHeight : 0) + 'px'); } catch(e) {}
     if (!t) return;
     document.getElementById('mu_bar_t').textContent = t.name;
-    document.getElementById('mu_bar_s').textContent = err || (state === 'loading' ? W3('Connexion…','جارٍ الاتصال…','Connecting…') : (t.live ? W3('Radio en direct','إذاعة مباشرة','Live radio') : '') + (t.info ? ' · ' + t.info : ''));
+    document.getElementById('mu_bar_s').textContent = err || (state === 'loading' ? W3('Connexion…','جارٍ الاتصال…','Connecting…') : [t.live ? W3('Radio en direct','إذاعة مباشرة','Live radio') : '', t.info].filter(Boolean).join(' · '));
     document.getElementById('mu_bar_play').textContent = state === 'playing' || state === 'loading' ? '⏸' : '▶';
   }
   // ---------- Vue (carte de l'onglet Route) ----------
@@ -1688,6 +1716,13 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
         <form class="mu-form" data-mu-form="search"><div class="mu-2"><input id="mu_q" type="search" value="${esc(q)}" placeholder="${W3('Nom d’une radio','اسم إذاعة','Radio name')}"><button class="p" type="submit">${W3('Chercher','بحث','Search')}</button></div></form>
         ${rMsg ? `<div class="meta" style="margin:8px 0">${esc(rMsg)}</div>` : ''}
         <div class="mu-list">${(radios || []).map((r, i) => row(r, i, radios, {l:'radio', star:true})).join('')}</div>`;
+    } else if (view === 'songs') {
+      if (tracks === null && !tLoading) { const c = TCHIPS[tchip]; setTimeout(() => loadTracks(c.p, c[lang] || c.fr), 0); }
+      body = `<div class="mu-chips">${TCHIPS.map((c, i) => `<button class="g${i === tchip && !tq ? ' on' : ''}" data-mu="tchip" data-i="${i}">${esc(c[lang] || c.fr)}</button>`).join('')}</div>
+        <form class="mu-form" data-mu-form="tsearch"><div class="mu-2"><input id="mu_tq" type="search" value="${esc(tq)}" placeholder="${W3('Titre, artiste, style…','عنوان، فنان، نوع…','Title, artist, genre…')}"><button class="p" type="submit">${W3('Chercher','بحث','Search')}</button></div></form>
+        ${tMsg ? `<div class="meta" style="margin:8px 0">${esc(tMsg)}</div>` : ''}
+        <div class="mu-list">${(tracks || []).map((r, i) => row(r, i, tracks, {l:'songs', star:true})).join('')}</div>
+        <div class="meta" style="font-size:11px;margin-top:6px">${W3('Musique libre d’artistes indépendants, via Audius.','موسيقى حرّة لفنانين مستقلين عبر Audius.','Free music from independent artists, via Audius.')}</div>`;
     } else if (view === 'dir') {
       body = dir.length ? `<div class="mu-list">${dir.map((r, i) => row(r, i, dir, {l:'dir', del:true, sub:x => (x.cat ? x.cat + ' · ' : '') + x.url})).join('')}</div>`
         : `<div class="meta" style="margin:10px 0">${W3('Ton annuaire est vide. Touche ★ sur une radio, ou ajoute une adresse dans « Lien ».','دليلك فارغ. المس ★ على إذاعة، أو أضف عنوانًا في « رابط ».','Your list is empty. Tap ★ on a radio, or add an address under “Link”.')}</div>`;
@@ -1705,7 +1740,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       + `<button class="mu-fold" data-mu="fold" aria-label="${open ? W3('Réduire','تصغير','Collapse') : W3('Ouvrir','فتح','Open')}">${open ? '▴' : '▾'}</button></div>`;
     if (!open) return `<div class="card" style="padding:10px 12px">${head}</div>`;
     return `<div class="card" style="padding:10px 12px">${head}
-      <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Mon annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
+      <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Mon annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
       <div class="meta" style="margin-top:10px;font-size:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
   };
@@ -1720,13 +1755,15 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'view') { view = b.dataset.v; rerender(); }
     else if (a === 'fold') { open = !open; rerender(); }
     else if (a === 'chip') { chip = i; q = ''; const c = CHIPS[i]; loadRadios(c.q, c[lang] || c.fr); }
-    else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:!/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)/i.test(x.url)})) : radios; start(L, i); }
-    else if (a === 'star') { const r = radios[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:'Radio', info:r.info}); saveDir(); rerender(); }
+    else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:x.live !== undefined ? x.live : !/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)|\/stream\?/i.test(x.url)})) : b.dataset.l === 'songs' ? tracks : radios; start(L, i); }
+    else if (a === 'star') { const src = b.closest('.mu-row').querySelector('[data-l]').dataset.l === 'songs' ? tracks : radios, r = src[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:src === tracks ? W3('Musique','موسيقى','Music') : 'Radio', info:r.info, live:r.live}); saveDir(); rerender(); }
+    else if (a === 'tchip') { tchip = i; tq = ''; const c = TCHIPS[i]; loadTracks(c.p, c[lang] || c.fr); }
     else if (a === 'del') { dir.splice(i, 1); saveDir(); rerender(); }
   });
   document.addEventListener('submit', e => {
     const f = e.target.closest('[data-mu-form]'); if (!f) return;
     e.preventDefault();
+    if (f.dataset.muForm === 'tsearch') { tq = (document.getElementById('mu_tq').value || '').trim(); if (tq) loadTracks('/tracks/search?limit=40&query=' + encodeURIComponent(tq), tq); return; }
     if (f.dataset.muForm === 'search') { q = (document.getElementById('mu_q').value || '').trim(); if (q) loadRadios('name=' + encodeURIComponent(q), q); return; }
     const u = (document.getElementById('mu_url').value || '').trim(), msg = document.getElementById('mu_lmsg');
     if (!/^https:\/\//i.test(u)) { msg.textContent = W3('Colle une adresse qui commence par https://','الصق عنوانًا يبدأ بـ https://','Paste an address starting with https://'); return; }
