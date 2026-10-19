@@ -27,6 +27,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
 .sky-stop{transition:stop-color 1.4s ease}
 .sun{transition:transform 1.4s cubic-bezier(.6,.05,.25,1), fill 1.4s ease}
 .stars{transition:opacity 1.4s ease}
+#vbg{position:absolute;inset:0;pointer-events:none}#vbg video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .7s ease}#vbg video.on{opacity:1}
 #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
 .grain{position:absolute;inset:-50%;pointer-events:none;opacity:.07;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:grain 1s steps(6) infinite}
 @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}}
@@ -220,6 +221,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     <g class="layer" id="Lnear"></g>
   </svg>
   <canvas id="gl" hidden></canvas>
+  <div id="vbg" aria-hidden="true"><video muted playsinline loop preload="auto" src="video/scene1.mp4"></video><video muted playsinline loop preload="auto" src="video/scene2.mp4"></video><video muted playsinline loop preload="auto" src="video/scene3.mp4"></video><video muted playsinline loop preload="auto" src="video/scene4.mp4"></video><video muted playsinline loop preload="auto" src="video/scene5.mp4"></video><video muted playsinline loop preload="auto" src="video/scene6.mp4"></video><video muted playsinline loop preload="auto" src="video/scene7.mp4"></video><video muted playsinline loop preload="auto" src="video/scene8.mp4"></video><video muted playsinline loop preload="auto" src="video/scene9.mp4"></video></div>
   <div class="veil"></div>
   <div class="grain"></div>
 
@@ -767,7 +769,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     camPos.lerp(wantPos, kc); camLook.lerp(wantLook, kc);
     camera.position.copy(camPos); camera.lookAt(camLook);
     sky.position.copy(camera.position); stars.position.copy(camera.position);
-    renderer.render(scene, camera);
+    if (!window.MRV_ON) renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
 
@@ -908,7 +910,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const tween = (ms, fn, done) => {
     const s = performance.now(), id = runId;
-    const step = n => { if (id !== runId) return; const k = Math.min(1, (n - s)/ms); fn(k); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
+    const step = n => { if (id !== runId) return; const k = Math.max(0, Math.min(1, (n - s)/ms)); fn(k); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
     requestAnimationFrame(step);
   };
   const ease = k => 1 - Math.pow(1-k, 3);
@@ -1297,6 +1299,25 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     if (sound) { Music.start(); setMute(false); if (lang === 'fr') startTrack(); } else setMute(true);
     show(0);
   });
+
+
+  // Vidéos réalistes en fond (une par scène) ; le décor 3D reste en secours
+  const VIDS = [...document.querySelectorAll('#vbg video')];
+  const vOk = VIDS.map(v => v.readyState >= 2);
+  VIDS.forEach((v,j) => {
+    v.addEventListener('loadeddata', () => { vOk[j] = true; if (j === cur) playVid(cur); }, {once:true});
+    v.addEventListener('error', () => { vOk[j] = false; }, {once:true});
+  });
+  function playVid(i){
+    VIDS.forEach((v,j) => {
+      if (j === i && vOk[j]) { if (!v.classList.contains('on')) { try { v.currentTime = 0; } catch(e) {} } v.classList.add('on'); const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
+      else { v.classList.remove('on'); setTimeout(() => { if (!v.classList.contains('on')) v.pause(); }, 750); }
+    });
+    window.MRV_ON = !!vOk[i];
+  }
+  setInterval(() => { VIDS.forEach((v,j) => { if (!vOk[j] && v.readyState >= 2) { vOk[j] = true; if (j === cur) playVid(cur); } }); }, 400);
+  const showV = show;
+  show = function(i){ showV(i); playVid(cur); };
 
   const APP = /[?&]app=1/.test(location.search);
   if (APP) {
