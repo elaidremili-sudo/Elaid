@@ -3,6 +3,7 @@ name: Fabriquer l'appli Android
 on:
   push:
     branches: [main]
+    paths-ignore: ['www/video/**', '.github/workflows/videos.yml']
   workflow_dispatch:
 
 permissions:

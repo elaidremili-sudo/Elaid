@@ -1,0 +1,32 @@
+name: Récupérer les vidéos de la présentation
+
+on:
+  push:
+    branches: [main]
+    paths: ['www/video/sources.txt']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  videos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Télécharger les clips
+        run: |
+          cd www/video
+          while read -r name url; do
+            [ -z "$name" ] && continue
+            curl -fsSL -o "$name" "$url"
+            file "$name" | grep -qi "mp4\|iso media" || { echo "::error::$name n'est pas une vidéo"; exit 1; }
+            ls -la "$name"
+          done < sources.txt
+      - name: Enregistrer dans le dépôt
+        run: |
+          git config user.name "MotoRoute bot"
+          git config user.email "actions@github.com"
+          git add www/video/*.mp4
+          git commit -m "Vidéos réalistes de la présentation" || echo "rien à enregistrer"
+          git push
