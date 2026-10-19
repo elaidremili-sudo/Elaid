@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 10 h 30.**
+**Dernière mise à jour : 19 octobre 2026, 15 h.**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -102,20 +102,25 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 
 `elaidremilipro@gmail.com` (compte principal dans l'app), `elaidremili@gmail.com` (chef du groupe « Fd »), `elaidremili@yahoo.fr` (débloqué le 18/10). Les deux comptes Zina appartiennent à quelqu'un d'autre.
 
-## À faire ensuite (ordre conseillé, mis à jour le 18/10 à 22 h 15)
+## À faire ensuite (mis à jour le 19/10 à 15 h)
 
-**Elaid, rapidement :**
-1. Installer **test-10** et tester : vitrine Simou, ajout d'une photo dans « Publier », bouton « Je suis intéressé » → WhatsApp, compteur des statistiques.
-2. Tester **« Sur validation »** avec deux comptes (créer le groupe en cochant « Sur validation », demander à rejoindre avec l'autre compte, accepter).
-3. **Montrer la démo à Simou** (avec test-10 : mettre son numéro dans ⚙ Espace annonceur → Ma vitrine ; il est déjà inscrit dans le code pour test-11).
+**Elaid, à tester sur le téléphone (test-19) :**
+1. Éditeur 🎬 : **📷 Photo** ouvre bien l'appareil photo, **🎥 Vidéo** la caméra.
+2. Sans compte : l'écran « Bienvenue » bloque l'app et **Quitter** ferme bien l'application.
+3. Retouche IA : « Flouter les visages » sur une vraie photo de groupe, puis **Film souvenir** (vitesse de création, son, partage WhatsApp).
+4. Playlists : ＋ sur un morceau → playlist perso, puis playlist d'un groupe (le SQL est exécuté).
+
+**Studio IA en ligne (en attente des réponses d'Elaid) :** service fal.ai (paiement à l'usage, crédits prépayés), clé rangée seulement dans les secrets Supabase, crédits par membre (ex. 5/semaine, 1 image = 1, 1 vidéo = 5). Options proposées : détourage, nouveau décor, style, netteté, photo animée (vidéo 5 s), affiche de sortie. Prix indicatifs : ≈ 0,04 $ par image, ≈ 0,25–0,35 $ par vidéo de 5 s. Réponses attendues : (1) budget max par mois, (2) images seules ou aussi vidéos, (3) d'accord pour créer le compte fal.ai. Obligations Google Play : bouton « Signaler » sur les images IA + déclaration « Sécurité des données ».
 
 **Publication Google Play (le plus long) :**
-4. **Justificatif d'adresse** pour Google Play (facture ou relevé à son nom, même adresse que le compte) — c'est ce qui bloque tout le reste.
-5. **12 testeurs** (adresses Gmail de motards) pour le test fermé obligatoire de 14 jours — commencer à les rassembler.
-6. **AdMob** : créer le compte et l'app MotoRoute, puis donner à Claude l'ID d'application et l'ID de bannière.
+5. **Justificatif d'adresse** pour Google Play (facture ou relevé à son nom, même adresse que le compte) — c'est ce qui bloque tout le reste.
+6. **12 testeurs** (adresses Gmail de motards) pour le test fermé obligatoire de 14 jours.
+7. **AdMob** : créer le compte et l'app MotoRoute, puis donner à Claude l'ID d'application et l'ID de bannière.
+8. Donner à Google un **compte de test** (Play Console → Accès à l'application), car l'app exige un compte.
 
-**Claude, quand Elaid le demande :**
-7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
-8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
+**Plus tard :**
+- Démo Simou Cycle (vitrine) puis vrai compte partenaire sur Supabase si il accepte.
+- Clé Audius si les morceaux ne se chargent pas ; lecture écran éteint (module natif) ; voix arabe en darija si Elaid envoie un MP3.
+- Feuille de route : lancement auto en Bluetooth, cartes hors ligne, défis et badges (pas de mode course : annulé).
 
 Prochaine fabrication = **test-20**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
