@@ -398,13 +398,13 @@ const tb=document.createElement('button');tb.className='lang hb';tb.textContent=
 const tl=document.querySelector('.tools');if(tl)tl.appendChild(tb)})();
 (function(){const P={or:['#ffd33d','#f29b05','#1b1f24'],rouge:['#ff5a5f','#d7263d','#fff'],bleu:['#4da3ff','#1f6feb','#fff'],vert:['#3ddc97','#0f9d6b','#06281b'],violet:['#a78bfa','#7c3aed','#fff'],rose:['#ff7ab8','#e0368a','#fff']};
 const PR={nuit:{m:'dark',c:'bleu',s:'rond',f:'photo'},desert:{m:'light',c:'or',s:'doux',f:'uni'},racing:{m:'dark',c:'rouge',s:'carre',f:'uni'},foret:{m:'dark',c:'vert',s:'doux',f:'photo'}};
-const R=document.documentElement;let th={m:'auto',c:'or',s:'rond',f:'photo'};
+const R=document.documentElement;let th={m:'auto',c:'or',s:'rond',f:'photo',u:'futur'};
 try{const o=localStorage.getItem('motoroute-theme2');if(o)Object.assign(th,JSON.parse(o));else{const c=localStorage.getItem('motoroute-theme');if(c&&P[c])th.c=c}}catch(e){}
-const ap=()=>{const c=P[th.c]||P.or,r=R.style;r.setProperty('--acc',c[0]);r.setProperty('--acc2',c[1]);r.setProperty('--on-acc',c[2]);if(th.m=='auto')R.removeAttribute('data-theme');else R.setAttribute('data-theme',th.m);if(th.f=='perso'){let im='';try{im=localStorage.getItem('motoroute-bgimg')||''}catch(e){}if(im)R.style.setProperty('--bgimg','url('+im+')');else th.f='photo'}R.dataset.shape=th.s;R.dataset.bg=th.f};
+const ap=()=>{const c=P[th.c]||P.or,r=R.style;r.setProperty('--acc',c[0]);r.setProperty('--acc2',c[1]);r.setProperty('--on-acc',c[2]);if(th.m=='auto')R.removeAttribute('data-theme');else R.setAttribute('data-theme',th.m);if(th.f=='perso'){let im='';try{im=localStorage.getItem('motoroute-bgimg')||''}catch(e){}if(im)R.style.setProperty('--bgimg','url('+im+')');else th.f='photo'}R.dataset.shape=th.s;R.dataset.bg=th.f;R.dataset.ui=th.u||'futur'};
 ap();
 const d=document.createElement('dialog');document.body.appendChild(d);
-const T={fr:{t:'Apparence',p:'Thèmes',pn:{nuit:'Nuit',desert:'Désert',racing:'Racing',foret:'Forêt'},m:'Mode',c:'Couleur',s:'Forme',f:'Fond',x:'Fermer',up:'Ma photo',o:{m:[['auto','Auto'],['light','Clair'],['dark','Sombre']],s:[['rond','Rond'],['doux','Doux'],['carre','Carré']],f:[['photo','Photo'],['uni','Uni']]}},ar:{t:'المظهر',p:'السمات',pn:{nuit:'ليل',desert:'صحراء',racing:'سباق',foret:'غابة'},m:'الوضع',c:'اللون',s:'الشكل',f:'الخلفية',x:'إغلاق',up:'صورتي',o:{m:[['auto','تلقائي'],['light','فاتح'],['dark','داكن']],s:[['rond','دائري'],['doux','ناعم'],['carre','مربّع']],f:[['photo','صورة'],['uni','سادة']]}}};
-const draw=()=>{const x=T[lang=='ar'?'ar':'fr'];const row=(k,l,o)=>`<label>${l}</label><div class='filters'>${o.map(a=>`<button class='g${th[k]==a[0]?' on':''}' data-g='${k}' data-v='${a[0]}'>${a[1]}</button>`).join('')}</div>`;d.innerHTML=`<h2 class='dt'>${x.t}</h2><label>${x.p}</label><div class='filters'>${Object.keys(PR).map(n=>`<button class='g' data-pr='${n}'>${x.pn[n]}</button>`).join('')}</div>${row('m',x.m,x.o.m)}<label>${x.c}</label><div class='sw'>${Object.keys(P).map(n=>`<button class='swb${n==th.c?' on':''}' data-g='c' data-v='${n}' aria-label='${n}' style='background:linear-gradient(135deg,${P[n][0]},${P[n][1]})'></button>`).join('')}</div>${row('s',x.s,x.o.s)}${row('f',x.f,x.o.f)}<div class='filters'><button class='g${th.f=='perso'?' on':''}' data-up='1'>📷 ${x.up}</button></div><input type='file' accept='image/*' id='mr_bgf' hidden><div class='acts'><button class='p' data-x='1'>${x.x}</button></div>`};
+const T={fr:{t:'Apparence',p:'Thèmes',pn:{nuit:'Nuit',desert:'Désert',racing:'Racing',foret:'Forêt'},m:'Mode',c:'Couleur',s:'Forme',f:'Fond',x:'Fermer',up:'Ma photo',o:{m:[['auto','Auto'],['light','Clair'],['dark','Sombre']],s:[['rond','Rond'],['doux','Doux'],['carre','Carré']],f:[['photo','Photo'],['uni','Uni'],['video','Vidéo']],u:[['futur','Futuriste'],['classic','Classique']]},u:'Style'},ar:{t:'المظهر',p:'السمات',pn:{nuit:'ليل',desert:'صحراء',racing:'سباق',foret:'غابة'},m:'الوضع',c:'اللون',s:'الشكل',f:'الخلفية',x:'إغلاق',up:'صورتي',o:{m:[['auto','تلقائي'],['light','فاتح'],['dark','داكن']],s:[['rond','دائري'],['doux','ناعم'],['carre','مربّع']],f:[['photo','صورة'],['uni','سادة'],['video','فيديو']],u:[['futur','مستقبلي'],['classic','كلاسيكي']]},u:'النمط'}};
+const draw=()=>{const x=T[lang=='ar'?'ar':'fr'];const row=(k,l,o)=>`<label>${l}</label><div class='filters'>${o.map(a=>`<button class='g${th[k]==a[0]?' on':''}' data-g='${k}' data-v='${a[0]}'>${a[1]}</button>`).join('')}</div>`;d.innerHTML=`<h2 class='dt'>${x.t}</h2>${row('u',x.u,x.o.u)}<label>${x.p}</label><div class='filters'>${Object.keys(PR).map(n=>`<button class='g' data-pr='${n}'>${x.pn[n]}</button>`).join('')}</div>${row('m',x.m,x.o.m)}<label>${x.c}</label><div class='sw'>${Object.keys(P).map(n=>`<button class='swb${n==th.c?' on':''}' data-g='c' data-v='${n}' aria-label='${n}' style='background:linear-gradient(135deg,${P[n][0]},${P[n][1]})'></button>`).join('')}</div>${row('s',x.s,x.o.s)}${row('f',x.f,x.o.f)}<div class='filters'><button class='g${th.f=='perso'?' on':''}' data-up='1'>📷 ${x.up}</button></div><input type='file' accept='image/*' id='mr_bgf' hidden><div class='acts'><button class='p' data-x='1'>${x.x}</button></div>`};
 d.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.pr){Object.assign(th,PR[b.dataset.pr]);ap();try{localStorage.setItem('motoroute-theme2',JSON.stringify(th))}catch(z){}draw()}else if(b.dataset.g){th[b.dataset.g]=b.dataset.v;ap();try{localStorage.setItem('motoroute-theme2',JSON.stringify(th))}catch(z){}draw()}else if(b.dataset.up){d.querySelector('#mr_bgf').click()}else if(b.dataset.x)d.close()};
 d.onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);try{localStorage.setItem('motoroute-bgimg',c.toDataURL('image/jpeg',.75));th.f='perso';ap();localStorage.setItem('motoroute-theme2',JSON.stringify(th))}catch(z){alert(lang=='ar'?'المساحة ممتلئة':'Espace plein : choisissez une photo plus petite.')}draw()};im.onerror=()=>URL.revokeObjectURL(u);im.src=u};
 window.mrTheme=()=>{draw();d.showModal()}})();
@@ -1959,6 +1959,175 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     const h = document.getElementById('help'); if (h) h.addEventListener('click', lab);
   }
   try { if (!localStorage.getItem(KEY)) setTimeout(open, 400); } catch(e) {}
+})();
+</script>
+
+<style id="fx-futur">
+/* ===== Style « Futuriste » (par défaut) — Apparence → Style : Futuriste / Classique ===== */
+:root[data-ui=futur]{--fx-r:20px;--fx-g1:rgba(22,27,34,.66);--fx-g2:rgba(9,11,15,.80);--fx-line:rgba(255,255,255,.10);--fx-hi:rgba(255,255,255,.07);--fx-txt:#f1f4f8}
+:root[data-ui=futur][data-shape=doux]{--fx-r:14px}
+:root[data-ui=futur][data-shape=carre]{--fx-r:4px}
+:root[data-ui=futur][data-theme=light]{--fx-g1:rgba(255,255,255,.82);--fx-g2:rgba(240,243,247,.90);--fx-line:rgba(20,30,45,.12);--fx-hi:rgba(255,255,255,.9);--fx-txt:#141920}
+@media (prefers-color-scheme:light){:root[data-ui=futur]:not([data-theme=dark]){--fx-g1:rgba(255,255,255,.82);--fx-g2:rgba(240,243,247,.90);--fx-line:rgba(20,30,45,.12);--fx-hi:rgba(255,255,255,.9);--fx-txt:#141920}}
+
+/* Bandeau vidéo des rubriques */
+.fx-ban,.fx-bgv{display:none}
+:root[data-ui=futur] .hero{position:relative;min-height:calc(262px + env(safe-area-inset-top,0px));overflow:hidden;border-radius:0 0 26px 26px;isolation:isolate;box-shadow:0 18px 40px -18px rgba(0,0,0,.8)}
+:root[data-ui=futur] .fx-ban{display:block;position:absolute;inset:0;z-index:0;background:#0b1018}
+.fx-ban video,.fx-bgv video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease;transform:scale(1.04)}
+.fx-ban video.on,.fx-bgv video.on{opacity:1;animation:fxKen 16s ease-in-out infinite alternate}
+@keyframes fxKen{from{transform:scale(1.04)}to{transform:scale(1.12)}}
+.fx-ban .fx-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,8,13,.72) 0%,rgba(5,8,13,.05) 34%,rgba(5,8,13,.15) 58%,rgba(5,8,13,.92) 100%)}
+.fx-ban .fx-frame{position:absolute;inset:12px 12px 14px;pointer-events:none;
+ background:linear-gradient(var(--acc),var(--acc)) left top/22px 2px,linear-gradient(var(--acc),var(--acc)) left top/2px 22px,
+ linear-gradient(var(--acc),var(--acc)) right bottom/22px 2px,linear-gradient(var(--acc),var(--acc)) right bottom/2px 22px;background-repeat:no-repeat;opacity:.85;filter:drop-shadow(0 0 6px var(--acc))}
+.fx-ban .fx-scan{position:absolute;left:0;right:0;height:38%;top:-40%;background:linear-gradient(180deg,transparent,rgba(255,255,255,.07),transparent);animation:fxScan 6.5s linear infinite}
+@keyframes fxScan{to{top:110%}}
+.fx-hud{position:absolute;z-index:2;inset-inline-start:22px;bottom:22px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.fx-hud b{display:flex;align-items:center;gap:8px;font:700 30px/1 'Barlow Condensed',Cairo,Impact,sans-serif;letter-spacing:1.5px;text-transform:uppercase}
+.fx-hud b::before{content:"";width:9px;height:9px;border-radius:2px;background:var(--acc);box-shadow:0 0 12px var(--acc);transform:rotate(45deg)}
+.fx-hud span{display:block;margin-top:5px;font:500 14px Barlow,Cairo,sans-serif;letter-spacing:.4px;color:rgba(255,255,255,.82)}
+:root[data-ui=futur] .fx-hud.go b,:root[data-ui=futur] .fx-hud.go span{animation:fxRise .6s cubic-bezier(.2,.8,.2,1) both}
+:root[data-ui=futur] .fx-hud.go span{animation-delay:.08s}
+@keyframes fxRise{from{opacity:0;transform:translateY(10px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+:root[data-ui=futur] .hero .tools,:root[data-ui=futur] .hero header{position:relative;z-index:2}
+:root[data-ui=futur] header h1{font:700 30px 'Barlow Condensed',Impact,sans-serif;letter-spacing:3px;text-transform:uppercase;color:#fff!important;text-shadow:0 0 18px rgba(255,255,255,.25)!important}
+:root[data-ui=futur] header p{display:none}
+:root[data-ui=futur] header{padding-bottom:96px}
+
+/* Fond vidéo plein écran (Apparence → Fond → Vidéo) */
+:root[data-ui=futur][data-bg=video] body::before{background:none}
+:root[data-ui=futur][data-bg=video] .fx-bgv{display:block;position:fixed;inset:0;z-index:-1;background:#06090e}
+.fx-bgv i{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,6,10,.45),rgba(4,6,10,.12) 30%,rgba(4,6,10,.28) 60%,rgba(4,6,10,.75))}
+:root[data-ui=futur][data-bg=video] .fx-ban .fx-shade{background:linear-gradient(180deg,rgba(5,8,13,.5),transparent 45%)}
+:root[data-ui=futur][data-bg=video] .fx-ban video{display:none}
+:root[data-ui=futur][data-bg=video] .fx-ban{background:transparent}
+:root[data-ui=futur][data-bg=video] .hero{box-shadow:none;min-height:calc(200px + env(safe-area-inset-top,0px))}
+
+/* Cartes en verre, contour lumineux */
+:root[data-ui=futur] .card{position:relative;border:1px solid transparent;border-radius:var(--fx-r);color:var(--fx-txt);
+ background:linear-gradient(160deg,var(--fx-g1),var(--fx-g2)) padding-box,
+ linear-gradient(135deg,var(--acc),var(--fx-line) 26%,var(--fx-line) 72%,var(--acc2)) border-box;
+ -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+ box-shadow:0 16px 36px -16px rgba(0,0,0,.75),inset 0 1px 0 var(--fx-hi)}
+:root[data-ui=futur] .card h3{letter-spacing:.6px}
+:root[data-ui=futur] main.fx-enter .card{animation:fxIn .55s cubic-bezier(.2,.8,.2,1) both}
+:root[data-ui=futur] main.fx-enter .card:nth-child(2){animation-delay:.06s}
+:root[data-ui=futur] main.fx-enter .card:nth-child(3){animation-delay:.12s}
+:root[data-ui=futur] main.fx-enter .card:nth-child(4){animation-delay:.18s}
+:root[data-ui=futur] main.fx-enter .card:nth-child(n+5){animation-delay:.24s}
+@keyframes fxIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+:root[data-ui=futur] main{padding-top:14px}
+
+/* Boutons */
+:root[data-ui=futur] .fab{overflow:hidden}
+:root[data-ui=futur] button.p,:root[data-ui=futur] button.g,:root[data-ui=futur] nav button,:root[data-ui=futur] .lang{position:relative;overflow:hidden;transition:transform .12s ease,box-shadow .25s ease,background-color .25s ease,border-color .25s ease}
+:root[data-ui=futur] button.p{color:var(--on-acc);font-weight:700;letter-spacing:.4px;border:0;
+ background:linear-gradient(110deg,transparent 32%,rgba(255,255,255,.45) 48%,transparent 62%) -160% 0/250% 100% no-repeat,linear-gradient(135deg,var(--acc),var(--acc2));
+ box-shadow:0 8px 20px -8px var(--acc2),0 0 0 1px rgba(255,255,255,.18) inset,0 1px 0 rgba(255,255,255,.35) inset;animation:fxShine 5.5s ease-in-out infinite}
+@keyframes fxShine{0%,72%{background-position:-160% 0,0 0}92%,100%{background-position:160% 0,0 0}}
+:root[data-ui=futur] button.p.done{background:linear-gradient(135deg,#2dd4bf,#0f766e);box-shadow:0 8px 20px -8px #0f766e,0 0 0 1px rgba(255,255,255,.18) inset;animation:none}
+:root[data-ui=futur] button.g{background:rgba(255,255,255,.05);border:1px solid var(--fx-line);color:var(--fx-txt);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+:root[data-ui=futur] button.g.on{background:rgba(255,255,255,.10);border-color:var(--acc);color:var(--fx-txt);box-shadow:0 0 14px -4px var(--acc),inset 0 0 10px -6px var(--acc)}
+:root[data-ui=futur] button.p:active,:root[data-ui=futur] button.g:active,:root[data-ui=futur] .fab:active,:root[data-ui=futur] .lang:active{transform:scale(.95)}
+:root[data-ui=futur] .lang{background:rgba(10,14,20,.45)!important;border:1px solid rgba(255,255,255,.18)!important;color:#fff!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(0,0,0,.2),0 4px 14px -6px rgba(0,0,0,.6)}
+.fx-rip{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.55) 0,rgba(255,255,255,.18) 35%,transparent 65%);transform:scale(0);opacity:1;animation:fxRip .6s ease-out forwards}
+@keyframes fxRip{to{transform:scale(1);opacity:0}}
+
+/* Bouton + flottant */
+:root[data-ui=futur] .fab{color:var(--on-acc);font-weight:700;letter-spacing:.5px;border:0;border-radius:99px;bottom:calc(92px + env(safe-area-inset-bottom,0px));
+ background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 10px 26px -8px var(--acc2),0 0 0 1px rgba(255,255,255,.25) inset;animation:fxPulse 2.8s ease-in-out infinite}
+@keyframes fxPulse{0%,100%{box-shadow:0 10px 26px -8px var(--acc2),0 0 0 1px rgba(255,255,255,.25) inset,0 0 0 0 var(--acc)}50%{box-shadow:0 10px 26px -8px var(--acc2),0 0 0 1px rgba(255,255,255,.25) inset,0 0 0 7px transparent}}
+
+/* Barre du bas flottante */
+:root[data-ui=futur] nav{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:7px 6px;border-radius:24px;border:1px solid transparent;
+ background:linear-gradient(160deg,rgba(18,22,28,.78),rgba(8,10,14,.86)) padding-box,linear-gradient(90deg,var(--fx-line),var(--acc) 50%,var(--fx-line)) border-box;
+ -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);box-shadow:0 14px 30px -10px rgba(0,0,0,.8)}
+:root[data-ui=futur] nav button{border:0!important;background:transparent!important;color:rgba(255,255,255,.62)!important;box-shadow:none!important;border-radius:16px}
+:root[data-ui=futur] nav button.on{color:#fff!important;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.02))!important;transform:translateY(-1px)}
+:root[data-ui=futur] nav button.on svg{filter:drop-shadow(0 0 6px var(--acc));color:var(--acc)}
+:root[data-ui=futur] nav button.on::after{background:var(--acc)!important;box-shadow:0 0 10px var(--acc),0 0 2px var(--acc)}
+:root[data-ui=futur] main{padding-bottom:150px}
+
+/* Fenêtres et champs */
+:root[data-ui=futur] dialog{border:1px solid transparent;border-radius:var(--fx-r);color:var(--fx-txt);
+ background:linear-gradient(160deg,var(--fx-g1),var(--fx-g2)) padding-box,linear-gradient(135deg,var(--acc),var(--fx-line) 30%,var(--fx-line) 70%,var(--acc2)) border-box;
+ -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 30px 60px -20px rgba(0,0,0,.85)}
+:root[data-ui=futur] dialog[open]{animation:fxDlg .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes fxDlg{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+:root[data-ui=futur] dialog::backdrop{background:rgba(3,5,9,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+:root[data-ui=futur] input,:root[data-ui=futur] select,:root[data-ui=futur] textarea{background:rgba(255,255,255,.05);border:1px solid var(--fx-line);color:var(--fx-txt);transition:border-color .2s,box-shadow .2s}
+:root[data-ui=futur] input:focus,:root[data-ui=futur] select:focus,:root[data-ui=futur] textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,255,255,.04),0 0 16px -6px var(--acc)}
+:root[data-ui=futur] .tag{border-width:1px;letter-spacing:.3px}
+:root[data-ui=futur] .tag.a{box-shadow:0 0 12px -4px var(--acc)}
+:root[data-ui=futur] .meta{letter-spacing:.2px}
+
+@media (prefers-reduced-motion:reduce){:root[data-ui=futur] *{animation:none!important}.fx-ban video.on,.fx-bgv video.on{animation:none}}
+</style>
+<script>
+/* Vidéos des rubriques (bandeau ou fond plein écran) + effet d'appui — style Futuriste */
+(function(){
+  const R = document.documentElement, hero = document.querySelector('.hero'), main = document.getElementById('main'), nav = document.querySelector('nav');
+  if (!hero || !nav) return;
+  const mk = cls => { const d = document.createElement('div'); d.className = cls; return d; };
+  const ban = mk('fx-ban');
+  ban.innerHTML = '<video muted playsinline loop preload="none" disableremoteplayback></video><video muted playsinline loop preload="none" disableremoteplayback></video><i class="fx-shade"></i><i class="fx-scan"></i><i class="fx-frame"></i>';
+  hero.insertBefore(ban, hero.firstChild);
+  const hud = mk('fx-hud'); hud.innerHTML = '<b></b><span></span>'; hero.appendChild(hud);
+  const bgv = mk('fx-bgv');
+  bgv.innerHTML = '<video muted playsinline loop preload="none" disableremoteplayback></video><video muted playsinline loop preload="none" disableremoteplayback></video><i></i>';
+  document.body.insertBefore(bgv, document.body.firstChild);
+  const SUB = {
+    fr:{1:'Trouve ta prochaine balade',2:'Achète, vends, équipe-toi',3:'Ton club dans ta poche',4:'Sécurité et infos de la route',6:'Chaque virage compte',5:'Ton carnet de route'},
+    ar:{1:'اعثر على رحلتك القادمة',2:'اشترِ، بِع، وتجهّز',3:'ناديك في جيبك',4:'السلامة ومعلومات الطريق',6:'كل منعطف يُحسب',5:'دفتر رحلاتك'},
+    en:{1:'Find your next ride',2:'Buy, sell, gear up',3:'Your club in your pocket',4:'Safety and road info',6:'Every curve counts',5:'Your ride log'}
+  };
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const slot = new Map();
+  function swap(box, src, poster){
+    const v = box.querySelectorAll('video'); let k = slot.get(box) || 0;
+    const cu = v[k];
+    if (cu.dataset.src === src) { if (!reduce && cu.paused && !document.hidden) cu.play().catch(() => {}); return; }
+    const nx = v[1-k];
+    nx.poster = poster; nx.src = src; nx.dataset.src = src;
+    const show = () => { nx.classList.add('on'); cu.classList.remove('on'); setTimeout(() => { if (!cu.classList.contains('on')) cu.pause(); }, 950); };
+    if (reduce) { nx.preload = 'metadata'; show(); }
+    else { const pr = nx.play(); if (pr && pr.then) pr.then(show, show); else show(); }
+    slot.set(box, 1-k);
+  }
+  const pauseAll = box => box.querySelectorAll('video').forEach(v => { try { v.pause(); } catch(e) {} });
+  let curT = 0, raf = 0;
+  function update(){
+    raf = 0;
+    if (R.dataset.ui === 'classic') { pauseAll(ban); pauseAll(bgv); return; }
+    const on = nav.querySelector('button.on'), n = on ? (+on.id.replace(/\D/g,'') || 1) : 1;
+    const L = (typeof lang !== 'undefined' && SUB[lang]) ? lang : 'fr';
+    const title = on ? on.textContent.trim() : '';
+    if (hud.firstChild.textContent !== title || n !== curT) {
+      hud.firstChild.textContent = title; hud.lastChild.textContent = SUB[L][n] || '';
+      hud.classList.remove('go'); void hud.offsetWidth; hud.classList.add('go');
+    }
+    if (R.dataset.bg === 'video') { pauseAll(ban); swap(bgv, 'video/tabv_'+n+'.mp4', 'video/tabv_'+n+'.jpg'); }
+    else { pauseAll(bgv); swap(ban, 'video/tab_'+n+'.mp4', 'video/tab_'+n+'.jpg'); }
+    if (n !== curT) {
+      if (curT && main) { main.classList.remove('fx-enter'); void main.offsetWidth; main.classList.add('fx-enter'); setTimeout(() => main.classList.remove('fx-enter'), 900); }
+      curT = n;
+    }
+  }
+  const later = () => { if (!raf) raf = requestAnimationFrame(update); };
+  new MutationObserver(later).observe(nav, {subtree:true, attributes:true, attributeFilter:['class'], childList:true, characterData:true});
+  new MutationObserver(later).observe(R, {attributes:true, attributeFilter:['data-ui','data-bg','lang','dir']});
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseAll(ban); pauseAll(bgv); } else later(); });
+  window.addEventListener('message', e => { if (e.data && e.data.type === 'motoroute-onboarding-done') setTimeout(later, 300); });
+  update();
+  document.addEventListener('pointerdown', e => {
+    if (R.dataset.ui === 'classic') return;
+    const b = e.target.closest && e.target.closest('button.p,button.g,nav button,.fab,.lang'); if (!b) return;
+    const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2, s = document.createElement('span');
+    s.className = 'fx-rip'; s.setAttribute('aria-hidden', 'true');
+    s.style.cssText = 'width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
+    b.appendChild(s); setTimeout(() => s.remove(), 650);
+  }, {passive:true});
 })();
 </script>
 

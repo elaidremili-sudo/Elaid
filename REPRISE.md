@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 16 h 30.**
+**Dernière mise à jour : 19 octobre 2026, 17 h 45.**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -29,6 +29,13 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version suivante (19/10, soir) — style Futuriste + vidéos dans les rubriques
+
+- **Style « Futuriste » par défaut** (Apparence → Style : Futuriste / Classique) : cartes en verre avec contour lumineux aux couleurs du thème, boutons en dégradé avec reflet qui passe et effet d'onde au toucher, bouton ＋ lumineux qui pulse, barre du bas flottante en verre avec l'onglet actif qui brille, fenêtres et champs assortis, apparition animée des cartes au changement d'onglet. Respecte les couleurs, formes (rond/doux/carré), clair/sombre, FR/AR/EN et « mouvements réduits » du téléphone. « Classique » remet l'ancien look.
+- **Bandeau vidéo en haut de chaque rubrique** (Sorties, Annonces, Groupes, Route, Conduite, Carnet) : clip réaliste en boucle, titre de la rubrique style HUD + phrase d'accroche (FR/AR/EN), coins lumineux. Fichiers `www/video/tab_1.mp4`… `tab_6.mp4` (640×360) + images d'attente `tab_N.jpg`. Numéros = onglets : 1 Sorties, 2 Annonces, 3 Groupes, 4 Route, 6 Conduite, 5 Carnet.
+- **Fond vidéo plein écran au choix** (Apparence → Fond → Vidéo) : clip vertical derrière toute la rubrique (`tabv_N.mp4`, 540×960). Une seule vidéo joue à la fois, rien ne joue quand l'app est en arrière-plan.
+- Poids ajouté : environ 10,5 Mo.
 
 ## Version test-21 (19/10)
 
