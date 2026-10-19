@@ -36,6 +36,7 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Bandeau vidéo en haut de chaque rubrique** (Sorties, Annonces, Groupes, Route, Conduite, Carnet) : clip réaliste en boucle, titre de la rubrique style HUD + phrase d'accroche (FR/AR/EN), coins lumineux. Fichiers `www/video/tab_1.mp4`… `tab_6.mp4` (640×360) + images d'attente `tab_N.jpg`. Numéros = onglets : 1 Sorties, 2 Annonces, 3 Groupes, 4 Route, 6 Conduite, 5 Carnet.
 - **Fond vidéo plein écran au choix** (Apparence → Fond → Vidéo) : clip vertical derrière toute la rubrique (`tabv_N.mp4`, 540×960). Une seule vidéo joue à la fois, rien ne joue quand l'app est en arrière-plan.
 - Poids ajouté : environ 10,5 Mo.
+- **Fond d'écran assorti** (Fond → Photo, par défaut) : l'ancienne photo de moto rouge est remplacée, en style Futuriste, par l'image réaliste de chaque rubrique (`tabv_N.jpg`), avec un lent mouvement de caméra et un fondu au changement d'onglet. « Ma photo » et « Uni » inchangés.
 
 ## Version test-21 (19/10)
 
