@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-29 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
+**Point de reprise : 19 octobre 2026, 21 h 50 (demandé par Elaid) — dernière version : test-29 (Android + iPhone).**
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
@@ -38,6 +38,16 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
 - 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
+## Point de reprise 19/10, 21 h 50 — reste à faire
+
+1. **Installer test-29** : le premier téléchargement sur le téléphone a donné « package non valide ». Le fichier publié a été vérifié (intact, signé v2/v3, même clé que test-28, version 1.0.29) → supprimer le fichier téléchargé, le retélécharger, attendre la fin, l'ouvrir depuis l'app Fichiers.
+2. **Exécuter `supabase/comparaison-trajets.sql`** dans Supabase (SQL Editor → Run) pour l'onglet « Membres » de la comparaison.
+3. Tester sur la moto : un trajet dans Conduite (Démarrer → Arrêter) puis Route → Inclinaison colorée (tracé en couleurs) et Conduite → 📊 Comparer.
+4. Vérifier la bannière AdMob et le bouton ＋ (Annonces, Groupes, Carnet) : ils ne doivent plus chevaucher la barre du bas.
+5. Toujours en attente : retour de l'ami à iPhone, tester « Sur validation » avec 2 comptes, montrer la démo à Simou, justificatif d'adresse Google Play, 12 testeurs, compte AdMob.
+
+Règle : chaque changement de `www/` part aussi sur la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 
 ## Version test-29 (19/10, 21 h 35) — l'écran ne clignote plus dans la comparaison
 
