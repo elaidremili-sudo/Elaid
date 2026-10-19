@@ -1558,8 +1558,9 @@ refresh();
 .row.ad-act{flex-wrap:wrap;justify-content:flex-start;gap:6px}
 .row.ad-act button{white-space:nowrap;margin:0}
 /* Lecteur musique intégré + mini-lecteur persistant */
-.mu-tabs{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}
-.mu-tabs button{flex:1;min-width:0}
+.mu-tabs{display:flex;gap:6px;margin:10px 0 6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.mu-tabs::-webkit-scrollbar{display:none}
+.mu-tabs button{flex:none;white-space:nowrap;padding:7px 12px}
 .mu-tabs button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
 .mu-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .mu-chips button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
@@ -1610,6 +1611,30 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
   let queue = [], qi = -1, state = 'idle', err = '';
   let dir = []; try { const d = JSON.parse(localStorage.getItem('mr_mu_dir') || '[]'); if (Array.isArray(d)) dir = d.filter(x => x && x.url); } catch(e) {}
   const saveDir = () => { try { localStorage.setItem('mr_mu_dir', JSON.stringify(dir)); } catch(e) {} };
+  // Playlists perso (sur le téléphone) et playlists de club (serveur, table group_tracks)
+  let pls = []; try { const d = JSON.parse(localStorage.getItem('mr_mu_pls') || '[]'); if (Array.isArray(d)) pls = d; } catch(e) {}
+  const savePls = () => { try { localStorage.setItem('mr_mu_pls', JSON.stringify(pls)); } catch(e) {} };
+  let newPlName = '';
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'mu_newpl') newPlName = e.target.value; });
+  let addFor = null, plView = null, plTracks = [], clubGroups = null, plMsg = '';
+  const sbc = () => window.mrSb || null, meU = () => (window.mrUser && window.mrUser()) || null;
+  const clubErr = e => { const m = String((e && (e.message || e.details)) || e || ''); return /does not exist|Could not find|PGRST20|42P01/i.test(m) ? W3("Playlists de club pas encore prêtes : exécute le script « playlists.sql » dans Supabase.","قوائم النادي غير جاهزة: نفّذ سكربت «playlists.sql» في Supabase.","Club playlists not ready: run the “playlists.sql” script in Supabase.") : (m || W3('Erreur réseau.','خطأ في الشبكة.','Network error.')); };
+  async function loadClubGroups(){
+    const c = sbc(), u = meU(); if (!c || !u) { clubGroups = []; return; }
+    try {
+      const {data: m, error} = await c.from('group_members').select('group_id,status').eq('user_id', u.id); if (error) throw error;
+      const ids = (m || []).filter(x => !x.status || x.status === 'active').map(x => x.group_id);
+      if (!ids.length) { clubGroups = []; return; }
+      const {data: g, error: e2} = await c.from('groups').select('id,name').in('id', ids); if (e2) throw e2;
+      clubGroups = g || [];
+    } catch(e) { clubGroups = []; plMsg = clubErr(e); }
+  }
+  async function loadClubTracks(gid){
+    const c = sbc(); if (!c) return [];
+    const {data, error} = await c.from('group_tracks').select('*').eq('group_id', gid).order('created_at', {ascending:false});
+    if (error) throw error;
+    return (data || []).map(x => ({id:x.id, name:x.title, url:x.url, info:[x.info, x.added_by ? W3('ajouté par ','أضافه ','added by ') + x.added_by : ''].filter(Boolean).join(' · '), live:!!x.live, by:x.user_id}));
+  }
   const inDir = u => dir.some(x => x.url === u);
   const CHIPS = [
     {fr:'Algérie', ar:'الجزائر', en:'Algeria', q:'countrycode=DZ'},
@@ -1704,6 +1729,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
   function row(t, i, list, opt){
     const now = queue[qi] && queue[qi].url === t.url;
     return `<div class="mu-row${now ? ' now' : ''}"><button class="mu-pick" data-mu="play" data-l="${opt.l}" data-i="${i}"><b>${now && state === 'playing' ? '♪ ' : ''}${esc(t.name)}</b><span>${esc(opt.sub ? opt.sub(t) : (t.info || ''))}</span></button>`
+      + (opt.add ? `<button class="mu-ic" data-mu="add" data-l="${opt.l}" data-i="${i}" aria-label="${W3('Ajouter à une playlist','أضف إلى قائمة','Add to a playlist')}">＋</button>` : '')
       + (opt.star ? `<button class="mu-ic${inDir(t.url) ? ' on' : ''}" data-mu="star" data-i="${i}" aria-label="${W3('Enregistrer','حفظ','Save')}">★</button>` : '')
       + (opt.del ? `<button class="mu-ic" data-mu="del" data-i="${i}" aria-label="${W3('Retirer','إزالة','Remove')}">✕</button>` : '') + `</div>`;
   }
@@ -1715,16 +1741,33 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       body = `<div class="mu-chips">${CHIPS.map((c, i) => `<button class="g${i === chip && !q ? ' on' : ''}" data-mu="chip" data-i="${i}">${esc(c[lang] || c.fr)}</button>`).join('')}</div>
         <form class="mu-form" data-mu-form="search"><div class="mu-2"><input id="mu_q" type="search" value="${esc(q)}" placeholder="${W3('Nom d’une radio','اسم إذاعة','Radio name')}"><button class="p" type="submit">${W3('Chercher','بحث','Search')}</button></div></form>
         ${rMsg ? `<div class="meta" style="margin:8px 0">${esc(rMsg)}</div>` : ''}
-        <div class="mu-list">${(radios || []).map((r, i) => row(r, i, radios, {l:'radio', star:true})).join('')}</div>`;
+        <div class="mu-list">${(radios || []).map((r, i) => row(r, i, radios, {l:'radio', star:true, add:true})).join('')}</div>`;
     } else if (view === 'songs') {
       if (tracks === null && !tLoading) { const c = TCHIPS[tchip]; setTimeout(() => loadTracks(c.p, c[lang] || c.fr), 0); }
       body = `<div class="mu-chips">${TCHIPS.map((c, i) => `<button class="g${i === tchip && !tq ? ' on' : ''}" data-mu="tchip" data-i="${i}">${esc(c[lang] || c.fr)}</button>`).join('')}</div>
         <form class="mu-form" data-mu-form="tsearch"><div class="mu-2"><input id="mu_tq" type="search" value="${esc(tq)}" placeholder="${W3('Titre, artiste, style…','عنوان، فنان، نوع…','Title, artist, genre…')}"><button class="p" type="submit">${W3('Chercher','بحث','Search')}</button></div></form>
         ${tMsg ? `<div class="meta" style="margin:8px 0">${esc(tMsg)}</div>` : ''}
-        <div class="mu-list">${(tracks || []).map((r, i) => row(r, i, tracks, {l:'songs', star:true})).join('')}</div>
+        <div class="mu-list">${(tracks || []).map((r, i) => row(r, i, tracks, {l:'songs', star:true, add:true})).join('')}</div>
         <div class="meta" style="font-size:11px;margin-top:6px">${W3('Musique libre d’artistes indépendants, via Audius.','موسيقى حرّة لفنانين مستقلين عبر Audius.','Free music from independent artists, via Audius.')}</div>`;
+    } else if (view === 'pl') {
+      if (!plView) {
+        if (clubGroups === null) { clubGroups = []; loadClubGroups().then(rerender); }
+        body = `<div class="meta" style="margin:10px 0 4px"><b>${W3('Mes playlists','قوائمي','My playlists')}</b></div>
+          ${pls.length ? pls.map(pl => `<div class="mu-row"><button class="mu-pick" data-mu="plopen" data-k="mine" data-id="${pl.id}"><b>🎧 ${esc(pl.name)}</b><span>${pl.tracks.length} ${W3('morceau(x)','أغنية','track(s)')}</span></button><button class="mu-ic" data-mu="pldel" data-id="${pl.id}" aria-label="${W3('Supprimer','حذف','Delete')}">✕</button></div>`).join('') : `<div class="meta">${W3('Aucune playlist. Touche ＋ à côté d’une radio ou d’un morceau pour en créer une.','لا توجد قائمة. المس ＋ بجانب إذاعة أو أغنية لإنشاء واحدة.','No playlist yet. Tap ＋ next to a radio or track to create one.')}</div>`}
+          <div class="meta" style="margin:12px 0 4px"><b>${W3('Playlists du club','قوائم النادي','Club playlists')}</b></div>
+          ${!meU() ? `<div class="meta">${W3('Connecte-toi (🔑) pour voir les playlists de tes groupes.','سجّل الدخول (🔑) لرؤية قوائم مجموعاتك.','Log in (🔑) to see your groups’ playlists.')}</div>`
+            : (clubGroups || []).length ? clubGroups.map(g => `<div class="mu-row"><button class="mu-pick" data-mu="plopen" data-k="club" data-id="${g.id}" data-n="${esc(g.name)}"><b>🏍 ${esc(g.name)}</b><span>${W3('Playlist partagée du groupe','قائمة مشتركة للمجموعة','Shared group playlist')}</span></button></div>`).join('')
+            : `<div class="meta">${W3('Rejoins un groupe pour partager une playlist avec lui.','انضم إلى مجموعة لمشاركة قائمة معها.','Join a group to share a playlist with it.')}</div>`}`;
+      } else {
+        const own = plView.kind === 'mine' ? pls.find(x => x.id === plView.id) : null;
+        if (own) plTracks = own.tracks;
+        body = `<div class="row" style="justify-content:flex-start;gap:6px;margin-top:8px"><button class="g" data-mu="plback">← ${W3('Playlists','القوائم','Playlists')}</button>${plTracks.length ? `<button class="p" data-mu="plplay">▶ ${W3('Tout lire','تشغيل الكل','Play all')}</button>` : ''}</div>
+          <div class="meta" style="margin:8px 0"><b>${esc(plView.name)}</b> · ${plTracks.length} ${W3('morceau(x)','أغنية','track(s)')}</div>
+          <div class="mu-list">${plTracks.map((r, i) => row(r, i, plTracks, {l:'pl', del:plView.kind === 'mine' || (meU() && r.by === meU().id), sub:x => x.info || ''})).join('') || `<div class="meta" style="padding:8px 0">${W3('Vide pour l’instant : ajoute des morceaux avec ＋.','فارغة حاليًا: أضف أغاني بـ ＋.','Empty for now: add tracks with ＋.')}</div>`}</div>`;
+      }
+      if (plMsg) body += `<div class="meta" style="margin-top:8px">${esc(plMsg)}</div>`;
     } else if (view === 'dir') {
-      body = dir.length ? `<div class="mu-list">${dir.map((r, i) => row(r, i, dir, {l:'dir', del:true, sub:x => (x.cat ? x.cat + ' · ' : '') + x.url})).join('')}</div>`
+      body = dir.length ? `<div class="mu-list">${dir.map((r, i) => row(r, i, dir, {l:'dir', del:true, add:true, sub:x => (x.cat ? x.cat + ' · ' : '') + x.url})).join('')}</div>`
         : `<div class="meta" style="margin:10px 0">${W3('Ton annuaire est vide. Touche ★ sur une radio, ou ajoute une adresse dans « Lien ».','دليلك فارغ. المس ★ على إذاعة، أو أضف عنوانًا في « رابط ».','Your list is empty. Tap ★ on a radio, or add an address under “Link”.')}</div>`;
     } else {
       body = `<form class="mu-form" data-mu-form="link">
@@ -1734,13 +1777,20 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
         </form>${err && view === 'link' ? '' : ''}<div class="meta" id="mu_lmsg" style="margin-top:6px"></div>`;
     }
     const ext = [['YouTube Music','https://music.youtube.com'],['Spotify','https://open.spotify.com'],['Deezer','https://www.deezer.com']];
+    if (addFor) {
+      if (clubGroups === null && meU()) { clubGroups = []; loadClubGroups().then(rerender); }
+      body = `<div class="card" style="margin:10px 0 0;padding:10px;border:2px solid var(--acc)"><div class="meta">${W3('Ajouter','إضافة','Add')} « <b>${esc(addFor.name)}</b> » ${W3('à :','إلى:','to:')}</div>
+        <div class="mu-chips">${pls.map(pl => `<button class="g" data-mu="addto" data-id="${pl.id}">🎧 ${esc(pl.name)}</button>`).join('')}${(clubGroups || []).map(g => `<button class="g" data-mu="addclub" data-id="${g.id}" data-n="${esc(g.name)}">🏍 ${esc(g.name)}</button>`).join('')}</div>
+        <div class="mu-form"><div class="mu-2"><input id="mu_newpl" maxlength="40" placeholder="${W3('Nouvelle playlist (ex. Route du dimanche)','قائمة جديدة','New playlist')}"><button class="p" type="button" data-mu="newpl" style="flex:none">${W3('Créer','إنشاء','Create')}</button></div></div>
+        <div class="row" style="justify-content:flex-end"><button class="g" data-mu="addx">${W3('Annuler','إلغاء','Cancel')}</button></div></div>` + body;
+    }
     const playing = state === 'playing' || state === 'loading';
     const head = `<div class="mu-head"><h3>🎵 ${W3('Musique','الموسيقى','Music')}${t ? `<span class="mu-now">${playing ? '♪ ' : ''}${esc(t.name)}${err ? ' · ' + esc(err) : ''}</span>` : `<span class="mu-now">${W3('Radios gratuites, sans compte','إذاعات مجانية بدون حساب','Free radios, no account')}</span>`}</h3>`
       + (t ? `<button class="g" data-mu="prev" aria-label="prev">⏮</button><button class="p" data-mu="toggle" aria-label="play">${playing ? '⏸' : '▶'}</button><button class="g" data-mu="next" aria-label="next">⏭</button>` : '')
       + `<button class="mu-fold" data-mu="fold" aria-label="${open ? W3('Réduire','تصغير','Collapse') : W3('Ouvrir','فتح','Open')}">${open ? '▴' : '▾'}</button></div>`;
     if (!open) return `<div class="card" style="padding:10px 12px">${head}</div>`;
     return `<div class="card" style="padding:10px 12px">${head}
-      <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Mon annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
+      <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'pl' ? ' on' : ''}" data-mu="view" data-v="pl">${W3('Playlists','القوائم','Playlists')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
       <div class="meta" style="margin-top:10px;font-size:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
   };
@@ -1752,13 +1802,35 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'next') step(1);
     else if (a === 'prev') step(-1);
     else if (a === 'stop') stop();
-    else if (a === 'view') { view = b.dataset.v; rerender(); }
+    else if (a === 'view') { view = b.dataset.v; if (view === 'pl') { plView = null; plTracks = []; clubGroups = null; } addFor = null; rerender(); }
     else if (a === 'fold') { open = !open; rerender(); }
     else if (a === 'chip') { chip = i; q = ''; const c = CHIPS[i]; loadRadios(c.q, c[lang] || c.fr); }
-    else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:x.live !== undefined ? x.live : !/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)|\/stream\?/i.test(x.url)})) : b.dataset.l === 'songs' ? tracks : radios; start(L, i); }
+    else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:x.live !== undefined ? x.live : !/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)|\/stream\?/i.test(x.url)})) : b.dataset.l === 'songs' ? tracks : b.dataset.l === 'pl' ? plTracks : radios; start(L, i); }
     else if (a === 'star') { const src = b.closest('.mu-row').querySelector('[data-l]').dataset.l === 'songs' ? tracks : radios, r = src[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:src === tracks ? W3('Musique','موسيقى','Music') : 'Radio', info:r.info, live:r.live}); saveDir(); rerender(); }
     else if (a === 'tchip') { tchip = i; tq = ''; const c = TCHIPS[i]; loadTracks(c.p, c[lang] || c.fr); }
+    else if (a === 'del' && view === 'pl' && plView) {
+      if (plView.kind === 'mine') { const pl = pls.find(x => x.id === plView.id); if (pl) { pl.tracks.splice(i, 1); savePls(); } rerender(); }
+      else { const t = plTracks[i], c = sbc(); if (c && t) { c.from('group_tracks').delete().eq('id', t.id).then(({error}) => { if (error) plMsg = clubErr(error); return loadClubTracks(plView.id); }).then(L => { if (L) plTracks = L; rerender(); }).catch(e => { plMsg = clubErr(e); rerender(); }); } }
+    }
     else if (a === 'del') { dir.splice(i, 1); saveDir(); rerender(); }
+    else if (a === 'add') { const L = b.dataset.l === 'dir' ? dir : b.dataset.l === 'songs' ? tracks : b.dataset.l === 'pl' ? plTracks : radios, t = L && L[i]; if (t) { addFor = {name:t.name, url:t.url, info:t.info || '', live:t.live !== undefined ? !!t.live : true}; plMsg = ''; rerender(); try { document.querySelector('.mu-head').scrollIntoView({block:'start', behavior:'smooth'}); } catch(e) {} } }
+    else if (a === 'addx') { addFor = null; rerender(); }
+    else if (a === 'newpl') { const n = (((document.getElementById('mu_newpl') || {}).value) || newPlName || '').trim(); if (!n || !addFor) return; newPlName = ''; const pl = {id:'p' + Date.now(), name:n.slice(0, 40), tracks:[addFor]}; pls.unshift(pl); savePls(); addFor = null; view = 'pl'; plView = {kind:'mine', id:pl.id, name:pl.name}; rerender(); }
+    else if (a === 'addto') { const pl = pls.find(x => x.id === b.dataset.id); if (pl && addFor && !pl.tracks.some(x => x.url === addFor.url)) { pl.tracks.push(addFor); savePls(); } addFor = null; plMsg = W3('Ajouté à « ','أضيفت إلى « ','Added to “') + (pl ? pl.name : '') + W3(' ».',' ».','”.'); rerender(); }
+    else if (a === 'addclub') {
+      const c = sbc(), u = meU(), t = addFor; if (!c || !u || !t) return;
+      const who = (u.user_metadata && u.user_metadata.first_name) || '';
+      c.from('group_tracks').insert({group_id:b.dataset.id, title:t.name.slice(0, 120), info:t.info || null, url:t.url, live:!!t.live, added_by:who || null})
+        .then(({error}) => { plMsg = error ? (/duplicate|unique/i.test(error.message || '') ? W3('Déjà dans cette playlist.','موجودة بالفعل في هذه القائمة.','Already in this playlist.') : clubErr(error)) : W3('Ajouté à la playlist de « ','أضيفت إلى قائمة « ','Added to “') + b.dataset.n + W3(' ».',' ».','” playlist.'); addFor = null; rerender(); });
+    }
+    else if (a === 'plopen') {
+      plMsg = '';
+      if (b.dataset.k === 'mine') { const pl = pls.find(x => x.id === b.dataset.id); plView = {kind:'mine', id:b.dataset.id, name:pl ? pl.name : ''}; plTracks = pl ? pl.tracks : []; rerender(); }
+      else { plView = {kind:'club', id:b.dataset.id, name:b.dataset.n}; plTracks = []; rerender(); loadClubTracks(b.dataset.id).then(L => { plTracks = L; rerender(); }).catch(e => { plMsg = clubErr(e); rerender(); }); }
+    }
+    else if (a === 'plback') { plView = null; plTracks = []; plMsg = ''; clubGroups = null; rerender(); }
+    else if (a === 'plplay') { if (plTracks.length) start(plTracks, 0); }
+    else if (a === 'pldel') { pls = pls.filter(x => x.id !== b.dataset.id); savePls(); rerender(); }
   });
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-mu-form] button[type=submit]'); if (!btn) return;

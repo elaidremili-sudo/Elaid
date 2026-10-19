@@ -8,10 +8,10 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-15**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-15.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-16**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-16.aab` |
 | Présentation animée | `www/presentation.html` (+ `www/lib/three.min.js`) |
-| Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`) |
+| Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql` ; **à exécuter : `playlists.sql`**) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
 | Images Play Store | dossier `play-store/` (icône 512, bannière 1024×500, 5 captures) |
 | Textes Play Store | doc Claude « MotoRoute – Fiche Google Play » |
@@ -29,6 +29,12 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-16 (19/10)
+
+- **Bibliothèque musicale — playlists** (carte Musique, onglet « Playlists ») : bouton ＋ sur chaque radio, morceau ou lien → ajouter à une playlist perso (sur le téléphone, ex. « Route du dimanche ») ou à la **playlist partagée d'un groupe** (serveur, table `group_tracks` : seuls les membres actifs voient/ajoutent, chacun retire ses ajouts, le chef peut tout retirer). « ▶ Tout lire » enchaîne la playlist. Uniquement des liens (Audius, radios, MP3) : aucun fichier audio n'est stocké sur le serveur.
+- ⚠️ **À faire par Elaid** : exécuter `supabase/playlists.sql` dans Supabase (SQL Editor) pour les playlists de club.
+- Onglets de la carte Musique sur une seule ligne qui défile.
 
 ## Version test-15 (19/10)
 
@@ -95,4 +101,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
 8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
 
-Prochaine fabrication = **test-16**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
+Prochaine fabrication = **test-17**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
