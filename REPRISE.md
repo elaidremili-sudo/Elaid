@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 19 h 30 — dernière version : test-24 (à tester).**
+**Dernière mise à jour : 19 octobre 2026, 20 h 05 — dernière version : test-24 (à tester). Lien iPhone envoyé pour l'ami à iPhone.**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -34,6 +34,7 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 
 - Adresse : **https://elaidremili-sudo.github.io/Elaid/app/** — même app que l'APK (dossier `docs/app` = copie de `www`). Sur iPhone : ouvrir dans **Safari** → bouton Partager → « Sur l'écran d'accueil ».
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
+- 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
 
 ## Version test-24 (19/10, 19 h 30)
