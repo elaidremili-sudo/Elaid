@@ -583,8 +583,9 @@ $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
 const K={fr:{t:"Conduite : vitesse et inclinaison",note:"Fixez le téléphone sur le support. 1) Moto droite et à l'arrêt, appuyez sur Calibrer. 2) Démarrez, puis roulez. Ne regardez pas l'écran en roulant : consultez vos statistiques à l'arrêt.",cal:"Calibrer (moto droite)",cald:"Calibré ✓",caln:"Non calibré",calw:"Ne bougez pas… calibrage en cours",calf:"Calibrage impossible : capteurs indisponibles ou téléphone qui bouge.",start:"Démarrer",stop:"Arrêter et enregistrer",kmh:"km/h",lean:"Inclinaison",left:"gauche",right:"droite",vmax:"Vitesse max",vavg:"Vitesse moyenne",lmax:"Inclinaison max",vc:"Vitesse max en virage",vca:"Vitesse moyenne en virage",dist:"Distance",dur:"Durée",saved:"Trajet enregistré : {n} km",short:"Trajet trop court pour être enregistré.",nocal:"Calibrez d'abord le téléphone.",nogps:"GPS indisponible.",nos:"Capteurs de mouvement indisponibles.",perm:"Autorisez l'accès aux capteurs de mouvement.",hist:"Vos derniers trajets",none:"Aucun trajet mesuré pour le moment.",best:"Records",est:"Inclinaison estimée à quelques degrés près (gyroscope + vitesse GPS), visible au-dessus de 15 km/h.",fallnote:"Avec la détection de chute activée, un arrêt brutal après un choc ou une forte inclinaison déclenche aussi l'alerte."},ar:{t:"القيادة: السرعة والميلان",note:"ثبّت الهاتف على الحامل. 1) والدراجة مستقيمة وواقفة اضغط معايرة. 2) ابدأ ثم انطلق. لا تنظر إلى الشاشة أثناء القيادة: اطّلع على إحصائياتك عند التوقف.",cal:"معايرة (دراجة مستقيمة)",cald:"تمت المعايرة ✓",caln:"غير معايَر",calw:"لا تتحرك… جارٍ المعايرة",calf:"تعذّرت المعايرة: الحساسات غير متوفرة أو الهاتف يتحرك.",start:"ابدأ",stop:"إيقاف وتسجيل",kmh:"كم/س",lean:"الميلان",left:"يسار",right:"يمين",vmax:"السرعة القصوى",vavg:"السرعة المتوسطة",lmax:"أقصى ميلان",vc:"أقصى سرعة في المنعطف",vca:"متوسط السرعة في المنعطف",dist:"المسافة",dur:"المدة",saved:"تم تسجيل الرحلة: {n} كم",short:"الرحلة أقصر من أن تُسجَّل.",nocal:"عاير الهاتف أولاً.",nogps:"GPS غير متاح.",nos:"حساسات الحركة غير متوفرة.",perm:"اسمح بالوصول إلى حساسات الحركة.",hist:"آخر رحلاتك",none:"لا توجد رحلات مقاسة بعد.",best:"الأرقام القياسية",est:"الميلان تقديري بفارق بضع درجات (جيروسكوب + سرعة GPS) ويظهر فوق 15 كم/س.",fallnote:"مع تفعيل كشف السقوط، التوقف المفاجئ بعد صدمة أو ميلان شديد يطلق التنبيه أيضًا."}};
 K.en={"t": "Riding: speed and lean", "note": "Mount the phone on its holder. 1) With the bike upright and stopped, tap Calibrate. 2) Start, then ride. Don't look at the screen while riding: check your stats when stopped.", "cal": "Calibrate (bike upright)", "cald": "Calibrated ✓", "caln": "Not calibrated", "calw": "Don't move… calibrating", "calf": "Calibration failed: sensors unavailable or phone moving.", "start": "Start", "stop": "Stop and save", "kmh": "km/h", "lean": "Lean", "left": "left", "right": "right", "vmax": "Top speed", "vavg": "Average speed", "lmax": "Max lean", "vc": "Top speed in bends", "vca": "Average speed in bends", "dist": "Distance", "dur": "Duration", "saved": "Trip saved: {n} km", "short": "Trip too short to be saved.", "nocal": "Calibrate the phone first.", "nogps": "GPS unavailable.", "nos": "Motion sensors unavailable.", "perm": "Allow access to motion sensors.", "hist": "Your latest trips", "none": "No trip measured yet.", "best": "Records", "est": "Lean estimated to within a few degrees (gyroscope + GPS speed), shown above 15 km/h.", "fallnote": "With crash detection on, a sudden stop after an impact or a heavy lean also triggers the alert."};const kk=()=>K[lang=='ar'?'ar':lang=='en'?'en':'fr'],IOS=/iP(hone|ad|od)/.test(navigator.userAgent),R2=Math.PI/180;
 let U=null;try{if(S.ridecal&&S.ridecal.length==3)U=S.ridecal}catch(e){}
-let sumR=null,evN=0,on=false,calOn=false,calS=[],msg='',ls=false,wg=null,wl=null,ti=null,lastImp=0,lastFall=0,spd=0,lean=0,t0=0,km=0,last=null,vmax=0,vsum=0,vn=0,lL=0,lR=0,vc=0,vcs=0,vcn=0,hs=[],svT=0;
-const RK='mr_ride_run',mkR=(o,end)=>{const dur=Math.round((end-o.t0)/1000),k=Math.round(o.km*10)/10,d=new Date(o.t0).toISOString().slice(0,10);return{r:{id:o.t0,d,km:k,dur,vmax:Math.round(o.vmax),vavg:o.vn?Math.round(o.vsum/o.vn):0,lL:Math.round(o.lL),lR:Math.round(o.lR),vc:Math.round(o.vc),vca:o.vcn?Math.round(o.vcs/o.vcn):0},ok:dur>=30&&k>=0.1}},keepR=x=>{if(x.ok){S.rides=[x.r].concat(S.rides||[]).slice(0,30);S.log.push({id:x.r.id,d:x.r.d,km:x.r.km,dep:'GPS',dest:''});save()}};
+let sumR=null,evN=0,on=false,calOn=false,calS=[],msg='',ls=false,wg=null,wl=null,ti=null,lastImp=0,lastFall=0,spd=0,lean=0,t0=0,km=0,last=null,vmax=0,vsum=0,vn=0,lL=0,lR=0,vc=0,vcs=0,vcn=0,hs=[],svT=0,pA=null,pB=null;
+const r5=v=>Math.round(v*1e5)/1e5,ptsOf=(o,d)=>{const x={};if(o.pA&&o.pB){x.a=[r5(o.pA[0]),r5(o.pA[1])];x.b=[r5(o.pB[0]),r5(o.pB[1])]}try{const so=(S.sorties||[]).find(z=>z.srv&&z.joined&&z.d==d&&z.uid);if(so){x.so=so.uid;x.sot=so.t||''}}catch(e){}return x};
+const RK='mr_ride_run',mkR=(o,end)=>{const dur=Math.round((end-o.t0)/1000),k=Math.round(o.km*10)/10,d=new Date(o.t0).toISOString().slice(0,10);return{r:{id:o.t0,d,km:k,dur,vmax:Math.round(o.vmax),vavg:o.vn?Math.round(o.vsum/o.vn):0,lL:Math.round(o.lL),lR:Math.round(o.lR),vc:Math.round(o.vc),vca:o.vcn?Math.round(o.vcs/o.vcn):0,...ptsOf(o,d)},ok:dur>=30&&k>=0.1}},keepR=x=>{if(x.ok){S.rides=[x.r].concat(S.rides||[]).slice(0,60);S.log.push({id:x.r.id,d:x.r.d,km:x.r.km,dep:'GPS',dest:''});save()}};
 try{const o=JSON.parse(localStorage.getItem(RK)||'null');if(o&&o.t0){localStorage.removeItem(RK);const x=mkR(o,o.ts);keepR(x);sumR={...x,rec:true};setTimeout(()=>{tab=6;render()},900)}}catch(e){}
 const g=id=>document.getElementById(id),fm=s=>Math.floor(s/60)+':'+String(Math.round(s)%60).padStart(2,'0');
 const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(x))};
@@ -594,7 +595,7 @@ function mot(e){const a=e.accelerationIncludingGravity;if(a){let x=a.x||0,y=a.y|
  const w=((r.beta||0)*U[0]+(r.gamma||0)*U[1]+(r.alpha||0)*U[2])*R2,s=Math.max(-.95,Math.min(.95,(spd/3.6)*w/9.81)),raw=Math.asin(s)/R2;lean=lean*.85+raw*.15}
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
  if(last){const d=hv(last.p,pt);if(v==null||isNaN(v)){const dt=(n-last.t)/1000;v=dt>0?d*1000/dt:0}if(v*3.6>3&&d<1)km+=d}else if(v==null||isNaN(v))v=0;
- last={p:pt,t:n};spd=Math.max(0,v*3.6)}
+ last={p:pt,t:n};spd=Math.max(0,v*3.6);if(on){if(!pA)pA=pt;pB=pt}}
 function liveHtml(){const k=kk(),el=(Date.now()-t0)/1000;return `${k.vmax} : <b>${Math.round(vmax)} ${k.kmh}</b> · ${k.vavg} : <b>${vn?Math.round(vsum/vn):0} ${k.kmh}</b><br>${k.lmax} : ↶ <b>${Math.round(lL)}°</b> · ↷ <b>${Math.round(lR)}°</b><br>${k.vc} : <b>${Math.round(vc)} ${k.kmh}</b> · ${k.vca} : <b>${vcn?Math.round(vcs/vcn):0} ${k.kmh}</b><br>${k.dist} : <b>${km.toFixed(2)} km</b> · ${k.dur} : <b>${fm(el)}</b>`}
 function paint(){const k=kk();if(g('rd_v'))g('rd_v').textContent=Math.round(spd);
  if(g('rd_l')){const a=Math.round(Math.abs(lean));g('rd_l').textContent=spd<15?'—':a+'° '+(a<2?'':(lean>0?k.left:k.right))}
@@ -606,7 +607,7 @@ function tick(){const n=Date.now(),al=Math.abs(lean);
  hs.push([n,spd,al]);while(hs.length&&n-hs[0][0]>3500)hs.shift();
  const mx=hs.reduce((p,h)=>Math.max(p,h[1]),0),ml=hs.reduce((p,h)=>Math.max(p,h[2]),0);
  if(mx>=25&&spd<5&&(n-lastImp<4000||ml>=50)&&n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
- paint();if(on&&n-svT>4000){svT=n;try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,ts:n}))}catch(e){}}}
+ paint();if(on&&n-svT>4000){svT=n;try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,ts:n}))}catch(e){}}}
 async function perm(){if(!('DeviceMotionEvent' in window)){alert(kk().nos);return false}
  try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(kk().perm);return false}}catch(e){}
  if(!ls){addEventListener('devicemotion',mot);ls=true}return true}
@@ -616,21 +617,21 @@ async function calib(){if(!await perm())return;calOn=true;calS=[];msg=kk().calw;
   if(h<5||h>15||sd>3.5){msg=kk().calf+' (g='+h.toFixed(1)+', bruit='+sd.toFixed(1)+')';alert(msg);render();return}
   U=m.map(x=>x/h);S.ridecal=U;save();msg='';render()},3000)}
 async function rstart(){if(on)return;if(!U){alert(kk().nocal);return}if(!navigator.geolocation){alert(kk().nogps);return}if(!await perm())return;
- on=true;t0=Date.now();km=0;last=null;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];
+ on=true;t0=Date.now();km=0;last=null;pA=pB=null;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];
  try{wg=navigator.geolocation.watchPosition(gps,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}catch(e){}
  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>{wl=l}).catch(()=>{})}catch(e){}
  ti=setInterval(tick,200);try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
 function rstop(){if(!on)return;on=false;clearInterval(ti);try{if(wg!=null)navigator.geolocation.clearWatch(wg)}catch(e){}wg=null;try{wl&&wl.release()}catch(e){}wl=null;
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}try{localStorage.removeItem(RK)}catch(e){}
- const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn},Date.now());keepR(x);sumR=x;render()}
+ const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB},Date.now());keepR(x);sumR=x;render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
 function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="meta">${k.none}</div>`;
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));
- return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}</div>`).join('')}
-function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div><div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
+ return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}${window.mrCmpBtn?window.mrCmpBtn(r):''}</div>`).join('')}
+function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div><div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.ok&&window.mrCmpBtn?'<div class="row">'+window.mrCmpBtn(r,1)+'</div>':''}${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
 function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
 routeView=function(t){return musicHtml()+_rv3(t)};
-window.mrRideView=function(t){const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
+window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtml();if(ch)return ch}const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
  const body=on?`<div style="text-align:center"><div style="font-size:56px;font-weight:800;line-height:1" id="rd_v">0</div><div class="meta">${k.kmh}</div><div style="position:relative;height:64px;margin:6px auto;width:120px;border-bottom:3px solid var(--line)"><div id="rd_b" style="position:absolute;left:56px;bottom:0;width:8px;height:60px;border-radius:4px;background:var(--acc);transform-origin:50% 100%"></div></div><div style="font-size:28px;font-weight:800" id="rd_l">—</div><div class="meta">${k.lean}</div></div><div class="meta" id="rd_s"></div><div class="row"><button class="p" data-rdstop="1">${k.stop}</button></div>`
  :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${msg?`<div class="meta">${msg}</div>`:''}<div class="meta" id="rd_dbg"></div><div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
  return `<div class="card"><h3>📊 ${k.t}</h3><div class="meta">${k.note}</div>${body}<div class="meta">${k.est}</div><div class="meta">${k.fallnote}</div></div>`+gpsHtml()};
@@ -1351,19 +1352,86 @@ const A=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.AdMob;
 if(!A())return;
 let ready=false,shown=false,busy=false;
 const want=()=>innerHeight>innerWidth&&(tab==2||(tab==3&&!gid)||tab==5); // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties, ni en paysage (test-24)
-const margin=()=>{const n=document.querySelector('nav');return n?Math.round(n.getBoundingClientRect().height):64};
+const margin=()=>{const n=document.querySelector('nav');if(!n)return 64;const r=n.getBoundingClientRect();return Math.max(0,Math.round(innerHeight-r.top))+4}; // test-26 : la barre du bas flotte (style Futuriste) → on mesure depuis son bord haut
+let adH=0;const setB=()=>{document.documentElement.style.setProperty('--ad-b',(shown?margin()+(adH||60):0)+'px')};
 async function sync(){
  if(!ready||busy)return;busy=true;
  try{
-  if(want()&&!shown){await A().showBanner({adId:BANNER_ID,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:margin(),isTesting:TESTING});shown=true;document.body.classList.add('mr-ad')}
-  else if(!want()&&shown){await A().removeBanner();shown=false;document.body.classList.remove('mr-ad');document.documentElement.style.setProperty('--mu-ad','0px')}
+  if(want()&&!shown){await A().showBanner({adId:BANNER_ID,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:margin(),isTesting:TESTING});shown=true;document.body.classList.add('mr-ad');setB()}
+  else if(!want()&&shown){await A().removeBanner();shown=false;document.body.classList.remove('mr-ad');document.documentElement.style.setProperty('--mu-ad','0px');setB()}
  }catch(e){console.error('admob',e)}finally{busy=false}
 }
-try{A().addListener('bannerAdSizeChanged',i=>{document.documentElement.style.setProperty('--mu-ad',((i&&i.height)||0)+'px')})}catch(e){}
+try{A().addListener('bannerAdSizeChanged',i=>{adH=(i&&i.height)||0;document.documentElement.style.setProperty('--mu-ad',adH+'px');setB()})}catch(e){}
 addEventListener('resize',()=>setTimeout(sync,350));
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
-document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}</style>');
+document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab,:root[data-ui=futur] body.mr-ad .fab{bottom:calc(var(--ad-b,150px) + 12px)!important}</style>');
+})();
+</script>
+<script>
+/* ===== Comparaison d'un même trajet : avec soi-même (évolution) et avec les membres de ses groupes — test-26 ===== */
+(function(){
+const T={fr:{cmp:"📊 Comparer",title:"Comparaison du trajet",me:"Mon évolution",mem:"Membres",meCol:"Moi",passes:"Mes passages sur ce trajet",one:"Un seul passage pour l'instant : refais ce trajet un autre jour pour voir ton évolution.",evo:"Depuis ton premier passage",faster:"plus rapide",slower:"plus lent",sameT:"même temps",leanUp:"d'inclinaison",bt:"⏱ meilleur temps",bl:"📐 plus penché",dur:"Durée",km:"Distance",vavg:"Vitesse moyenne",vmax:"Vitesse max",lean:"Inclinaison max",vc:"Vitesse en virage",share:"Partager mes trajets avec mes groupes",shnote:"Les membres de tes groupes voient seulement ton prénom et tes chiffres sur les trajets en commun — jamais ta position ni ton tracé.",shoff:"Active le partage pour comparer tes chiffres avec les membres de tes groupes qui ont fait le même trajet.",login:"Connecte-toi pour comparer avec les membres de tes groupes.",load:"Chargement…",nobody:"Aucun autre membre de tes groupes n'a encore partagé ce trajet.",err:"Comparaison indisponible pour le moment (réseau ou serveur).",sql:"La comparaison entre membres n'est pas encore activée sur le serveur.",old:"Ce trajet a été enregistré avant cette version (sans point de départ ni d'arrivée) : il ne peut pas être comparé.",same:"Même trajet = même départ et même arrivée (à 500 m près) avec une distance proche, ou la même sortie.",fun:"Juste pour comparer, pas une course : chacun roule à son rythme.",back:"← Retour",sortie:"Sortie",best:"le meilleur chiffre de chaque ligne est en surbrillance"},
+ar:{cmp:"📊 قارن",title:"مقارنة الرحلة",me:"تطوّري",mem:"الأعضاء",meCol:"أنا",passes:"مروري على هذا المسار",one:"مرور واحد حتى الآن: أعد هذا المسار يومًا آخر لترى تطوّرك.",evo:"منذ أول مرور",faster:"أسرع",slower:"أبطأ",sameT:"نفس الوقت",leanUp:"ميلان",bt:"⏱ أفضل وقت",bl:"📐 الأكثر ميلانًا",dur:"المدة",km:"المسافة",vavg:"السرعة المتوسطة",vmax:"السرعة القصوى",lean:"أقصى ميلان",vc:"السرعة في المنعطف",share:"مشاركة رحلاتي مع مجموعاتي",shnote:"يرى أعضاء مجموعاتك اسمك الأول وأرقامك فقط على المسارات المشتركة — أبدًا موقعك أو مسارك.",shoff:"فعّل المشاركة لتقارن أرقامك مع أعضاء مجموعاتك الذين قاموا بنفس المسار.",login:"سجّل الدخول للمقارنة مع أعضاء مجموعاتك.",load:"جارٍ التحميل…",nobody:"لم يشارك أي عضو آخر من مجموعاتك هذا المسار بعد.",err:"المقارنة غير متاحة حاليًا (الشبكة أو الخادم).",sql:"المقارنة بين الأعضاء غير مفعّلة بعد على الخادم.",old:"سُجّلت هذه الرحلة قبل هذا الإصدار (بدون نقطة انطلاق ووصول): لا يمكن مقارنتها.",same:"نفس المسار = نفس الانطلاق ونفس الوصول (بفارق 500 م) ومسافة قريبة، أو نفس الخرجة.",fun:"للمقارنة فقط، ليست سباقًا: كلٌّ يقود على إيقاعه.",back:"→ رجوع",sortie:"خرجة",best:"أفضل رقم في كل سطر مُبرز"},
+en:{cmp:"📊 Compare",title:"Trip comparison",me:"My progress",mem:"Members",meCol:"Me",passes:"My runs on this route",one:"Only one run so far: ride this route again another day to see your progress.",evo:"Since your first run",faster:"faster",slower:"slower",sameT:"same time",leanUp:"of lean",bt:"⏱ best time",bl:"📐 most lean",dur:"Duration",km:"Distance",vavg:"Average speed",vmax:"Top speed",lean:"Max lean",vc:"Speed in bends",share:"Share my trips with my groups",shnote:"Members of your groups only see your first name and your numbers on shared routes — never your position or your track.",shoff:"Turn on sharing to compare your numbers with members of your groups who rode the same route.",login:"Sign in to compare with members of your groups.",load:"Loading…",nobody:"No other member of your groups has shared this route yet.",err:"Comparison unavailable for now (network or server).",sql:"Comparison between members is not enabled on the server yet.",old:"This trip was saved before this version (no start or end point): it can't be compared.",same:"Same route = same start and same finish (within 500 m) with a similar distance, or the same group ride.",fun:"Just to compare, not a race: everyone rides at their own pace.",back:"← Back",sortie:"Group ride",best:"the best figure of each row is highlighted"}};
+const t=()=>T[lang=='ar'?'ar':lang=='en'?'en':'fr'];
+const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+const fm=s=>Math.floor(s/60)+':'+String(Math.round(s)%60).padStart(2,'0'),dm=d=>{const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)/);return m?m[3]+'/'+m[2]+(m[1]!=String(new Date().getFullYear())?'/'+m[1].slice(2):''):String(d||'')};
+const E=v=>typeof esc=='function'?esc(String(v)):String(v).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const same=(x,y)=>{if(x.so&&y.so&&x.so==y.so)return true;if(!x.a||!x.b||!y.a||!y.b)return false;
+ return hv(x.a,y.a)<=.5&&hv(x.b,y.b)<=.5&&Math.abs((x.km||0)-(y.km||0))<=Math.max(1,(x.km||0)*.2)};
+let cur=null,view='me',mst='idle',mrows=[],mkey='';
+const sb=()=>window.mrSb||null,usr=()=>{try{return window.mrUser&&window.mrUser()}catch(e){return null}};
+window.mrCmpBtn=function(r,big){if(!r||!r.a)return '';return big?`<button class="g" data-cmp="${r.id}">${t().cmp}</button>`:` <button class="g" data-cmp="${r.id}" style="padding:4px 10px;font-size:13px;margin-inline-start:6px">${t().cmp}</button>`};
+/* Envoi des trajets (chiffres + départ/arrivée) quand le partage est activé */
+let upBusy=false;
+async function up(){const c=sb(),u=usr();if(!c||!u||!S.rideShare||upBusy)return;upBusy=true;
+ try{const L=(S.rides||[]).filter(r=>r.a&&r.b&&!r.up);let ch=false;
+  for(const r of L){const {error}=await c.from('trajets').upsert({user_id:u.id,local_id:String(r.id),started_at:new Date(r.id).toISOString(),km:r.km,dur:r.dur,vmax:r.vmax,vavg:r.vavg,lean_l:r.lL,lean_r:r.lR,vc:r.vc,vca:r.vca,a_lat:r.a[0],a_lng:r.a[1],b_lat:r.b[0],b_lng:r.b[1],sortie_id:r.so||null,shared:true},{onConflict:'user_id,local_id'});
+   if(error){console.error('trajets',error);break}r.up=1;ch=true}
+  if(ch)save()}catch(e){console.error('trajets',e)}finally{upBusy=false}}
+window.mrCmpUp=up;
+async function setShare(v){S.rideShare=!!v;save();const c=sb(),u=usr();
+ if(c&&u){try{await c.from('trajets').update({shared:!!v}).eq('user_id',u.id)}catch(e){}}
+ if(v){await up();mkey='';loadMem()}else render()}
+async function loadMem(){const c=sb(),u=usr();if(!cur||!c||!u||!S.rideShare)return;
+ const key=cur.id+'|'+lang;if(mkey==key&&mst!='err')return;mkey=key;mst='load';mrows=[];render();
+ try{await up();const {data,error}=await c.rpc('trajets_comparables',{p_a_lat:cur.a[0],p_a_lng:cur.a[1],p_b_lat:cur.b[0],p_b_lng:cur.b[1],p_km:cur.km,p_sortie:cur.so||null});
+  if(error){mst=/trajets_comparables|function|schema cache/i.test(error.message||'')?'sql':'err';console.error('cmp',error)}
+  else{mst='ok';mrows=(data||[]).map(x=>({h:x.first_name||'Motard',sub:dm(String(x.started_at||'').slice(0,10)),r:{km:+x.km,dur:x.dur,vmax:x.vmax,vavg:x.vavg,lL:x.lean_l,lR:x.lean_r,vc:x.vc,vca:x.vca}}))}}
+ catch(e){mst='err';console.error('cmp',e)}render()}
+/* Tableau : une colonne par passage ou par pilote */
+function table(cols,end){const k=t(),L=cols.length;if(!L)return'';if(end)setTimeout(()=>{document.querySelectorAll('.cmp-w[data-end]').forEach(w=>{w.scrollLeft=document.documentElement.dir=='rtl'?-w.scrollWidth:w.scrollWidth})},0);
+ const lm=r=>Math.max(r.lL||0,r.lR||0),bd=Math.min(...cols.map(c=>c.r.dur||1e9)),bl=Math.max(...cols.map(c=>lm(c.r)));
+ const hi=ok=>ok&&L>1?' style="background:color-mix(in srgb,var(--acc) 22%,transparent);font-weight:800"':'';
+ const rows=[[k.dur,c=>fm(c.r.dur)+(L>1&&c.r.dur==bd?'<div class="cmp-b">'+k.bt+'</div>':''),c=>c.r.dur==bd],
+  [k.lean,c=>'↶ '+(c.r.lL||0)+'° ↷ '+(c.r.lR||0)+'°'+(L>1&&lm(c.r)==bl&&bl>0?'<div class="cmp-b">'+k.bl+'</div>':''),c=>lm(c.r)==bl&&bl>0],
+  [k.km,c=>c.r.km+' km',()=>false],[k.vavg,c=>(c.r.vavg||0)+' km/h',()=>false],[k.vmax,c=>(c.r.vmax||0)+' km/h',()=>false],[k.vc,c=>(c.r.vc||0)+' km/h',()=>false]];
+ return `<div class="cmp-w"${end?' data-end="1"':''}><table class="cmp-t"><thead><tr><th></th>${cols.map(c=>`<th>${E(c.h)}${c.sub?`<div class="meta">${E(c.sub)}</div>`:''}</th>`).join('')}</tr></thead><tbody>${rows.map(R=>`<tr><th>${R[0]}</th>${cols.map(c=>`<td${hi(R[2](c))}>${R[1](c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`+(L>1?`<div class="meta">✨ ${k.best}</div>`:'')}
+function meHtml(){const k=t(),L=(S.rides||[]).filter(r=>r.id==cur.id||same(cur,r)).sort((x,y)=>x.id-y.id).slice(-6);
+ let h=`<div class="meta"><b>${k.passes}</b> (${L.length})</div>`+table(L.map(r=>({h:dm(r.d),r})),1);
+ if(L.length<2)return h+`<div class="meta">${k.one}</div>`;
+ const f=L[0],l=L[L.length-1],dd=l.dur-f.dur,dl=Math.max(l.lL,l.lR)-Math.max(f.lL,f.lR);
+ const tx=dd<0?'⏱ '+fm(-dd)+' '+k.faster:dd>0?'⏱ '+fm(dd)+' '+k.slower:'⏱ '+k.sameT;
+ return h+`<div class="meta"><b>${k.evo}</b> : ${tx} · 📐 ${dl>=0?'+':''}${dl}° ${k.leanUp}</div>`}
+function memHtml(){const k=t();if(!sb()||!usr())return `<div class="meta">${k.login}</div>`;
+ if(!S.rideShare)return `<div class="meta">${k.shoff}</div><div class="row"><button class="p" data-cmpsh="1">${k.share}</button></div><div class="meta">${k.shnote}</div>`;
+ if(mst=='load'||mst=='idle'){setTimeout(loadMem,0);return `<div class="meta">${k.load}</div>`}
+ if(mst=='err'||mst=='sql')return `<div class="meta">${mst=='sql'?k.sql:k.err}</div><div class="row"><button class="g" data-cmprl="1">↻</button></div>`;
+ const me={h:k.meCol,sub:dm(cur.d),r:cur};
+ return (mrows.length?'':`<div class="meta">${k.nobody}</div>`)+table([me].concat(mrows.slice(0,7)))+`<label class="chk"><input type="checkbox" id="cmp_sh" checked> ${k.share}</label><div class="meta">${k.shnote}</div>`}
+window.mrCmpHtml=function(){if(!cur)return '';const k=t();
+ const tabs=`<div class="row"><button class="${view=='me'?'p':'g'}" data-cmpv="me">${k.me}</button><button class="${view=='mem'?'p':'g'}" data-cmpv="mem">${k.mem}</button></div>`;
+ const head=`<div class="row" style="justify-content:space-between"><b>📊 ${k.title}</b><button class="g" data-cmpx="1">${k.back}</button></div><div class="meta">${E(cur.d)} · ${cur.km} km${cur.sot?' · '+k.sortie+' : '+E(cur.sot):''}</div>`;
+ return `<div class="card">${head}${tabs}${view=='me'?meHtml():memHtml()}<div class="meta">${k.same}</div><div class="meta">🤝 ${k.fun}</div></div>`};
+$('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
+ if(D.cmp!==undefined){const r=(S.rides||[]).find(x=>String(x.id)==D.cmp);if(!r)return;if(!r.a){alert(t().old);return}cur=r;view='me';mst='idle';mkey='';render();try{scrollTo(0,0)}catch(e){}}
+ else if(D.cmpx!==undefined){cur=null;render()}
+ else if(D.cmpv!==undefined){view=D.cmpv;render()}
+ else if(D.cmpsh!==undefined)setShare(true);
+ else if(D.cmprl!==undefined){mkey='';mst='idle';render()}});
+$('main').addEventListener('change',e=>{if(e.target.id=='cmp_sh')setShare(e.target.checked)});
+document.head.insertAdjacentHTML('beforeend','<style>.cmp-w{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 0;max-width:100%}.cmp-t{border-collapse:collapse;font-size:14px;min-width:100%}.cmp-t th,.cmp-t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;vertical-align:top}.cmp-t tbody th{text-align:start;font-weight:600;font-size:12px;white-space:normal;min-width:70px;max-width:84px;line-height:1.2;position:sticky;inset-inline-start:0;background:var(--card);z-index:1}.cmp-t th,.cmp-t td{padding:6px 6px!important}.cmp-t thead th{font-size:13px}.cmp-b{font-size:11px;font-weight:700;color:var(--ink);opacity:.8;margin-top:2px}</style>');
 })();
 </script>
 <script>

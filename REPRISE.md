@@ -1,6 +1,8 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 20 h 05 — dernière version : test-24 (à tester). Lien iPhone envoyé pour l'ami à iPhone.**
+**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-26 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
+
+⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -36,6 +38,17 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
 - 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
+## Version test-26 (19/10, 20 h 40) — comparaison d'un même trajet + pub
+
+- **Comparaison du trajet** (onglet Conduite → bouton « 📊 Comparer » sur un trajet de l'historique ou dans le résumé). Pas une course : un tableau, une colonne par passage ou par pilote.
+  - « Mon évolution » : mes passages sur le même trajet (6 derniers), le plus récent visible en premier, + « Depuis ton premier passage : ⏱ x:xx plus rapide · 📐 +x° ».
+  - « Membres » : les membres actifs de mes groupes qui ont fait le même trajet (leur dernier passage). Il faut cocher « Partager mes trajets avec mes groupes » (désactivé par défaut). Les autres ne voient que le prénom et les chiffres, jamais la position.
+  - Badges seulement sur ⏱ meilleur temps et 📐 plus penché ; vitesses moyenne/max/en virage affichées simplement, sans badge (choix d'Elaid).
+  - « Même trajet » = même départ et même arrivée à 500 m près + distance ± 20 % (min. 1 km), ou la même sortie du club (sortie du jour à laquelle on participe).
+  - Les trajets enregistrés avant test-26 n'ont pas de départ/arrivée : pas de bouton Comparer pour eux.
+- **Serveur : exécuter `supabase/comparaison-trajets.sql`** (table `trajets` + fonction `trajets_comparables`). Sans ça, l'onglet Membres affiche « pas encore activée sur le serveur » ; « Mon évolution » marche sans serveur. Testé sur une base d'essai : seul le dernier passage des membres actifs ressort (ni membres en attente, ni inconnus) et personne ne lit directement les lignes des autres.
+- **Pub AdMob** : la bannière se calait sur la hauteur de la barre du bas sans compter qu'elle flotte (style Futuriste) → elle chevauchait la barre ; le bouton ＋ était à hauteur fixe. Maintenant la bannière se place au-dessus du bord haut de la barre et le ＋ au-dessus de la bannière (selon sa vraie hauteur). À vérifier sur le téléphone (Annonces, Groupes, Carnet).
 
 ## Version test-24 (19/10, 19 h 30)
 
