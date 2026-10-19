@@ -1760,9 +1760,15 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'tchip') { tchip = i; tq = ''; const c = TCHIPS[i]; loadTracks(c.p, c[lang] || c.fr); }
     else if (a === 'del') { dir.splice(i, 1); saveDir(); rerender(); }
   });
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-mu-form] button[type=submit]'); if (!btn) return;
+    e.preventDefault(); e.stopPropagation(); muSubmit(btn.closest('[data-mu-form]'), btn.dataset.act);
+  }, true);
   document.addEventListener('submit', e => {
     const f = e.target.closest('[data-mu-form]'); if (!f) return;
-    e.preventDefault();
+    e.preventDefault(); muSubmit(f, e.submitter && e.submitter.dataset.act);
+  });
+  function muSubmit(f, actIn){
     if (f.dataset.muForm === 'tsearch') { tq = (document.getElementById('mu_tq').value || '').trim(); if (tq) loadTracks('/tracks/search?limit=40&query=' + encodeURIComponent(tq), tq); return; }
     if (f.dataset.muForm === 'search') { q = (document.getElementById('mu_q').value || '').trim(); if (q) loadRadios('name=' + encodeURIComponent(q), q); return; }
     const u = (document.getElementById('mu_url').value || '').trim(), msg = document.getElementById('mu_lmsg');
@@ -1771,11 +1777,11 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     if (!name) { try { name = decodeURIComponent(u.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '); } catch(err) {} }
     name = name || new URL(u).hostname;
     const item = {name, url:u, cat:document.getElementById('mu_cat').value, info:''};
-    const act = (e.submitter && e.submitter.dataset.act) || 'save';
+    const act = actIn || 'save';
     if (act === 'play') { start([{...item, live:!/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)/i.test(u)}], 0); return; }
     if (!inDir(u)) { dir.unshift(item); saveDir(); }
     view = 'dir'; rerender();
-  });
+  }
 })();
 </script>
 <script>
@@ -1811,6 +1817,296 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     const h = document.getElementById('help'); if (h) h.addEventListener('click', lab);
   }
   try { if (!localStorage.getItem(KEY)) setTimeout(open, 400); } catch(e) {}
+})();
+</script>
+<style>
+/* Rallye de régularité */
+.rl-head{display:flex;align-items:center;gap:8px}
+.rl-head h3{margin:0;flex:1;font-size:18px}
+.rl-head h3 small{display:block;font-size:12px;font-weight:400;color:var(--mute)}
+.rl-fold{border:0;background:none;color:var(--mute);font-size:18px;width:40px;height:40px}
+.rl-form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.rl-form label{font-size:13px;color:var(--mute)}
+.rl-form input,.rl-form select{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;box-sizing:border-box;min-width:0}
+.rl-2{display:flex;gap:8px;align-items:center}
+.rl-2>*{flex:1;min-width:0}
+.rl-pt{font-size:12px;color:var(--mute)}
+.rl-pt.ok{color:var(--ok,#2e9e5b)}
+.rl-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.rl-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:10px;background:none;color:inherit;font:inherit;text-align:start;width:100%}
+.rl-item b{display:block}
+.rl-item span{font-size:12px;color:var(--mute)}
+.rl-code{font:700 22px 'Barlow Condensed',sans-serif;letter-spacing:.12em}
+.rl-rules{font-size:13px;color:var(--mute);margin:8px 0;line-height:1.45}
+.rl-tab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.rl-tab th{text-align:start;font-weight:600;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:6px 4px;border-bottom:1px solid var(--line)}
+.rl-tab td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.rl-tab td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rl-wrap{overflow-x:auto}
+.rl-live{text-align:center;padding:14px 0}
+.rl-live .big{font:800 54px/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+.rl-pace{display:inline-block;margin-top:8px;padding:6px 14px;border-radius:99px;font-weight:700}
+.rl-pace.ok{background:rgba(46,158,91,.18);color:#2e9e5b}
+.rl-pace.fast{background:rgba(215,38,61,.16);color:#d7263d}
+.rl-pace.slow{background:rgba(242,155,5,.18);color:#c77d00}
+.rl-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rl-badges span{font-size:12px;font-weight:600;border:1.5px solid var(--line);border-radius:99px;padding:3px 10px}
+</style>
+<script>
+/* Rallye de régularité : compétition légale entre motards.
+   Gagnant = le plus proche du temps idéal (moyenne imposée). Dépasser la vitesse maximale donne des pénalités.
+   Les statistiques (vitesse, inclinaison, fluidité) sont affichées mais ne font pas gagner. */
+(function(){
+  const W3 = (fr, ar, en) => (typeof lang !== 'undefined' && lang === 'ar') ? ar : (typeof lang !== 'undefined' && lang === 'en') ? en : fr;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sb = () => window.mrSb || null, me = () => (window.mrUser && window.mrUser()) || null;
+  const rr = () => { try { if (typeof render === 'function' && typeof tab !== 'undefined' && tab == 6) render(); } catch(e) {} };
+  const hv = (a, b) => { const r = Math.PI/180, dl = (b[0]-a[0])*r, dn = (b[1]-a[1])*r, x = Math.sin(dl/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2; return 12742000*Math.asin(Math.sqrt(x)); }; // mètres
+  const fmt = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60; return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); };
+  const SQLHINT = () => W3("Le serveur n'est pas prêt : exécute le script SQL « rallye.sql » dans Supabase (SQL Editor).","الخادم غير جاهز: نفّذ سكربت SQL «rallye.sql» في Supabase.","Server not ready: run the “rallye.sql” script in Supabase (SQL Editor).");
+  const errTxt = e => { const m = String((e && (e.message || e.details)) || e || ''); if (/does not exist|Could not find|PGRST20|42P01|42883/i.test(m)) return SQLHINT(); return m || W3('Erreur réseau.','خطأ في الشبكة.','Network error.'); };
+
+  let open = false, view = 'list', msg = '', busy = false, mine = null, cur = null, entries = [], form = {start:null, end:null};
+  // ---------- Serveur ----------
+  async function loadMine(){
+    const c = sb(), u = me(); if (!c || !u) { mine = []; return; }
+    try {
+      const {data: e1, error: x1} = await c.from('rally_entries').select('rally_id').eq('user_id', u.id); if (x1) throw x1;
+      const ids = (e1 || []).map(x => x.rally_id);
+      let q = c.from('rallies').select('*').order('created_at', {ascending:false}).limit(20);
+      q = ids.length ? q.or('owner_id.eq.' + u.id + ',id.in.(' + ids.join(',') + ')') : q.eq('owner_id', u.id);
+      const {data, error} = await q; if (error) throw error; mine = data || []; msg = '';
+    } catch(e) { mine = []; msg = errTxt(e); }
+  }
+  async function loadRally(id){
+    const c = sb(); if (!c) return;
+    try {
+      const {data: r, error} = await c.from('rallies').select('*').eq('id', id).single(); if (error) throw error;
+      const {data: en, error: x2} = await c.from('rally_entries').select('*').eq('rally_id', id); if (x2) throw x2;
+      cur = r; entries = en || []; msg = '';
+    } catch(e) { msg = errTxt(e); }
+  }
+  async function refresh(){ busy = true; rr(); if (view === 'detail' && cur) await loadRally(cur.id); else await loadMine(); busy = false; rr(); }
+
+  // ---------- Chronométrage automatique ----------
+  const RUN = 'mr_rally_run';
+  let run = null, wid = null, lastT = 0;
+  try { run = JSON.parse(localStorage.getItem(RUN) || 'null'); } catch(e) {}
+  const keep = () => { try { localStorage.setItem(RUN, JSON.stringify(run)); } catch(e) {} };
+  const awake = on => { try { const K = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake; if (K) on ? K.keepAwake() : K.allowSleep(); } catch(e) {} };
+  let leanNow = 0;
+  function motion(e){
+    if (!run || run.phase !== 'go') return;
+    const U = (typeof S !== 'undefined' && S.ridecal && S.ridecal.length == 3) ? S.ridecal : null, r = e.rotationRate;
+    if (!U || !r || run.v < 15) { leanNow *= .9; return; }
+    const w = ((r.beta||0)*U[0] + (r.gamma||0)*U[1] + (r.alpha||0)*U[2]) * Math.PI/180;
+    const s = Math.max(-.95, Math.min(.95, (run.v/3.6)*w/9.81)), raw = Math.asin(s)*180/Math.PI;
+    leanNow = leanNow*.85 + raw*.15; run.lean = Math.max(run.lean || 0, Math.round(Math.abs(leanNow)));
+  }
+  window.addEventListener('devicemotion', motion);
+  function gps(p){
+    if (!run) return;
+    const c = p.coords; if (c.accuracy > 60) return;
+    const pt = [c.latitude, c.longitude], now = Date.now();
+    let v = (c.speed != null && c.speed >= 0) ? c.speed*3.6 : 0;
+    if (run.last) { const d = hv(run.last, pt), dt = (now - run.lastTs)/1000; if (c.speed == null && dt > 0) v = d/dt*3.6; if (run.phase === 'go' && d < 300) run.dist += d; if (run.phase === 'go' && dt > 0 && dt < 6) { const acc = (v - run.v)/3.6/dt; if (Math.abs(acc) > 3) run.harsh++; if (v > run.cap) run.over += dt; } }
+    run.v = v; run.last = pt; run.lastTs = now;
+    const dStart = hv(pt, run.s), dEnd = hv(pt, run.e);
+    run.dStart = dStart; run.dEnd = dEnd;
+    if (run.phase === 'wait' && dStart <= 150 && v >= 2) { run.phase = 'go'; run.t0 = now; run.dist = 0; run.vmax = 0; run.over = 0; run.harsh = 0; run.lean = 0; setStatus('riding'); }
+    if (run.phase === 'go') { run.vmax = Math.max(run.vmax, v); if (dEnd <= 40 && (now - run.t0) > 20000) return finish(); }
+    if (now - lastT > 1000) { lastT = now; keep(); paint(); }
+  }
+  function startWatch(){
+    if (!navigator.geolocation) { msg = W3('GPS indisponible.','GPS غير متاح.','GPS unavailable.'); rr(); return; }
+    if (wid != null) return;
+    wid = navigator.geolocation.watchPosition(gps, () => { msg = W3('Active la localisation (GPS) pour le rallye.','فعّل تحديد الموقع (GPS) للرالي.','Turn on location (GPS) for the rally.'); rr(); }, {enableHighAccuracy:true, maximumAge:0, timeout:20000});
+    awake(true);
+  }
+  function stopWatch(){ if (wid != null) { try { navigator.geolocation.clearWatch(wid); } catch(e) {} } wid = null; awake(false); }
+  async function setStatus(st, extra){
+    const c = sb(), u = me(); if (!c || !u || !run) return;
+    try { await c.from('rally_entries').update(Object.assign({status:st, updated_at:new Date().toISOString()}, extra || {})).eq('rally_id', run.id).eq('user_id', u.id); } catch(e) {}
+  }
+  function arm(r){
+    if (!(typeof S !== 'undefined' && S.ridecal && S.ridecal.length == 3)) msg = W3("Astuce : calibre le téléphone dans Conduite (moto droite) pour mesurer aussi l'inclinaison.","نصيحة: عاير الهاتف في القيادة (الدراجة مستقيمة) لقياس الميلان أيضًا.","Tip: calibrate the phone in Riding (bike upright) to also measure lean.");
+    run = {id:r.id, name:r.name, s:[r.start_lat, r.start_lng], e:[r.end_lat, r.end_lng], target:r.target_kmh, cap:r.cap_kmh, phase:'wait', v:0, dist:0, vmax:0, over:0, harsh:0, lean:0};
+    keep(); startWatch(); rr();
+    try { if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(() => {}); } catch(e) {}
+  }
+  async function finish(dnf){
+    if (!run) return;
+    const r = run, dur = r.t0 ? (Date.now() - r.t0)/1000 : 0, km = r.dist/1000;
+    stopWatch();
+    let extra;
+    if (dnf || !r.t0) extra = {status:'dnf'};
+    else {
+      const ideal = km / r.target * 3600, gap = Math.abs(dur - ideal), over = Math.round(r.over);
+      const smooth = Math.max(0, Math.min(100, Math.round(100 - r.harsh*6 - over/2)));
+      extra = {status:'finished', duration_s:Math.round(dur), distance_km:Math.round(km*100)/100, avg_kmh:dur ? Math.round(km/dur*3600*10)/10 : 0, max_kmh:Math.round(r.vmax), over_s:over, lean_max:r.lean || null, smooth, score:Math.round(gap + over*10)};
+    }
+    const id = r.id; run = null; try { localStorage.removeItem(RUN); } catch(e) {}
+    const c = sb(), u = me();
+    if (c && u) { try { await c.from('rally_entries').update(Object.assign({updated_at:new Date().toISOString()}, extra)).eq('rally_id', id).eq('user_id', u.id); } catch(e) {} }
+    try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch(e) {}
+    view = 'detail'; open = true; await loadRally(id); rr();
+  }
+  if (run) startWatch(); // reprise si l'app s'était fermée pendant le rallye
+
+  function paint(){
+    const el = document.getElementById('rl_live'); if (!el || !run) return;
+    el.innerHTML = liveHtml();
+  }
+  function liveHtml(){
+    const r = run;
+    if (r.phase === 'wait') {
+      const d = r.dStart == null ? null : Math.round(r.dStart);
+      return `<div class="rl-live"><div class="meta">${W3('Prêt. Le chrono démarre tout seul dès que tu roules (dans les 150 m du départ).','جاهز. يبدأ التوقيت تلقائيًا عند انطلاقك (ضمن 150 م من نقطة البداية).','Ready. Timing starts by itself as soon as you ride (within 150 m of the start).')}</div>
+        <div class="big" style="font-size:34px;margin-top:8px">${d == null ? '…' : d <= 150 ? W3('Au départ ✓','عند البداية ✓','At the start ✓') : d + ' m'}</div>${d != null && d > 150 ? `<div class="meta">${W3('du point de départ','من نقطة البداية','from the start')}</div>` : ''}</div>`;
+    }
+    const el = (Date.now() - r.t0)/1000, ideal = (r.dist/1000)/r.target*3600, diff = el - ideal;
+    const cls = Math.abs(diff) < 20 ? 'ok' : diff < 0 ? 'fast' : 'slow';
+    const lab = cls === 'ok' ? W3('Dans le rythme','في الإيقاع','On pace') : cls === 'fast' ? W3('Trop rapide, ralentis','سريع جدًا، خفّف','Too fast, slow down') : W3('Un peu en retard','متأخر قليلًا','A bit late');
+    return `<div class="rl-live"><div class="big">${fmt(el)}</div><div class="rl-pace ${cls}">${lab}</div>
+      <div class="meta" style="margin-top:8px">${(r.dist/1000).toFixed(1)} km · ${W3('arrivée dans','الوصول بعد','finish in')} ${r.dEnd == null ? '…' : (r.dEnd/1000).toFixed(1) + ' km'}</div>
+      <div class="meta" style="margin-top:6px">${W3("Garde les yeux sur la route : le chrono s'arrête tout seul à l'arrivée.","ركّز على الطريق: يتوقف التوقيت تلقائيًا عند الوصول.","Eyes on the road: timing stops by itself at the finish.")}</div></div>`;
+  }
+
+  // ---------- Création : lieux ----------
+  function parsePt(s){
+    s = (s || '').trim(); let m = s.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || s.match(/[?&](?:q|ll|query|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || s.match(/^(-?\d+\.\d+)\s*[, ]\s*(-?\d+\.\d+)$/);
+    if (!m) return null; const a = +m[1], b = +m[2]; return (Math.abs(a) <= 90 && Math.abs(b) <= 180) ? [a, b] : null;
+  }
+  const ptTxt = p => p ? `<span class="rl-pt ok">✓ ${p[0].toFixed(5)}, ${p[1].toFixed(5)}</span>` : `<span class="rl-pt">${W3('Pas encore choisi','لم يُحدَّد بعد','Not set yet')}</span>`;
+
+  // ---------- Vues ----------
+  function standings(){
+    const fin = entries.filter(e => e.status === 'finished').sort((a, b) => a.score - b.score);
+    const rest = entries.filter(e => e.status !== 'finished');
+    const best = (k, dir) => { const L = fin.filter(e => e[k] != null); if (!L.length) return null; return L.reduce((x, y) => dir > 0 ? (y[k] > x[k] ? y : x) : (y[k] < x[k] ? y : x)); };
+    const reg = fin[0], smooth = best('smooth', 1), safe = fin.filter(e => !e.over_s);
+    const name = e => esc(e.first_name || W3('Motard','درّاج','Rider'));
+    const st = {joined:W3('Inscrit','مسجّل','Joined'), riding:W3('En route','في الطريق','Riding'), dnf:W3('Abandon','انسحب','DNF')};
+    let h = '';
+    if (reg) h += `<div class="rl-badges"><span>🏆 ${W3('Le plus régulier','الأكثر انتظامًا','Most regular')} : ${name(reg)}</span>${smooth ? `<span>🌊 ${W3('Le plus fluide','الأكثر سلاسة','Smoothest')} : ${name(smooth)}</span>` : ''}${safe.length ? `<span>🛡 ${W3('Zéro dépassement','بلا تجاوز','Zero overspeed')} : ${safe.map(name).join(', ')}</span>` : ''}</div>`;
+    h += `<div class="rl-wrap"><table class="rl-tab"><thead><tr><th>#</th><th>${W3('Motard','الدرّاج','Rider')}</th><th>${W3('Écart','الفارق','Gap')}</th><th>${W3('Temps','الزمن','Time')}</th><th>${W3('Moy.','المعدل','Avg')}</th><th>${W3('Max','الأقصى','Max')}</th><th>${W3('Incl.','الميلان','Lean')}</th><th>${W3('Fluid.','السلاسة','Smooth')}</th></tr></thead><tbody>`;
+    fin.forEach((e, i) => { h += `<tr><td>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td><td><b>${name(e)}</b>${e.moto ? `<div class="meta" style="font-size:11px">${esc(e.moto)}</div>` : ''}${e.over_s ? `<div style="font-size:11px;color:#d7263d">+${e.over_s} s ${W3('au-dessus du max','فوق الحد','over max')}</div>` : ''}</td><td class="n">${fmt(e.score)}</td><td class="n">${fmt(e.duration_s)}</td><td class="n">${e.avg_kmh}</td><td class="n">${e.max_kmh}</td><td class="n">${e.lean_max != null ? e.lean_max + '°' : '—'}</td><td class="n">${e.smooth}</td></tr>`; });
+    rest.forEach(e => { h += `<tr><td>—</td><td><b>${name(e)}</b></td><td colspan="6" class="meta">${st[e.status] || ''}</td></tr>`; });
+    h += '</tbody></table></div>';
+    if (!entries.length) h = `<div class="meta">${W3('Personne inscrit pour le moment.','لا أحد مسجّل بعد.','Nobody has joined yet.')}</div>`;
+    return h;
+  }
+  function body(){
+    const u = me();
+    if (!sb() || !u) return `<div class="meta" style="margin-top:8px">${W3('Connecte-toi (bouton 🔑 en haut) pour créer ou rejoindre un rallye.','سجّل الدخول (زر 🔑 في الأعلى) لإنشاء رالي أو الانضمام إليه.','Log in (🔑 button at the top) to create or join a rally.')}</div>`;
+    if (run) return `<div id="rl_live">${liveHtml()}</div><div class="row"><button class="g" data-rl="dnf">${W3('Abandonner','انسحاب','Give up')}</button></div>`;
+    if (view === 'create') return `<form class="rl-form" data-rl-form="create">
+      <label>${W3('Nom du rallye','اسم الرالي','Rally name')}</label><input id="rl_n" maxlength="60" placeholder="${W3('Ex. : Régularité Tikjda','مثال: رالي تيكجدة','e.g. Tikjda regularity')}" required>
+      <label>${W3('Date','التاريخ','Date')}</label><input id="rl_d" type="date">
+      <label>${W3('Point de départ','نقطة الانطلاق','Start point')}</label>
+      <div class="rl-2"><button class="g" type="button" data-rl="here" data-k="start">📍 ${W3('Ma position','موقعي','My position')}</button><input id="rl_ps" placeholder="${W3('ou lien Google Maps / lat, lng','أو رابط خرائط / خط عرض، طول','or Google Maps link / lat, lng')}"></div>${ptTxt(form.start)}
+      <label>${W3("Point d'arrivée",'نقطة الوصول','Finish point')}</label>
+      <div class="rl-2"><button class="g" type="button" data-rl="here" data-k="end">📍 ${W3('Ma position','موقعي','My position')}</button><input id="rl_pe" placeholder="${W3('ou lien Google Maps / lat, lng','أو رابط خرائط / خط عرض، طول','or Google Maps link / lat, lng')}"></div>${ptTxt(form.end)}
+      <div class="rl-2"><div><label>${W3('Moyenne imposée','المعدل المفروض','Target average')}</label><select id="rl_t">${[30,40,50,60,70,80].map(v => `<option value="${v}"${v === 50 ? ' selected' : ''}>${v} km/h</option>`).join('')}</select></div>
+        <div><label>${W3('Vitesse maximale','السرعة القصوى','Speed limit')}</label><select id="rl_c">${[50,60,70,80,90,100].map(v => `<option value="${v}"${v === 80 ? ' selected' : ''}>${v} km/h</option>`).join('')}</select></div></div>
+      <div class="rl-rules">${W3('Choisis une moyenne et une vitesse maximale qui respectent le code de la route sur ce parcours.','اختر معدلًا وسرعة قصوى تحترم قانون المرور على هذا المسار.','Pick an average and a speed limit that respect the traffic code on this route.')}</div>
+      <div class="row"><button class="g" type="button" data-rl="back">${W3('Annuler','إلغاء','Cancel')}</button><button class="p" type="button" data-rl="create">${W3('Créer le rallye','إنشاء الرالي','Create rally')}</button></div></form>`;
+    if (view === 'detail' && cur) {
+      const r = cur, iAmIn = entries.some(e => e.user_id === u.id), mineE = entries.find(e => e.user_id === u.id), owner = r.owner_id === u.id;
+      const wa = 'https://wa.me/?text=' + encodeURIComponent(W3('Rejoins le rallye « ','انضم إلى الرالي « ','Join the rally “') + r.name + W3(' » sur MotoRoute avec le code ',' » على MotoRoute بالرمز ','” on MotoRoute with code ') + r.code);
+      return `<div class="row" style="justify-content:flex-start;gap:6px"><button class="g" data-rl="back">← ${W3('Mes rallyes','رالياتي','My rallies')}</button><button class="g" data-rl="refresh">↻</button></div>
+        <h3 style="margin:10px 0 2px">${esc(r.name)}</h3><div class="meta">${r.ride_date ? esc(r.ride_date) + ' · ' : ''}${W3('Moyenne','المعدل','Average')} ${r.target_kmh} km/h · ${W3('max','الأقصى','max')} ${r.cap_kmh} km/h${r.status === 'closed' ? ' · ' + W3('Clôturé','مغلق','Closed') : ''}</div>
+        <div class="row" style="justify-content:flex-start"><span class="rl-code">${esc(r.code)}</span><a class="lnk" target="_blank" rel="noopener" href="${wa}">WhatsApp</a></div>
+        <div class="rl-rules">${W3(`Le gagnant est celui qui arrive le plus près du temps idéal à ${r.target_kmh} km/h de moyenne. Chaque seconde au-dessus de ${r.cap_kmh} km/h coûte 10 secondes de pénalité : rouler vite fait perdre.`,`الفائز هو الأقرب إلى الزمن المثالي بمعدل ${r.target_kmh} كم/س. كل ثانية فوق ${r.cap_kmh} كم/س تكلّف 10 ثوانٍ عقوبة: السرعة تُخسِر.`,`The winner finishes closest to the ideal time at a ${r.target_kmh} km/h average. Each second above ${r.cap_kmh} km/h costs a 10-second penalty: speeding loses.`)}</div>
+        ${standings()}
+        <div class="row" style="flex-wrap:wrap;justify-content:flex-start;gap:6px">
+          ${r.status === 'open' && !iAmIn ? `<button class="p" data-rl="join" data-code="${esc(r.code)}">${W3('M’inscrire au tableau','سجّلني في الجدول','Add me to the table')}</button>` : ''}
+          ${r.status === 'open' && mineE && mineE.status === 'joined' ? `<button class="p" data-rl="arm">🏁 ${W3('Je suis au départ','أنا عند الانطلاق','I am at the start')}</button>` : ''}
+          ${iAmIn && !owner && mineE.status === 'joined' ? `<button class="g" data-rl="leave">${W3('Me retirer','انسحب من الجدول','Leave')}</button>` : ''}
+          ${owner && r.status === 'open' ? `<button class="g" data-rl="close">${W3('Clôturer','إغلاق','Close')}</button>` : ''}
+          ${owner ? `<button class="g" data-rl="del" style="color:#d7263d">${W3('Supprimer','حذف','Delete')}</button>` : ''}
+        </div>`;
+    }
+    if (mine === null && !busy) { setTimeout(refresh, 0); }
+    return `<div class="rl-rules">${W3('Une compétition entre motards où la régularité gagne, pas la vitesse : départ et arrivée fixés, moyenne imposée, classement automatique.','منافسة بين الدرّاجين يفوز فيها الانتظام لا السرعة: انطلاق ووصول محدّدان، معدل مفروض، وترتيب تلقائي.','A contest where consistency wins, not speed: set start and finish, a target average, automatic ranking.')}</div>
+      <div class="row" style="justify-content:flex-start;gap:6px"><button class="p" data-rl="new">+ ${W3('Créer un rallye','إنشاء رالي','Create a rally')}</button></div>
+      <form class="rl-form" data-rl-form="join"><div class="rl-2"><input id="rl_code" placeholder="${W3('Code du rallye (ex. RR-4K7P)','رمز الرالي','Rally code')}" autocapitalize="characters"><button class="g" type="button" data-rl="joincode" style="flex:none">${W3('Rejoindre','انضمام','Join')}</button></div></form>
+      <div class="rl-list">${(mine || []).map(r => `<button class="rl-item" data-rl="open" data-id="${r.id}"><div style="flex:1;min-width:0"><b>${esc(r.name)}</b><span>${r.ride_date ? esc(r.ride_date) + ' · ' : ''}${r.target_kmh} km/h · ${esc(r.code)}${r.status === 'closed' ? ' · ' + W3('Clôturé','مغلق','Closed') : ''}</span></div><span>›</span></button>`).join('')}</div>
+      ${busy ? `<div class="meta" style="margin-top:8px">${W3('Chargement…','جارٍ التحميل…','Loading…')}</div>` : ''}`;
+  }
+  function card(){
+    const sub = run ? (run.phase === 'go' ? W3('Chrono en cours','التوقيت جارٍ','Timing') : W3('En attente du départ','في انتظار الانطلاق','Waiting for start')) : W3('Compétition de régularité entre motards','منافسة انتظام بين الدرّاجين','Consistency contest between riders');
+    const isOpen = open || !!run;
+    return `<div class="card" style="padding:10px 12px"><div class="rl-head"><h3>🏁 ${W3('Rallye de régularité','رالي الانتظام','Regularity rally')}<small>${sub}</small></h3><button class="rl-fold" data-rl="fold">${isOpen ? '▴' : '▾'}</button></div>
+      ${isOpen ? body() + (msg ? `<div class="meta" style="margin-top:8px">${esc(msg)}</div>` : '') : ''}</div>`;
+  }
+  const prev = window.mrRideView;
+  window.mrRideView = function(t){ return card() + (prev ? prev(t) : ''); };
+
+  // ---------- Actions ----------
+  const code = () => 'RR-' + Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-rl]'); if (!b) return;
+    const a = b.dataset.rl, c = sb(), u = me();
+    if (a === 'fold') { open = !open; if (open && mine === null) refresh(); rr(); return; }
+    if (a === 'new') { view = 'create'; form = {start:null, end:null}; msg = ''; rr(); return; }
+    if (a === 'back') { view = 'list'; cur = null; msg = ''; refresh(); return; }
+    if (a === 'refresh') { refresh(); return; }
+    if (a === 'open') { view = 'detail'; busy = true; rr(); await loadRally(b.dataset.id); busy = false; rr(); return; }
+    if (a === 'here') {
+      const k = b.dataset.k; msg = W3('Recherche de ta position…','جارٍ تحديد موقعك…','Finding your position…'); rr();
+      navigator.geolocation.getCurrentPosition(p => { form[k] = [p.coords.latitude, p.coords.longitude]; msg = ''; keepForm(); rr(); }, () => { msg = W3('Position indisponible : active le GPS.','الموقع غير متاح: فعّل GPS.','Position unavailable: turn on GPS.'); rr(); }, {enableHighAccuracy:true, timeout:15000, maximumAge:15000});
+      return;
+    }
+    if (a === 'arm') { arm(cur); return; }
+    if (a === 'dnf') { await finish(true); return; }
+    if (!c || !u) return;
+    try {
+      if (a === 'join') { const {error} = await c.rpc('join_rally_by_code', {p_code:b.dataset.code}); if (error) throw error; await loadRally(cur.id); }
+      if (a === 'leave') { const {error} = await c.from('rally_entries').delete().eq('rally_id', cur.id).eq('user_id', u.id); if (error) throw error; await loadRally(cur.id); }
+      if (a === 'close') { const {error} = await c.from('rallies').update({status:'closed'}).eq('id', cur.id); if (error) throw error; await loadRally(cur.id); }
+      if (a === 'del') { const {error} = await c.from('rallies').delete().eq('id', cur.id); if (error) throw error; view = 'list'; cur = null; await loadMine(); }
+    } catch(err) { msg = errTxt(err); }
+    rr();
+  });
+  // garde les champs du formulaire quand l'écran se redessine
+  let saved = {};
+  function keepForm(){ ['rl_n','rl_d','rl_ps','rl_pe','rl_t','rl_c'].forEach(i => { const el = document.getElementById(i); if (el) saved[i] = el.value; }); }
+  document.addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('rl_')) saved[e.target.id] = e.target.value; });
+  new MutationObserver(() => { Object.keys(saved).forEach(i => { const el = document.getElementById(i); if (el && !el.value && saved[i]) el.value = saved[i]; }); }).observe(document.getElementById('main') || document.body, {childList:true, subtree:true});
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-rl-form]'); if (!f) return; e.preventDefault(); keepForm(); doForm(f.dataset.rlForm);
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-rl="create"],[data-rl="joincode"]'); if (!b) return;
+    keepForm(); const v = document.getElementById('rl_code'); if (v) saved.rl_code = v.value;
+    doForm(b.dataset.rl === 'create' ? 'create' : 'join');
+  }, true);
+  async function doForm(kind){
+    const c = sb(), u = me(); if (!c || !u) return;
+    try {
+      if (kind === 'join') {
+        const el = document.getElementById('rl_code'), v = ((el && el.value) || saved.rl_code || '').trim(); if (!v) return;
+        const {data, error} = await c.rpc('join_rally_by_code', {p_code:v}); if (error) throw error;
+        view = 'detail'; await loadRally(data); rr(); return;
+      }
+      const ps = parsePt(saved.rl_ps), pe = parsePt(saved.rl_pe);
+      if (ps) form.start = ps; if (pe) form.end = pe;
+      if (!form.start || !form.end) { msg = W3("Choisis le départ et l'arrivée (ta position, ou un lien Google Maps avec les coordonnées).",'اختر الانطلاق والوصول (موقعك أو رابط خرائط بالإحداثيات).','Set the start and finish (your position, or a Google Maps link with coordinates).'); rr(); return; }
+      if (hv(form.start, form.end) < 500) { msg = W3("Le départ et l'arrivée doivent être à plus de 500 m l'un de l'autre.",'يجب أن تفصل 500 م على الأقل بين الانطلاق والوصول.','Start and finish must be at least 500 m apart.'); rr(); return; }
+      const t = +saved.rl_t || 50, cap = +saved.rl_c || 80;
+      if (cap < t + 10) { msg = W3('La vitesse maximale doit dépasser la moyenne d’au moins 10 km/h.','يجب أن تتجاوز السرعة القصوى المعدل بـ 10 كم/س على الأقل.','The speed limit must be at least 10 km/h above the average.'); rr(); return; }
+      let rec = null, err = null;
+      for (let k = 0; k < 3 && !rec; k++) {
+        const {data, error} = await c.from('rallies').insert({code:code(), name:(saved.rl_n || 'Rallye').slice(0, 60), start_lat:form.start[0], start_lng:form.start[1], end_lat:form.end[0], end_lng:form.end[1], target_kmh:t, cap_kmh:cap, ride_date:saved.rl_d || null}).select().single();
+        if (error) { err = error; if (!/duplicate|unique/i.test(error.message || '')) break; } else rec = data;
+      }
+      if (!rec) throw err;
+      await c.rpc('join_rally_by_code', {p_code:rec.code});
+      saved = {}; form = {start:null, end:null}; view = 'detail'; await loadRally(rec.id); msg = '';
+    } catch(err) { msg = errTxt(err); }
+    rr();
+  }
 })();
 </script>
 </body>
