@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-28 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
+**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-29 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
@@ -38,6 +38,11 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
 - 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
+## Version test-29 (19/10, 21 h 35) — l'écran ne clignote plus dans la comparaison
+
+- Vidéo d'Elaid : le tableau de comparaison disparaissait/réapparaissait chaque seconde. Cause : la carte « Ma position (GPS) » de Conduite continuait de suivre le GPS alors qu'elle n'était plus affichée (vue Comparaison) ; à chaque position elle redessinait tout l'écran (et le tableau revenait au début).
+- Correctif : le suivi GPS de cette carte est coupé tant que la comparaison est ouverte, il repart au « Retour ». Mesuré dans le navigateur avec un faux GPS : 6 redessins en 6 s avant, 0 après.
 
 ## Version test-28 (19/10, 21 h 15) — Inclinaison colorée qui marche vraiment
 
