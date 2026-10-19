@@ -562,7 +562,7 @@ function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));
  return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}</div>`).join('')}
 function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div><div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
-function musicHtml(){const ar=lang=='ar',bs='display:block;text-align:center;padding:16px 10px;margin:8px 0;border-radius:14px;font-weight:700;font-size:17px;border:2px solid var(--line);text-decoration:none;color:inherit',L=[['YouTube Music','https://music.youtube.com'],['Spotify','https://open.spotify.com'],['Deezer','https://www.deezer.com']];return `<div class="card"><h3>🎵 ${ar?'الموسيقى':lang=='en'?'Music':'Musique'}</h3><div class="meta">${ar?'شغّل موسيقاك ثم ارجع إلى MotoRoute: تبقى الموسيقى مشغّلة في الخلفية. لتغيير المقطع استعمل أزرار سماعة البلوتوث.'  :lang=='en'?'Start your music, then come back to MotoRoute: it keeps playing in the background. To change tracks, use the buttons on your Bluetooth headset.':'Lancez votre musique, puis revenez sur MotoRoute : elle continue en arrière-plan. Pour changer de morceau, utilisez les boutons de votre casque Bluetooth.'}</div>${L.map(m=>`<a class="lnk" target="_blank" rel="noopener" style="${bs}" href="${m[1]}">${m[0]}</a>`).join('')}</div>`}
+function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
 routeView=function(t){return musicHtml()+_rv3(t)};
 window.mrRideView=function(t){const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
@@ -1550,6 +1550,220 @@ body.mr-ad .vt-dlg{max-height:calc(100dvh - 210px);margin-top:16px}
 `;
 document.head.insertAdjacentHTML('beforeend','<style>'+css+'</style>');
 refresh();
+})();
+</script>
+<style>
+/* Lecteur musique intégré + mini-lecteur persistant */
+.mu-tabs{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}
+.mu-tabs button{flex:1;min-width:0}
+.mu-tabs button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+.mu-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.mu-chips button.on{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+.mu-row{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:4px 0}
+.mu-row .mu-pick{flex:1;min-width:0;text-align:start;background:none;border:0;color:inherit;padding:10px 2px;font:inherit;cursor:pointer}
+.mu-row .mu-pick b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-row .mu-pick span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-row .mu-ic{background:none;border:0;color:var(--mute);font-size:20px;width:42px;height:42px;border-radius:50%;flex:none;cursor:pointer}
+.mu-row .mu-ic.on{color:var(--acc)}
+.mu-row.now .mu-pick b{color:var(--acc)}
+.mu-list{max-height:330px;overflow-y:auto;border-top:1px solid var(--line)}
+.mu-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.mu-form input,.mu-form select{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%;box-sizing:border-box}
+.mu-form .mu-2{display:flex;gap:8px}
+.mu-ctl{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px}
+.mu-ctl button{width:56px;height:56px;border-radius:50%;font-size:22px;padding:0}
+.mu-ctl button.p{width:72px;height:72px;font-size:28px}
+#mu_bar{position:fixed;left:0;right:0;bottom:var(--mu-nav,0px);z-index:19;display:flex;align-items:center;gap:10px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.25);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+#mu_bar[hidden]{display:none}
+#mu_bar .mu-t{flex:1;min-width:0}
+#mu_bar .mu-t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+#mu_bar .mu-t span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mu_bar button{flex:none;width:48px;height:48px;border-radius:50%;font-size:20px;padding:0;border:1.5px solid var(--line);background:none;color:var(--ink)}
+#mu_bar button.mu-main{background:var(--acc);color:var(--on-acc);border:0}
+body.mu-on main{padding-bottom:calc(320px + env(safe-area-inset-bottom,0px))}
+body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
+</style>
+<div id="mu_bar" hidden>
+  <button type="button" data-mu="prev" aria-label="Précédent">⏮</button>
+  <button type="button" class="mu-main" data-mu="toggle" aria-label="Lecture / pause" id="mu_bar_play">▶</button>
+  <button type="button" data-mu="next" aria-label="Suivant">⏭</button>
+  <div class="mu-t"><b id="mu_bar_t"></b><span id="mu_bar_s"></span></div>
+  <button type="button" data-mu="stop" aria-label="Fermer le lecteur">✕</button>
+</div>
+<script>
+/* Musique dans MotoRoute : radios en ligne (annuaire libre Radio Browser), annuaire personnel de liens et flux,
+   lecture qui continue quand on change d'onglet, commandes du casque Bluetooth (Media Session). */
+(function(){
+  const W3 = (fr, ar, en) => (typeof lang !== 'undefined' && lang === 'ar') ? ar : (typeof lang !== 'undefined' && lang === 'en') ? en : fr;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rerender = () => { try { if (typeof render === 'function' && typeof tab !== 'undefined' && tab == 4) render(); } catch(e) {} };
+  const audio = new Audio(); audio.preload = 'none';
+  let view = 'radio', chip = 0, radios = null, rMsg = '', rLoading = false, q = '';
+  let queue = [], qi = -1, state = 'idle', err = '';
+  let dir = []; try { const d = JSON.parse(localStorage.getItem('mr_mu_dir') || '[]'); if (Array.isArray(d)) dir = d.filter(x => x && x.url); } catch(e) {}
+  const saveDir = () => { try { localStorage.setItem('mr_mu_dir', JSON.stringify(dir)); } catch(e) {} };
+  const inDir = u => dir.some(x => x.url === u);
+  const CHIPS = [
+    {fr:'Algérie', ar:'الجزائر', en:'Algeria', q:'countrycode=DZ'},
+    {fr:'Raï', ar:'الراي', en:'Raï', q:'tag=rai'},
+    {fr:'Chaabi', ar:'الشعبي', en:'Chaabi', q:'tag=chaabi'},
+    {fr:'Kabyle', ar:'قبائلي', en:'Kabyle', q:'tag=kabyle'},
+    {fr:'Rock', ar:'روك', en:'Rock', q:'tag=rock'},
+    {fr:'Monde', ar:'العالم', en:'World', q:''}
+  ];
+  const API = ['https://de1.api.radio-browser.info','https://fi1.api.radio-browser.info','https://de2.api.radio-browser.info'];
+  async function api(path){
+    let last;
+    for (const h of API) { try { const r = await fetch(h + path); if (r.ok) return await r.json(); last = r.status; } catch(e) { last = e; } }
+    throw last;
+  }
+  async function loadRadios(qs, label){
+    rLoading = true; rMsg = W3('Recherche des radios…','جارٍ البحث عن الإذاعات…','Searching radios…'); rerender();
+    try {
+      const L = await api('/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=80' + (qs ? '&' + qs : ''));
+      radios = L.filter(s => s.url_resolved && s.url_resolved.startsWith('https://')).slice(0, 40)
+        .map(s => ({name:(s.name||'').trim() || 'Radio', url:s.url_resolved, info:[s.country, (s.tags||'').split(',').slice(0,2).join(', '), s.bitrate ? s.bitrate + ' kb/s' : ''].filter(Boolean).join(' · '), live:true}));
+      rMsg = radios.length ? '' : W3('Aucune radio trouvée pour « ' + label + ' ».','لم يتم العثور على إذاعة لـ « ' + label + ' ».','No radio found for “' + label + '”.');
+    } catch(e) {
+      radios = []; rMsg = W3('Pas de connexion à l’annuaire des radios. Vérifie Internet et réessaie.','تعذّر الاتصال بدليل الإذاعات. تحقّق من الإنترنت وأعد المحاولة.','Could not reach the radio directory. Check your connection.');
+    }
+    rLoading = false; rerender();
+  }
+  // ---------- Lecture ----------
+  function setMS(t){
+    try {
+      if (!('mediaSession' in navigator)) return;
+      navigator.mediaSession.metadata = new MediaMetadata({title:t.name, artist:'MotoRoute', album:t.info || W3('Musique','الموسيقى','Music')});
+      navigator.mediaSession.setActionHandler('play', () => play());
+      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+      navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+    } catch(e) {}
+  }
+  function start(list, i){
+    queue = list.slice(); qi = i; const t = queue[qi]; if (!t) return;
+    err = ''; state = 'loading'; audio.src = t.url; setMS(t); play(); bar(); rerender();
+  }
+  function play(){ if (!audio.src) return; const p = audio.play(); if (p && p.catch) p.catch(() => { state = 'paused'; bar(); rerender(); }); }
+  function step(d){ if (!queue.length) return; start(queue, (qi + d + queue.length) % queue.length); }
+  function stop(){ audio.pause(); audio.removeAttribute('src'); try { audio.load(); } catch(e) {} queue = []; qi = -1; state = 'idle'; bar(); rerender(); }
+  audio.addEventListener('playing', () => { state = 'playing'; err = ''; bar(); rerender(); });
+  audio.addEventListener('pause', () => { if (state !== 'idle') { state = 'paused'; bar(); rerender(); } });
+  audio.addEventListener('waiting', () => { state = 'loading'; bar(); });
+  audio.addEventListener('ended', () => step(1));
+  audio.addEventListener('error', () => { if (qi < 0) return; err = W3('Ce flux ne répond pas. Essaie une autre radio.','هذا البث لا يستجيب. جرّب إذاعة أخرى.','This stream is not responding. Try another one.'); state = 'paused'; bar(); rerender(); });
+  function bar(){
+    const b = document.getElementById('mu_bar'); if (!b) return;
+    const t = queue[qi], show = !!t;
+    b.hidden = !show; document.body.classList.toggle('mu-on', show);
+    try { const nv = document.querySelector('nav'), fixedBottom = nv && getComputedStyle(nv).position === 'fixed';
+      document.documentElement.style.setProperty('--mu-nav', (fixedBottom ? nv.offsetHeight : 0) + 'px');
+      document.documentElement.style.setProperty('--mu-h', (show ? b.offsetHeight : 0) + 'px'); } catch(e) {}
+    if (!t) return;
+    document.getElementById('mu_bar_t').textContent = t.name;
+    document.getElementById('mu_bar_s').textContent = err || (state === 'loading' ? W3('Connexion…','جارٍ الاتصال…','Connecting…') : (t.live ? W3('Radio en direct','إذاعة مباشرة','Live radio') : '') + (t.info ? ' · ' + t.info : ''));
+    document.getElementById('mu_bar_play').textContent = state === 'playing' || state === 'loading' ? '⏸' : '▶';
+  }
+  // ---------- Vue (carte de l'onglet Route) ----------
+  function row(t, i, list, opt){
+    const now = queue[qi] && queue[qi].url === t.url;
+    return `<div class="mu-row${now ? ' now' : ''}"><button class="mu-pick" data-mu="play" data-l="${opt.l}" data-i="${i}"><b>${now && state === 'playing' ? '♪ ' : ''}${esc(t.name)}</b><span>${esc(opt.sub ? opt.sub(t) : (t.info || ''))}</span></button>`
+      + (opt.star ? `<button class="mu-ic${inDir(t.url) ? ' on' : ''}" data-mu="star" data-i="${i}" aria-label="${W3('Enregistrer','حفظ','Save')}">★</button>` : '')
+      + (opt.del ? `<button class="mu-ic" data-mu="del" data-i="${i}" aria-label="${W3('Retirer','إزالة','Remove')}">✕</button>` : '') + `</div>`;
+  }
+  window.mrMusicHtml = function(){
+    if (radios === null && !rLoading) { const c = CHIPS[chip]; setTimeout(() => loadRadios(c.q, c[lang] || c.fr), 0); }
+    const t = queue[qi];
+    let body = '';
+    if (view === 'radio') {
+      body = `<div class="mu-chips">${CHIPS.map((c, i) => `<button class="g${i === chip && !q ? ' on' : ''}" data-mu="chip" data-i="${i}">${esc(c[lang] || c.fr)}</button>`).join('')}</div>
+        <form class="mu-form" data-mu-form="search"><div class="mu-2"><input id="mu_q" type="search" value="${esc(q)}" placeholder="${W3('Nom d’une radio','اسم إذاعة','Radio name')}"><button class="p" type="submit">${W3('Chercher','بحث','Search')}</button></div></form>
+        ${rMsg ? `<div class="meta" style="margin:8px 0">${esc(rMsg)}</div>` : ''}
+        <div class="mu-list">${(radios || []).map((r, i) => row(r, i, radios, {l:'radio', star:true})).join('')}</div>`;
+    } else if (view === 'dir') {
+      body = dir.length ? `<div class="mu-list">${dir.map((r, i) => row(r, i, dir, {l:'dir', del:true, sub:x => (x.cat ? x.cat + ' · ' : '') + x.url})).join('')}</div>`
+        : `<div class="meta" style="margin:10px 0">${W3('Ton annuaire est vide. Touche ★ sur une radio, ou ajoute une adresse dans « Lien ».','دليلك فارغ. المس ★ على إذاعة، أو أضف عنوانًا في « رابط ».','Your list is empty. Tap ★ on a radio, or add an address under “Link”.')}</div>`;
+    } else {
+      body = `<form class="mu-form" data-mu-form="link">
+        <input id="mu_url" type="url" inputmode="url" placeholder="https://…/morceau.mp3 ${W3('ou flux radio','أو بث إذاعي','or radio stream')}">
+        <div class="mu-2"><input id="mu_name" placeholder="${W3('Nom (facultatif)','الاسم (اختياري)','Name (optional)')}"><select id="mu_cat"><option>Radio</option><option>${W3('Musique','موسيقى','Music')}</option><option>Podcast</option></select></div>
+        <div class="mu-2"><button class="p" type="submit" data-act="save" style="flex:1">${W3('Enregistrer','حفظ','Save')}</button><button class="g" type="submit" data-act="play" style="flex:1">${W3('Lire','تشغيل','Play')}</button></div>
+        </form>${err && view === 'link' ? '' : ''}<div class="meta" id="mu_lmsg" style="margin-top:6px"></div>`;
+    }
+    const ext = [['YouTube Music','https://music.youtube.com'],['Spotify','https://open.spotify.com'],['Deezer','https://www.deezer.com']];
+    return `<div class="card"><h3>🎵 ${W3('Musique','الموسيقى','Music')}</h3>
+      <div class="meta">${W3('Radios gratuites, sans compte. La musique continue quand tu changes d’onglet.','إذاعات مجانية بدون حساب. تستمر الموسيقى عند تغيير التبويب.','Free radios, no account needed. Music keeps playing when you switch tabs.')}</div>
+      ${t ? `<div style="text-align:center;margin-top:12px"><b>${esc(t.name)}</b><div class="meta">${esc(err || (state === 'loading' ? W3('Connexion…','جارٍ الاتصال…','Connecting…') : t.info || ''))}</div></div>
+        <div class="mu-ctl"><button class="g" data-mu="prev" aria-label="prev">⏮</button><button class="p" data-mu="toggle" aria-label="play">${state === 'playing' || state === 'loading' ? '⏸' : '▶'}</button><button class="g" data-mu="next" aria-label="next">⏭</button></div>` : ''}
+      <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Mon annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
+      ${body}
+      <div class="meta" style="margin-top:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a class="lnk" target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
+  };
+  // ---------- Actions ----------
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-mu]'); if (!b) return;
+    const a = b.dataset.mu, i = +b.dataset.i;
+    if (a === 'toggle') { if (audio.paused) play(); else audio.pause(); }
+    else if (a === 'next') step(1);
+    else if (a === 'prev') step(-1);
+    else if (a === 'stop') stop();
+    else if (a === 'view') { view = b.dataset.v; rerender(); }
+    else if (a === 'chip') { chip = i; q = ''; const c = CHIPS[i]; loadRadios(c.q, c[lang] || c.fr); }
+    else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:!/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)/i.test(x.url)})) : radios; start(L, i); }
+    else if (a === 'star') { const r = radios[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:'Radio', info:r.info}); saveDir(); rerender(); }
+    else if (a === 'del') { dir.splice(i, 1); saveDir(); rerender(); }
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-mu-form]'); if (!f) return;
+    e.preventDefault();
+    if (f.dataset.muForm === 'search') { q = (document.getElementById('mu_q').value || '').trim(); if (q) loadRadios('name=' + encodeURIComponent(q), q); return; }
+    const u = (document.getElementById('mu_url').value || '').trim(), msg = document.getElementById('mu_lmsg');
+    if (!/^https:\/\//i.test(u)) { msg.textContent = W3('Colle une adresse qui commence par https://','الصق عنوانًا يبدأ بـ https://','Paste an address starting with https://'); return; }
+    let name = (document.getElementById('mu_name').value || '').trim();
+    if (!name) { try { name = decodeURIComponent(u.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '); } catch(err) {} }
+    name = name || new URL(u).hostname;
+    const item = {name, url:u, cat:document.getElementById('mu_cat').value, info:''};
+    const act = (e.submitter && e.submitter.dataset.act) || 'save';
+    if (act === 'play') { start([{...item, live:!/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)/i.test(u)}], 0); return; }
+    if (!inDir(u)) { dir.unshift(item); saveDir(); }
+    view = 'dir'; rerender();
+  });
+})();
+</script>
+<script>
+/* Présentation animée au premier lancement (www/presentation.html), revoir depuis l'aide « ? » */
+(function(){
+  const KEY = 'mr_onb_seen';
+  const L = () => (typeof lang !== 'undefined' ? lang : 'fr');
+  function open(){
+    if (document.getElementById('mr_onb')) return;
+    const f = document.createElement('iframe');
+    f.id = 'mr_onb'; f.src = 'presentation.html?app=1&lang=' + L(); f.setAttribute('allow', 'autoplay; fullscreen');
+    f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99999;background:#06080c';
+    document.body.appendChild(f);
+    // l'aide « Comment ça marche ? » s'ouvre au premier lancement : la présentation la remplace
+    const shut = () => document.querySelectorAll('dialog[open]').forEach(d => { if (document.getElementById('mr_onb')) try { d.close(); } catch(e) {} });
+    shut(); [300, 700, 1200].forEach(t => setTimeout(shut, t));
+  }
+  function close(signup){
+    try { localStorage.setItem(KEY, '1'); } catch(e) {}
+    const f = document.getElementById('mr_onb'); if (f) f.remove();
+    if (signup) { const b = document.getElementById('acct'); if (b && b.textContent.trim() === '🔑') setTimeout(() => b.click(), 250); }
+  }
+  window.addEventListener('message', e => { const d = e.data || {}; if (d.type === 'motoroute-onboarding-done') close(!!d.signup); });
+  window.mrOpenOnboarding = open;
+  // bouton « Revoir la présentation » en haut de l'aide
+  const d5 = document.getElementById('d5');
+  if (d5) {
+    const b = document.createElement('button'); b.className = 'p'; b.type = 'button'; b.id = 'mr_onb_btn';
+    b.style.cssText = 'width:100%;margin:4px 0 12px';
+    const lab = () => { b.textContent = L() === 'ar' ? '▶ مشاهدة العرض التقديمي' : L() === 'en' ? '▶ Watch the presentation' : '▶ Revoir la présentation'; };
+    lab(); b.onclick = () => { try { d5.close(); } catch(e) {} open(); };
+    d5.insertBefore(b, d5.children[1] || null);
+    const h = document.getElementById('help'); if (h) h.addEventListener('click', lab);
+  }
+  try { if (!localStorage.getItem(KEY)) setTimeout(open, 400); } catch(e) {}
 })();
 </script>
 </body>

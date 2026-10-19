@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 18 octobre 2026, 22 h 15.**
+**Dernière mise à jour : 19 octobre 2026, 10 h 30.**
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
 ## Où tout se trouve
@@ -8,8 +8,9 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-10**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-10.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-11**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-11.aab` |
+| Présentation animée | `www/presentation.html` (+ `www/lib/three.min.js`) |
 | Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
 | Images Play Store | dossier `play-store/` (icône 512, bannière 1024×500, 5 captures) |
@@ -28,6 +29,13 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-11 (19/10)
+
+- **Présentation animée au premier lancement** (`www/presentation.html`) : 9 scènes en 3D (Djurdjura, col de Tikjda, motos), choix Français / العربية, musique générée sans droits, voix off française (Kokoro « siwis », Apache 2.0 / données SIWIS CC BY 4.0) en une seule piste continue, sous-titres. Arabe : sous-titres + musique, **pas de voix** (en attente d'un MP3 en darija, voix de jeune femme algéroise). Bouton « Plus tard », bouton final « Créer mon compte » qui ouvre 🔑. Revoir : aide « ? » → « ▶ Revoir la présentation ».
+- **Lecteur musique intégré** (onglet Route, carte « Musique ») : radios en ligne gratuites sans compte (annuaire Radio Browser, raccourcis Algérie, Raï, Chaabi, Kabyle, Rock, Monde + recherche), ★ pour enregistrer dans « Mon annuaire », « Lien » pour lire ou enregistrer une adresse MP3/flux (https), mini-lecteur au-dessus de la barre du bas qui reste quand on change d'onglet, commandes du casque Bluetooth. Seuls les flux https sont proposés.
+- Contient aussi le numéro de Simou Cycle (prévu pour test-11).
+- À faire plus tard : clé gratuite Audius (morceaux à la demande), playlist du club sur Supabase, lecture écran éteint (module Capacitor de lecture en arrière-plan), voix arabe en darija.
 
 ## Version test-10 (18/10, soir)
 
@@ -73,4 +81,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
 8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
 
-Prochaine fabrication = **test-11** (contiendra le numéro de Simou). Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
+Prochaine fabrication = **test-12**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
