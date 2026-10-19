@@ -8,8 +8,8 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-17**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-17.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-18**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-18.aab` |
 | Présentation animée | `www/presentation.html` (+ `www/lib/three.min.js`) |
 | Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`, `playlists.sql` le 19/10) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
@@ -29,6 +29,12 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-18 (19/10)
+
+- **Compte obligatoire** : sans connexion, l'app reste bloquée sur l'écran « Bienvenue sur MotoRoute » (connexion / création de compte / mot de passe oublié / confidentialité), fond opaque, impossible de le fermer (retour, Échap, autre fenêtre : il revient). Le bouton devient « Quitter » et ferme l'application (module `@capacitor/app`). La présentation passe avant, puis l'écran s'ouvre sur « Créer un compte ». Une déconnexion ou une suppression de compte ramène sur cet écran ; la musique s'arrête.
+- Le module Supabase est maintenant dans l'app (`www/lib/supabase.js`, v2.45.4) au lieu d'être chargé depuis internet : un membre déjà connecté garde l'accès même sans réseau au démarrage.
+- ⚠️ Google Play : comme l'app exige un compte, il faudra donner un compte de test à Google dans la Play Console (Contenu de l'application → Accès à l'application).
 
 ## Version test-17 (19/10)
 
@@ -108,4 +114,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
 8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
 
-Prochaine fabrication = **test-18**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
+Prochaine fabrication = **test-19**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.

@@ -783,17 +783,17 @@ document.getElementById('main').addEventListener('toggle',e=>{if(e.target.datase
 render();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="lib/supabase.js"></script>
 <dialog id="dA"></dialog>
 <script>
 (function(){
 const U='https://ixtqlxltwuktpdznbhnx.supabase.co',K='sb_publishable_PKw5lXyvnQCgUT_5S1r__w_HW2gbW-K';
 const TX={
-fr:{acc:'Mon compte',in:'Connexion',up:'Créer un compte',fn:'Prénom',em:'E-mail',pw:'Mot de passe (6 caractères min.)',go_in:'Se connecter',go_up:'Créer mon compte',sw_in:'J’ai déjà un compte',sw_up:'Pas encore de compte ?',fg:'Mot de passe oublié ?',fgn:'Écris ton e-mail ci-dessus, puis touche « Mot de passe oublié ? ».',fgs:'E-mail envoyé ✓ Ouvre le lien reçu (regarde aussi les spams) pour choisir un nouveau mot de passe.',out:'Se déconnecter',close:'Fermer',hi:'Connecté :',chk:'Compte créé. Vérifie ta boîte e-mail pour confirmer, puis connecte-toi.',off:'Connexion indisponible ici. Ouvre l’app depuis son lien Netlify.',wait:'…',need:'Remplis tous les champs.',dl:'Supprimer mon compte',dlq:'Supprimer définitivement ton compte MotoRoute ?\n\nTes groupes (dont tu es le chef), tes sorties, tes participations, ta fiche d’urgence et ton profil seront effacés du serveur. C’est irréversible.',dlq2:'Pour confirmer, écris SUPPRIMER :',dlw:'SUPPRIMER',dlok:'Ton compte et tes données ont été supprimés.'},
-ar:{acc:'حسابي',in:'تسجيل الدخول',up:'إنشاء حساب',fn:'الاسم الأول',em:'البريد الإلكتروني',pw:'كلمة المرور (6 أحرف على الأقل)',go_in:'دخول',go_up:'إنشاء حسابي',sw_in:'لدي حساب بالفعل',sw_up:'ليس لدي حساب؟',fg:'نسيت كلمة المرور؟',fgn:'اكتب بريدك الإلكتروني أعلاه ثم اضغط «نسيت كلمة المرور؟».',fgs:'تم إرسال البريد ✓ افتح الرابط (تحقق أيضًا من الرسائل غير المرغوب فيها) لاختيار كلمة مرور جديدة.',out:'تسجيل الخروج',close:'إغلاق',hi:'متصل:',chk:'تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.',off:'تسجيل الدخول غير متاح هنا. افتح التطبيق من رابط Netlify.',wait:'…',need:'املأ كل الحقول.',dl:'حذف حسابي',dlq:'هل تريد حذف حسابك في MotoRoute نهائيًا؟\n\nستُحذف من الخادم مجموعاتك (التي أنشأتها) ورحلاتك ومشاركاتك وبطاقة الطوارئ وملفك الشخصي. لا يمكن التراجع.',dlq2:'للتأكيد، اكتب SUPPRIMER :',dlw:'SUPPRIMER',dlok:'تم حذف حسابك وبياناتك.'},
-en:{acc:'My account',in:'Log in',up:'Create account',fn:'First name',em:'Email',pw:'Password (min. 6 characters)',go_in:'Log in',go_up:'Create my account',sw_in:'I already have an account',sw_up:'No account yet?',fg:'Forgot password?',fgn:'Type your email above, then tap “Forgot password?”.',fgs:'Email sent ✓ Open the link you received (check spam too) to choose a new password.',out:'Log out',close:'Close',hi:'Signed in:',chk:'Account created. Check your email to confirm, then log in.',off:'Login unavailable here. Open the app from its Netlify link.',wait:'…',need:'Fill in all fields.',dl:'Delete my account',dlq:'Permanently delete your MotoRoute account?\n\nYour groups (that you lead), your rides, your participations, your emergency card and your profile will be erased from the server. This cannot be undone.',dlq2:'To confirm, type SUPPRIMER:',dlw:'SUPPRIMER',dlok:'Your account and your data have been deleted.'}};
+fr:{acc:'Mon compte',in:'Connexion',up:'Créer un compte',fn:'Prénom',em:'E-mail',pw:'Mot de passe (6 caractères min.)',go_in:'Se connecter',go_up:'Créer mon compte',sw_in:'J’ai déjà un compte',sw_up:'Pas encore de compte ?',fg:'Mot de passe oublié ?',fgn:'Écris ton e-mail ci-dessus, puis touche « Mot de passe oublié ? ».',fgs:'E-mail envoyé ✓ Ouvre le lien reçu (regarde aussi les spams) pour choisir un nouveau mot de passe.',out:'Se déconnecter',close:'Fermer',hi:'Connecté :',chk:'Compte créé. Vérifie ta boîte e-mail pour confirmer, puis connecte-toi.',off:'Connexion indisponible ici. Ouvre l’app depuis son lien Netlify.',wait:'…',need:'Remplis tous les champs.',dl:'Supprimer mon compte',dlq:'Supprimer définitivement ton compte MotoRoute ?\n\nTes groupes (dont tu es le chef), tes sorties, tes participations, ta fiche d’urgence et ton profil seront effacés du serveur. C’est irréversible.',dlq2:'Pour confirmer, écris SUPPRIMER :',dlw:'SUPPRIMER',dlok:'Ton compte et tes données ont été supprimés.',gt:'Bienvenue sur MotoRoute',gs:'Un compte gratuit est nécessaire pour utiliser l’application. Connecte-toi ou crée ton compte.',quit:'Quitter'},
+ar:{acc:'حسابي',in:'تسجيل الدخول',up:'إنشاء حساب',fn:'الاسم الأول',em:'البريد الإلكتروني',pw:'كلمة المرور (6 أحرف على الأقل)',go_in:'دخول',go_up:'إنشاء حسابي',sw_in:'لدي حساب بالفعل',sw_up:'ليس لدي حساب؟',fg:'نسيت كلمة المرور؟',fgn:'اكتب بريدك الإلكتروني أعلاه ثم اضغط «نسيت كلمة المرور؟».',fgs:'تم إرسال البريد ✓ افتح الرابط (تحقق أيضًا من الرسائل غير المرغوب فيها) لاختيار كلمة مرور جديدة.',out:'تسجيل الخروج',close:'إغلاق',hi:'متصل:',chk:'تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.',off:'تسجيل الدخول غير متاح هنا. افتح التطبيق من رابط Netlify.',wait:'…',need:'املأ كل الحقول.',dl:'حذف حسابي',dlq:'هل تريد حذف حسابك في MotoRoute نهائيًا؟\n\nستُحذف من الخادم مجموعاتك (التي أنشأتها) ورحلاتك ومشاركاتك وبطاقة الطوارئ وملفك الشخصي. لا يمكن التراجع.',dlq2:'للتأكيد، اكتب SUPPRIMER :',dlw:'SUPPRIMER',dlok:'تم حذف حسابك وبياناتك.',gt:'مرحبًا بك في MotoRoute',gs:'يلزم حساب مجاني لاستعمال التطبيق. سجّل الدخول أو أنشئ حسابك.',quit:'خروج'},
+en:{acc:'My account',in:'Log in',up:'Create account',fn:'First name',em:'Email',pw:'Password (min. 6 characters)',go_in:'Log in',go_up:'Create my account',sw_in:'I already have an account',sw_up:'No account yet?',fg:'Forgot password?',fgn:'Type your email above, then tap “Forgot password?”.',fgs:'Email sent ✓ Open the link you received (check spam too) to choose a new password.',out:'Log out',close:'Close',hi:'Signed in:',chk:'Account created. Check your email to confirm, then log in.',off:'Login unavailable here. Open the app from its Netlify link.',wait:'…',need:'Fill in all fields.',dl:'Delete my account',dlq:'Permanently delete your MotoRoute account?\n\nYour groups (that you lead), your rides, your participations, your emergency card and your profile will be erased from the server. This cannot be undone.',dlq2:'To confirm, type SUPPRIMER:',dlw:'SUPPRIMER',dlok:'Your account and your data have been deleted.',gt:'Welcome to MotoRoute',gs:'A free account is needed to use the app. Log in or create your account.',quit:'Quit'}};
 const t=k=>(TX[lang]||TX.fr)[k],esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let sb=null,mode='in',user=null,msg='';
+let sb=null,mode='in',user=null,msg='',gate=false,ready=false;
 try{sb=window.supabase.createClient(U,K)}catch(e){}
 const d=document.getElementById('dA'),b=document.createElement('button');
 b.className='lang';b.id='acct';b.setAttribute('aria-label','Compte');
@@ -803,7 +803,7 @@ const mark=()=>{b.textContent=user?'🔑 '+esc(nm(user)).slice(0,8):'🔑'};
 const draw=()=>{
 if(user){d.innerHTML='<h2 class="dt">'+t('acc')+'</h2><p class="meta">'+t('hi')+' <b>'+esc(nm(user))+'</b><br>'+esc(user.email||'')+'</p><div class="acts"><button class="g" data-x>'+t('close')+'</button><button class="p" data-o>'+t('out')+'</button></div>'+(msg?'<p class="meta" style="margin-top:10px">'+esc(msg)+'</p>':'')+'<p style="text-align:center;margin-top:18px"><a class="lnk" href="#" data-dl style="color:#d7263d">🗑 '+t('dl')+'</a></p>'+'<p style="text-align:center;margin-top:10px"><a class="lnk" target="_blank" rel="noopener" href="https://elaidremili-sudo.github.io/Elaid/confidentialite.html">🔒 '+(lang=='ar'?'سياسة الخصوصية':lang=='en'?'Privacy policy':'Confidentialité')+'</a></p>';return}
 const up=mode=='up';
-d.innerHTML='<h2 class="dt">'+t(up?'up':'in')+'</h2>'+(up?'<label>'+t('fn')+'</label><input id="a_n" autocomplete="given-name">':'')+'<label>'+t('em')+'</label><input id="a_e" type="email" inputmode="email" autocomplete="email"><label>'+t('pw')+'</label><input id="a_p" type="password" autocomplete="'+(up?'new-password':'current-password')+'">'+(msg?'<p class="meta" style="margin-top:10px">'+esc(msg)+'</p>':'')+'<div class="acts"><button class="g" data-x>'+t('close')+'</button><button class="p" data-go>'+t(up?'go_up':'go_in')+'</button></div><p style="text-align:center;margin-top:12px"><a class="lnk" href="#" data-sw>'+t(up?'sw_in':'sw_up')+'</a></p>'+(up?'':'<p style="text-align:center;margin-top:8px"><a class="lnk" href="#" data-fg>'+t('fg')+'</a></p>')+'<p style="text-align:center;margin-top:10px"><a class="lnk" target="_blank" rel="noopener" href="https://elaidremili-sudo.github.io/Elaid/confidentialite.html">🔒 '+(lang=='ar'?'سياسة الخصوصية':lang=='en'?'Privacy policy':'Confidentialité')+'</a></p>'};
+d.innerHTML=(gate?'<h2 class="dt">🏍 '+t('gt')+'</h2><p class="meta">'+t('gs')+'</p><h3 style="margin:14px 0 4px">'+t(up?'up':'in')+'</h3>':'<h2 class="dt">'+t(up?'up':'in')+'</h2>')+(up?'<label>'+t('fn')+'</label><input id="a_n" autocomplete="given-name">':'')+'<label>'+t('em')+'</label><input id="a_e" type="email" inputmode="email" autocomplete="email"><label>'+t('pw')+'</label><input id="a_p" type="password" autocomplete="'+(up?'new-password':'current-password')+'">'+(msg?'<p class="meta" style="margin-top:10px">'+esc(msg)+'</p>':'')+'<div class="acts"><button class="g" data-x>'+t(gate?'quit':'close')+'</button><button class="p" data-go>'+t(up?'go_up':'go_in')+'</button></div><p style="text-align:center;margin-top:12px"><a class="lnk" href="#" data-sw>'+t(up?'sw_in':'sw_up')+'</a></p>'+(up?'':'<p style="text-align:center;margin-top:8px"><a class="lnk" href="#" data-fg>'+t('fg')+'</a></p>')+'<p style="text-align:center;margin-top:10px"><a class="lnk" target="_blank" rel="noopener" href="https://elaidremili-sudo.github.io/Elaid/confidentialite.html">🔒 '+(lang=='ar'?'سياسة الخصوصية':lang=='en'?'Privacy policy':'Confidentialité')+'</a></p>'};
 const show=()=>{msg='';draw();if(!d.open)d.showModal()};
 b.onclick=show;
 d.onclick=async e=>{
@@ -818,7 +818,7 @@ if(x.hasAttribute('data-dl')){
  if(r.error){const m=String(r.error.message||'');msg=/Could not find the function|PGRST202|schema cache/i.test(m+(r.error.code||''))?(lang=='ar'?'الخادم غير جاهز بعد: نفّذ سكربت SQL «suppression» في Supabase.':lang=='en'?'The server is not ready yet: run the “suppression” SQL script in Supabase.':'Le serveur n’est pas encore prêt : exécute le script SQL « suppression » dans Supabase.'):m;draw();return}
  try{await sb.auth.signOut({scope:'local'})}catch(e2){}
  user=null;mark();d.close();alert(t('dlok'));return}
-if(x.hasAttribute('data-x')){d.close();return}
+if(x.hasAttribute('data-x')){if(gate&&!user){quitApp();return}d.close();return}
 if(x.hasAttribute('data-sw')){mode=mode=='in'?'up':'in';msg='';draw();return}
 if(!sb){msg=t('off');draw();return}
 if(x.hasAttribute('data-o')){await sb.auth.signOut();user=null;mark();d.close();return}
@@ -831,9 +831,15 @@ if(r.data.session){user=r.data.session.user;mark();d.close()}else{mode='in';msg=
 else{const r=await sb.auth.signInWithPassword({email:em,password:pw});if(r.error)throw r.error;user=r.data.user;mark();d.close()}
 }catch(err){msg=(err&&err.message)||t('off');draw()}
 };
+/* Compte obligatoire : sans connexion, l'app reste bloquée sur cet écran ; « Quitter » ferme l'application */
+const st=document.createElement('style');st.textContent='dialog.gate::backdrop{background:#0d0f12}';document.head.appendChild(st);
+function quitApp(){try{const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(A&&A.exitApp){A.exitApp();return}}catch(e){}try{window.close()}catch(e){}}
+function enforce(){if(!ready)return;if(user){if(gate){gate=false;d.classList.remove('gate');if(d.open)draw()}return}if(document.getElementById('mr_onb'))return;try{window.mrMusicAudio&&window.mrMusicAudio.pause()}catch(e){}if(!gate){gate=true;d.classList.add('gate');if(d.open)draw()}if(!d.open){document.querySelectorAll('dialog[open]').forEach(o=>{if(o!==d)try{o.close()}catch(e){}});draw();d.showModal()}}
+d.addEventListener('cancel',e=>{if(gate&&!user)e.preventDefault()});
+setInterval(enforce,800);window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
 window.mrSb=sb;window.mrUser=()=>user;
-if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;mark();if(window.mrSync)window.mrSync()}).catch(()=>{});
-sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();setTimeout(()=>{if(window.mrSync)window.mrSync()},0)})}
+if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
+sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();if(ready)enforce();setTimeout(()=>{if(window.mrSync)window.mrSync()},0)})}else{ready=true;enforce()}
 const lg=document.getElementById('lang');if(lg)lg.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0));
 document.querySelectorAll('[data-lg]').forEach(x=>x.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0)));
 mark();
@@ -1670,7 +1676,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
   const W3 = (fr, ar, en) => (typeof lang !== 'undefined' && lang === 'ar') ? ar : (typeof lang !== 'undefined' && lang === 'en') ? en : fr;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const rerender = () => { try { if (typeof render === 'function' && typeof tab !== 'undefined' && tab == 4) render(); } catch(e) {} };
-  const audio = new Audio(); audio.preload = 'none';
+  const audio = new Audio(); audio.preload = 'none'; window.mrMusicAudio = audio;
   let open = false, view = 'radio', chip = 0, radios = null, rMsg = '', rLoading = false, q = '';
   let queue = [], qi = -1, state = 'idle', err = '';
   let dir = []; try { const d = JSON.parse(localStorage.getItem('mr_mu_dir') || '[]'); if (Array.isArray(d)) dir = d.filter(x => x && x.url); } catch(e) {}
@@ -1938,7 +1944,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
   function close(signup){
     try { localStorage.setItem(KEY, '1'); } catch(e) {}
     const f = document.getElementById('mr_onb'); if (f) f.remove();
-    if (signup) { const b = document.getElementById('acct'); if (b && b.textContent.trim() === '🔑') setTimeout(() => b.click(), 250); }
+    if (signup) { const b = document.getElementById('acct'); if (b && b.textContent.trim() === '🔑') setTimeout(() => { if (window.mrSignup) window.mrSignup(); else b.click(); }, 250); }
   }
   window.addEventListener('message', e => { const d = e.data || {}; if (d.type === 'motoroute-onboarding-done') close(!!d.signup); });
   window.mrOpenOnboarding = open;
