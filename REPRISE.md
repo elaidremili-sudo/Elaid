@@ -8,8 +8,8 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-11**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-11.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-12**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-12.aab` |
 | Présentation animée | `www/presentation.html` (+ `www/lib/three.min.js`) |
 | Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
@@ -29,6 +29,11 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
+
+## Version test-12 (19/10)
+
+- Carte « Musique » repliée par défaut (une seule ligne avec les commandes, ▾ pour ouvrir), liste plus courte ; mini-lecteur plus fin, placé au-dessus de la bannière publicitaire quand elle est affichée.
+- Annonces : les boutons (Contacter, ♡, Noter, Signaler, Supprimer) passent à la ligne au lieu de déborder.
 
 ## Version test-11 (19/10)
 
@@ -81,4 +86,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
 8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
 
-Prochaine fabrication = **test-12**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
+Prochaine fabrication = **test-13**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.

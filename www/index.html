@@ -351,7 +351,7 @@ function render(){
   (l.length?l.map(a=>`<div class="card">${a.img?`<img class="ph" src="${esc(a.img)}" alt="">`:''}<span class="tag ${a.ty=='sell'?'v':'a'}">${a.ty=='sell'?t.forsale:t.wanted}</span><span class="tag">${t[a.cat]}</span>
   <h3 style="margin-top:8px">${esc(a.t)}</h3><div class="meta">${esc(a.de)}</div>${a.cat=='moto'?motoInfo(a,t):''}
   <div class="row"><span class="price">${a.p?(Number(a.p)||0).toLocaleString(t.loc)+' '+t.cur:t.nego}</span><span class="meta">${esc(a.v)}</span></div>
-  <div class="row"><button class="g" data-c="${a.id}">${t.contact}</button><button class="g" data-fv="${a.id}">${S.fav.includes(a.id)?'♥':'♡'}</button><button class="g" data-rt="${a.id}">★ ${ratingAvg(a.id)?ratingAvg(a.id).toFixed(1):t.rate}</button><button class="g" data-rp="${a.id}">${t.rep}</button><button class="g" data-r="${a.id}">${t.del}</button></div></div>`).join(''):`<div class="empty">${t.empty2}</div>`);
+  <div class="row ad-act"><button class="g" data-c="${a.id}">${t.contact}</button><button class="g" data-fv="${a.id}">${S.fav.includes(a.id)?'♥':'♡'}</button><button class="g" data-rt="${a.id}">★ ${ratingAvg(a.id)?ratingAvg(a.id).toFixed(1):t.rate}</button><button class="g" data-rp="${a.id}">${t.rep}</button><button class="g" data-r="${a.id}">${t.del}</button></div></div>`).join(''):`<div class="empty">${t.empty2}</div>`);
  }
 }
 $('lang').onclick=()=>{lang=lang=='fr'?'ar':'fr';try{localStorage.setItem(LK,lang)}catch(e){}statics();render()};
@@ -1285,9 +1285,10 @@ async function sync(){
  if(!ready||busy)return;busy=true;
  try{
   if(want()&&!shown){await A().showBanner({adId:BANNER_ID,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:margin(),isTesting:TESTING});shown=true;document.body.classList.add('mr-ad')}
-  else if(!want()&&shown){await A().removeBanner();shown=false;document.body.classList.remove('mr-ad')}
+  else if(!want()&&shown){await A().removeBanner();shown=false;document.body.classList.remove('mr-ad');document.documentElement.style.setProperty('--mu-ad','0px')}
  }catch(e){console.error('admob',e)}finally{busy=false}
 }
+try{A().addListener('bannerAdSizeChanged',i=>{document.documentElement.style.setProperty('--mu-ad',((i&&i.height)||0)+'px')})}catch(e){}
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
 document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}</style>');
@@ -1553,6 +1554,9 @@ refresh();
 })();
 </script>
 <style>
+/* Annonces : boutons d'action sur plusieurs lignes au lieu de déborder */
+.row.ad-act{flex-wrap:wrap;justify-content:flex-start;gap:6px}
+.row.ad-act button{white-space:nowrap;margin:0}
 /* Lecteur musique intégré + mini-lecteur persistant */
 .mu-tabs{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}
 .mu-tabs button{flex:1;min-width:0}
@@ -1566,20 +1570,23 @@ refresh();
 .mu-row .mu-ic{background:none;border:0;color:var(--mute);font-size:20px;width:42px;height:42px;border-radius:50%;flex:none;cursor:pointer}
 .mu-row .mu-ic.on{color:var(--acc)}
 .mu-row.now .mu-pick b{color:var(--acc)}
-.mu-list{max-height:330px;overflow-y:auto;border-top:1px solid var(--line)}
+.mu-list{max-height:210px;overflow-y:auto;border-top:1px solid var(--line)}
 .mu-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .mu-form input,.mu-form select{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%;box-sizing:border-box}
 .mu-form .mu-2{display:flex;gap:8px}
-.mu-ctl{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px}
-.mu-ctl button{width:56px;height:56px;border-radius:50%;font-size:22px;padding:0}
-.mu-ctl button.p{width:72px;height:72px;font-size:28px}
-#mu_bar{position:fixed;left:0;right:0;bottom:var(--mu-nav,0px);z-index:19;display:flex;align-items:center;gap:10px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.25);
-  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+.mu-head{display:flex;align-items:center;gap:8px}
+.mu-head h3{margin:0;flex:1;min-width:0;font-size:18px}
+.mu-head .mu-now{display:block;font-size:12px;font-weight:400;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-head button{flex:none;width:40px;height:40px;border-radius:50%;padding:0;font-size:16px}
+.mu-head .mu-fold{border:0;background:none;color:var(--mute);font-size:18px}
+.mu-row .mu-pick{padding:7px 2px}
+#mu_bar{position:fixed;left:0;right:0;bottom:calc(var(--mu-nav,0px) + var(--mu-ad,0px));z-index:19;display:flex;align-items:center;gap:10px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.25);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:5px max(10px,env(safe-area-inset-right,0px)) 5px max(10px,env(safe-area-inset-left,0px));gap:8px}
 #mu_bar[hidden]{display:none}
 #mu_bar .mu-t{flex:1;min-width:0}
-#mu_bar .mu-t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
-#mu_bar .mu-t span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#mu_bar button{flex:none;width:48px;height:48px;border-radius:50%;font-size:20px;padding:0;border:1.5px solid var(--line);background:none;color:var(--ink)}
+#mu_bar .mu-t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+#mu_bar .mu-t span{display:block;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mu_bar button{flex:none;width:36px;height:36px;border-radius:50%;font-size:15px;padding:0;border:1.5px solid var(--line);background:none;color:var(--ink)}
 #mu_bar button.mu-main{background:var(--acc);color:var(--on-acc);border:0}
 body.mu-on main{padding-bottom:calc(320px + env(safe-area-inset-bottom,0px))}
 body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
@@ -1599,7 +1606,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const rerender = () => { try { if (typeof render === 'function' && typeof tab !== 'undefined' && tab == 4) render(); } catch(e) {} };
   const audio = new Audio(); audio.preload = 'none';
-  let view = 'radio', chip = 0, radios = null, rMsg = '', rLoading = false, q = '';
+  let open = false, view = 'radio', chip = 0, radios = null, rMsg = '', rLoading = false, q = '';
   let queue = [], qi = -1, state = 'idle', err = '';
   let dir = []; try { const d = JSON.parse(localStorage.getItem('mr_mu_dir') || '[]'); if (Array.isArray(d)) dir = d.filter(x => x && x.url); } catch(e) {}
   const saveDir = () => { try { localStorage.setItem('mr_mu_dir', JSON.stringify(dir)); } catch(e) {} };
@@ -1673,7 +1680,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       + (opt.del ? `<button class="mu-ic" data-mu="del" data-i="${i}" aria-label="${W3('Retirer','إزالة','Remove')}">✕</button>` : '') + `</div>`;
   }
   window.mrMusicHtml = function(){
-    if (radios === null && !rLoading) { const c = CHIPS[chip]; setTimeout(() => loadRadios(c.q, c[lang] || c.fr), 0); }
+    if (open && radios === null && !rLoading) { const c = CHIPS[chip]; setTimeout(() => loadRadios(c.q, c[lang] || c.fr), 0); }
     const t = queue[qi];
     let body = '';
     if (view === 'radio') {
@@ -1692,13 +1699,15 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
         </form>${err && view === 'link' ? '' : ''}<div class="meta" id="mu_lmsg" style="margin-top:6px"></div>`;
     }
     const ext = [['YouTube Music','https://music.youtube.com'],['Spotify','https://open.spotify.com'],['Deezer','https://www.deezer.com']];
-    return `<div class="card"><h3>🎵 ${W3('Musique','الموسيقى','Music')}</h3>
-      <div class="meta">${W3('Radios gratuites, sans compte. La musique continue quand tu changes d’onglet.','إذاعات مجانية بدون حساب. تستمر الموسيقى عند تغيير التبويب.','Free radios, no account needed. Music keeps playing when you switch tabs.')}</div>
-      ${t ? `<div style="text-align:center;margin-top:12px"><b>${esc(t.name)}</b><div class="meta">${esc(err || (state === 'loading' ? W3('Connexion…','جارٍ الاتصال…','Connecting…') : t.info || ''))}</div></div>
-        <div class="mu-ctl"><button class="g" data-mu="prev" aria-label="prev">⏮</button><button class="p" data-mu="toggle" aria-label="play">${state === 'playing' || state === 'loading' ? '⏸' : '▶'}</button><button class="g" data-mu="next" aria-label="next">⏭</button></div>` : ''}
+    const playing = state === 'playing' || state === 'loading';
+    const head = `<div class="mu-head"><h3>🎵 ${W3('Musique','الموسيقى','Music')}${t ? `<span class="mu-now">${playing ? '♪ ' : ''}${esc(t.name)}${err ? ' · ' + esc(err) : ''}</span>` : `<span class="mu-now">${W3('Radios gratuites, sans compte','إذاعات مجانية بدون حساب','Free radios, no account')}</span>`}</h3>`
+      + (t ? `<button class="g" data-mu="prev" aria-label="prev">⏮</button><button class="p" data-mu="toggle" aria-label="play">${playing ? '⏸' : '▶'}</button><button class="g" data-mu="next" aria-label="next">⏭</button>` : '')
+      + `<button class="mu-fold" data-mu="fold" aria-label="${open ? W3('Réduire','تصغير','Collapse') : W3('Ouvrir','فتح','Open')}">${open ? '▴' : '▾'}</button></div>`;
+    if (!open) return `<div class="card" style="padding:10px 12px">${head}</div>`;
+    return `<div class="card" style="padding:10px 12px">${head}
       <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Mon annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
-      <div class="meta" style="margin-top:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a class="lnk" target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
+      <div class="meta" style="margin-top:10px;font-size:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
   };
   // ---------- Actions ----------
   document.addEventListener('click', e => {
@@ -1709,6 +1718,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'prev') step(-1);
     else if (a === 'stop') stop();
     else if (a === 'view') { view = b.dataset.v; rerender(); }
+    else if (a === 'fold') { open = !open; rerender(); }
     else if (a === 'chip') { chip = i; q = ''; const c = CHIPS[i]; loadRadios(c.q, c[lang] || c.fr); }
     else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:!/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)/i.test(x.url)})) : radios; start(L, i); }
     else if (a === 'star') { const r = radios[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:'Radio', info:r.info}); saveDir(); rerender(); }
