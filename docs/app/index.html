@@ -583,9 +583,9 @@ $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
 const K={fr:{t:"Conduite : vitesse et inclinaison",note:"Fixez le téléphone sur le support. 1) Moto droite et à l'arrêt, appuyez sur Calibrer. 2) Démarrez, puis roulez. Ne regardez pas l'écran en roulant : consultez vos statistiques à l'arrêt.",cal:"Calibrer (moto droite)",cald:"Calibré ✓",caln:"Non calibré",calw:"Ne bougez pas… calibrage en cours",calf:"Calibrage impossible : capteurs indisponibles ou téléphone qui bouge.",start:"Démarrer",stop:"Arrêter et enregistrer",kmh:"km/h",lean:"Inclinaison",left:"gauche",right:"droite",vmax:"Vitesse max",vavg:"Vitesse moyenne",lmax:"Inclinaison max",vc:"Vitesse max en virage",vca:"Vitesse moyenne en virage",dist:"Distance",dur:"Durée",saved:"Trajet enregistré : {n} km",short:"Trajet trop court pour être enregistré.",nocal:"Calibrez d'abord le téléphone.",nogps:"GPS indisponible.",nos:"Capteurs de mouvement indisponibles.",perm:"Autorisez l'accès aux capteurs de mouvement.",hist:"Vos derniers trajets",none:"Aucun trajet mesuré pour le moment.",best:"Records",est:"Inclinaison estimée à quelques degrés près (gyroscope + vitesse GPS), visible au-dessus de 15 km/h.",fallnote:"Avec la détection de chute activée, un arrêt brutal après un choc ou une forte inclinaison déclenche aussi l'alerte."},ar:{t:"القيادة: السرعة والميلان",note:"ثبّت الهاتف على الحامل. 1) والدراجة مستقيمة وواقفة اضغط معايرة. 2) ابدأ ثم انطلق. لا تنظر إلى الشاشة أثناء القيادة: اطّلع على إحصائياتك عند التوقف.",cal:"معايرة (دراجة مستقيمة)",cald:"تمت المعايرة ✓",caln:"غير معايَر",calw:"لا تتحرك… جارٍ المعايرة",calf:"تعذّرت المعايرة: الحساسات غير متوفرة أو الهاتف يتحرك.",start:"ابدأ",stop:"إيقاف وتسجيل",kmh:"كم/س",lean:"الميلان",left:"يسار",right:"يمين",vmax:"السرعة القصوى",vavg:"السرعة المتوسطة",lmax:"أقصى ميلان",vc:"أقصى سرعة في المنعطف",vca:"متوسط السرعة في المنعطف",dist:"المسافة",dur:"المدة",saved:"تم تسجيل الرحلة: {n} كم",short:"الرحلة أقصر من أن تُسجَّل.",nocal:"عاير الهاتف أولاً.",nogps:"GPS غير متاح.",nos:"حساسات الحركة غير متوفرة.",perm:"اسمح بالوصول إلى حساسات الحركة.",hist:"آخر رحلاتك",none:"لا توجد رحلات مقاسة بعد.",best:"الأرقام القياسية",est:"الميلان تقديري بفارق بضع درجات (جيروسكوب + سرعة GPS) ويظهر فوق 15 كم/س.",fallnote:"مع تفعيل كشف السقوط، التوقف المفاجئ بعد صدمة أو ميلان شديد يطلق التنبيه أيضًا."}};
 K.en={"t": "Riding: speed and lean", "note": "Mount the phone on its holder. 1) With the bike upright and stopped, tap Calibrate. 2) Start, then ride. Don't look at the screen while riding: check your stats when stopped.", "cal": "Calibrate (bike upright)", "cald": "Calibrated ✓", "caln": "Not calibrated", "calw": "Don't move… calibrating", "calf": "Calibration failed: sensors unavailable or phone moving.", "start": "Start", "stop": "Stop and save", "kmh": "km/h", "lean": "Lean", "left": "left", "right": "right", "vmax": "Top speed", "vavg": "Average speed", "lmax": "Max lean", "vc": "Top speed in bends", "vca": "Average speed in bends", "dist": "Distance", "dur": "Duration", "saved": "Trip saved: {n} km", "short": "Trip too short to be saved.", "nocal": "Calibrate the phone first.", "nogps": "GPS unavailable.", "nos": "Motion sensors unavailable.", "perm": "Allow access to motion sensors.", "hist": "Your latest trips", "none": "No trip measured yet.", "best": "Records", "est": "Lean estimated to within a few degrees (gyroscope + GPS speed), shown above 15 km/h.", "fallnote": "With crash detection on, a sudden stop after an impact or a heavy lean also triggers the alert."};const kk=()=>K[lang=='ar'?'ar':lang=='en'?'en':'fr'],IOS=/iP(hone|ad|od)/.test(navigator.userAgent),R2=Math.PI/180;
 let U=null;try{if(S.ridecal&&S.ridecal.length==3)U=S.ridecal}catch(e){}
-let sumR=null,evN=0,on=false,calOn=false,calS=[],msg='',ls=false,wg=null,wl=null,ti=null,lastImp=0,lastFall=0,spd=0,lean=0,t0=0,km=0,last=null,vmax=0,vsum=0,vn=0,lL=0,lR=0,vc=0,vcs=0,vcn=0,hs=[],svT=0,pA=null,pB=null;
-const r5=v=>Math.round(v*1e5)/1e5,ptsOf=(o,d)=>{const x={};if(o.pA&&o.pB){x.a=[r5(o.pA[0]),r5(o.pA[1])];x.b=[r5(o.pB[0]),r5(o.pB[1])]}try{const so=(S.sorties||[]).find(z=>z.srv&&z.joined&&z.d==d&&z.uid);if(so){x.so=so.uid;x.sot=so.t||''}}catch(e){}return x};
-const RK='mr_ride_run',mkR=(o,end)=>{const dur=Math.round((end-o.t0)/1000),k=Math.round(o.km*10)/10,d=new Date(o.t0).toISOString().slice(0,10);return{r:{id:o.t0,d,km:k,dur,vmax:Math.round(o.vmax),vavg:o.vn?Math.round(o.vsum/o.vn):0,lL:Math.round(o.lL),lR:Math.round(o.lR),vc:Math.round(o.vc),vca:o.vcn?Math.round(o.vcs/o.vcn):0,...ptsOf(o,d)},ok:dur>=30&&k>=0.1}},keepR=x=>{if(x.ok){S.rides=[x.r].concat(S.rides||[]).slice(0,60);S.log.push({id:x.r.id,d:x.r.d,km:x.r.km,dep:'GPS',dest:''});save()}};
+let sumR=null,evN=0,on=false,calOn=false,calS=[],msg='',ls=false,wg=null,wl=null,ti=null,lastImp=0,lastFall=0,spd=0,lean=0,t0=0,km=0,last=null,vmax=0,vsum=0,vn=0,lL=0,lR=0,vc=0,vcs=0,vcn=0,hs=[],svT=0,pA=null,pB=null,trk=[],tkL=null,tkT=0,segM=0;
+const r5=v=>Math.round(v*1e5)/1e5,ptsOf=(o,d)=>{const x={};if(o.pA&&o.pB){x.a=[r5(o.pA[0]),r5(o.pA[1])];x.b=[r5(o.pB[0]),r5(o.pB[1])]}if(o.trk&&o.trk.length>=2)x.tk=o.trk;try{const so=(S.sorties||[]).find(z=>z.srv&&z.joined&&z.d==d&&z.uid);if(so){x.so=so.uid;x.sot=so.t||''}}catch(e){}return x};
+const RK='mr_ride_run',mkR=(o,end)=>{const dur=Math.round((end-o.t0)/1000),k=Math.round(o.km*10)/10,d=new Date(o.t0).toISOString().slice(0,10);return{r:{id:o.t0,d,km:k,dur,vmax:Math.round(o.vmax),vavg:o.vn?Math.round(o.vsum/o.vn):0,lL:Math.round(o.lL),lR:Math.round(o.lR),vc:Math.round(o.vc),vca:o.vcn?Math.round(o.vcs/o.vcn):0,...ptsOf(o,d)},ok:dur>=30&&k>=0.1}},keepR=x=>{if(x.ok){S.rides=[x.r].concat(S.rides||[]).slice(0,60);S.rides.forEach((z,i)=>{if(i>=5&&z.tk)delete z.tk});S.log.push({id:x.r.id,d:x.r.d,km:x.r.km,dep:'GPS',dest:''});save()}};
 try{const o=JSON.parse(localStorage.getItem(RK)||'null');if(o&&o.t0){localStorage.removeItem(RK);const x=mkR(o,o.ts);keepR(x);sumR={...x,rec:true};setTimeout(()=>{tab=6;render()},900)}}catch(e){}
 const g=id=>document.getElementById(id),fm=s=>Math.floor(s/60)+':'+String(Math.round(s)%60).padStart(2,'0');
 const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(x))};
@@ -595,7 +595,8 @@ function mot(e){const a=e.accelerationIncludingGravity;if(a){let x=a.x||0,y=a.y|
  const w=((r.beta||0)*U[0]+(r.gamma||0)*U[1]+(r.alpha||0)*U[2])*R2,s=Math.max(-.95,Math.min(.95,(spd/3.6)*w/9.81)),raw=Math.asin(s)/R2;lean=lean*.85+raw*.15}
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
  if(last){const d=hv(last.p,pt);if(v==null||isNaN(v)){const dt=(n-last.t)/1000;v=dt>0?d*1000/dt:0}if(v*3.6>3&&d<1)km+=d}else if(v==null||isNaN(v))v=0;
- last={p:pt,t:n};spd=Math.max(0,v*3.6);if(on){if(!pA)pA=pt;pB=pt}}
+ last={p:pt,t:n};spd=Math.max(0,v*3.6);if(on){if(!pA)pA=pt;pB=pt;
+ const dd=tkL?hv(tkL,pt):1;if(dd>=.025||(n-tkT>5000&&dd>=.005)){trk.push([r5(pt[0]),r5(pt[1]),Math.round(segM)]);segM=0;tkL=pt;tkT=n;if(trk.length>3000)trk=trk.filter((x,i)=>i%2==0||i==trk.length-1)}}}
 function liveHtml(){const k=kk(),el=(Date.now()-t0)/1000;return `${k.vmax} : <b>${Math.round(vmax)} ${k.kmh}</b> · ${k.vavg} : <b>${vn?Math.round(vsum/vn):0} ${k.kmh}</b><br>${k.lmax} : ↶ <b>${Math.round(lL)}°</b> · ↷ <b>${Math.round(lR)}°</b><br>${k.vc} : <b>${Math.round(vc)} ${k.kmh}</b> · ${k.vca} : <b>${vcn?Math.round(vcs/vcn):0} ${k.kmh}</b><br>${k.dist} : <b>${km.toFixed(2)} km</b> · ${k.dur} : <b>${fm(el)}</b>`}
 function paint(){const k=kk();if(g('rd_v'))g('rd_v').textContent=Math.round(spd);
  if(g('rd_l')){const a=Math.round(Math.abs(lean));g('rd_l').textContent=spd<15?'—':a+'° '+(a<2?'':(lean>0?k.left:k.right))}
@@ -603,11 +604,11 @@ function paint(){const k=kk();if(g('rd_v'))g('rd_v').textContent=Math.round(spd)
  if(g('rd_s'))g('rd_s').innerHTML=liveHtml()}
 function tick(){const n=Date.now(),al=Math.abs(lean);
  if(spd>3){vsum+=spd;vn++}vmax=Math.max(vmax,spd);if(lean>lL)lL=lean;if(-lean>lR)lR=-lean;
- if(al>=15){vc=Math.max(vc,spd);vcs+=spd;vcn++}
+ if(al>=15){vc=Math.max(vc,spd);vcs+=spd;vcn++}if(spd>=15&&al>segM)segM=al;
  hs.push([n,spd,al]);while(hs.length&&n-hs[0][0]>3500)hs.shift();
  const mx=hs.reduce((p,h)=>Math.max(p,h[1]),0),ml=hs.reduce((p,h)=>Math.max(p,h[2]),0);
  if(mx>=25&&spd<5&&(n-lastImp<4000||ml>=50)&&n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
- paint();if(on&&n-svT>4000){svT=n;try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,ts:n}))}catch(e){}}}
+ paint();if(on&&n-svT>4000){svT=n;try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk,ts:n}))}catch(e){}}}
 async function perm(){if(!('DeviceMotionEvent' in window)){alert(kk().nos);return false}
  try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(kk().perm);return false}}catch(e){}
  if(!ls){addEventListener('devicemotion',mot);ls=true}return true}
@@ -617,13 +618,13 @@ async function calib(){if(!await perm())return;calOn=true;calS=[];msg=kk().calw;
   if(h<5||h>15||sd>3.5){msg=kk().calf+' (g='+h.toFixed(1)+', bruit='+sd.toFixed(1)+')';alert(msg);render();return}
   U=m.map(x=>x/h);S.ridecal=U;save();msg='';render()},3000)}
 async function rstart(){if(on)return;if(!U){alert(kk().nocal);return}if(!navigator.geolocation){alert(kk().nogps);return}if(!await perm())return;
- on=true;t0=Date.now();km=0;last=null;pA=pB=null;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];
+ on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];
  try{wg=navigator.geolocation.watchPosition(gps,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}catch(e){}
  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>{wl=l}).catch(()=>{})}catch(e){}
  ti=setInterval(tick,200);try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
 function rstop(){if(!on)return;on=false;clearInterval(ti);try{if(wg!=null)navigator.geolocation.clearWatch(wg)}catch(e){}wg=null;try{wl&&wl.release()}catch(e){}wl=null;
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}try{localStorage.removeItem(RK)}catch(e){}
- const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB},Date.now());keepR(x);sumR=x;render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
+ const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk},Date.now());keepR(x);sumR=x;render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
 function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="meta">${k.none}</div>`;
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));
  return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}${window.mrCmpBtn?window.mrCmpBtn(r):''}</div>`).join('')}
@@ -677,11 +678,11 @@ const del=(k,i)=>btn('del',k+':'+i,'✕');
 function plus(t){
 const p=X(),R=S.rides||[],r=R[0];
 const bar=(l,a)=>`<div class="meta">${l} : ${a}°</div><div style="height:10px;border-radius:9px;background:var(--line);margin-bottom:6px"><div style="height:10px;border-radius:9px;width:${Math.min(100,a*2)}%;background:${col(a)}"></div></div>`;
-const lean=(r?bar(P('Gauche','يسار'),r.lL||0)+bar(P('Droite','يمين'),r.lR||0)+note(P('Vert : tranquille · Jaune : sportif · Rouge : très penché','أخضر: هادئ · أصفر: رياضي · أحمر: ميل شديد')):note(P('Fais un trajet pour voir ton inclinaison.','قم برحلة لترى زاوية الميل.')))+note(P('Le tracé complet coloré sur la carte arrivera avec l\'enregistrement GPS de la version Android.','المسار الملوّن على الخريطة سيأتي مع تسجيل GPS في نسخة أندرويد.'));
+const lean=window.mrLeanHtml?window.mrLeanHtml(r):(r?bar(P('Gauche','يسار'),r.lL||0)+bar(P('Droite','يمين'),r.lR||0)+note(P('Vert : tranquille · Jaune : sportif · Rouge : très penché','أخضر: هادئ · أصفر: رياضي · أحمر: ميل شديد')):note(P('Fais un trajet pour voir ton inclinaison.','قم برحلة لترى زاوية الميل.')))+note(P('Le tracé complet coloré sur la carte arrivera avec l\'enregistrement GPS de la version Android.','المسار الملوّن على الخريطة سيأتي مع تسجيل GPS في نسخة أندرويد.'));
 const km=R.reduce((s,x)=>s+(+x.km||0),0),mx=Math.max(0,...R.map(x=>Math.max(x.lL||0,x.lR||0))),vm=Math.max(0,...R.map(x=>x.vmax||0));
 const days=[...new Set(R.map(x=>Math.floor((x.id-new Date(x.id).getTimezoneOffset()*6e4)/864e5)))].sort((a,b)=>b-a);let st=days.length?1:0;for(let i=1;i<days.length&&days[i-1]-days[i]==1;i++)st++;
 const B=[[R.length>=1,'🥇',P('Premier trajet','أول رحلة')],[km>=100,'🛣',P('100 km cumulés','100 كم')],[km>=500,'🌍',P('500 km cumulés','500 كم')],[R.length>=10,'🔟',P('10 trajets','10 رحلات')],[mx>=30,'🔥',P('Inclinaison 30°+','ميل +30°')],[st>=3,'📅',P('3 jours de suite','3 أيام متتالية')]];
-const ch=B.map(b=>`<span class="tag" style="opacity:${b[0]?1:.35};margin-bottom:6px">${b[1]} ${b[2]}</span>`).join('')+note(`${P('Records perso','أرقامي')} : ${Math.round(km)} km · ${vm} km/h · ${P('série','سلسلة')} ${st} ${P('j','يوم')}`)+note(P('Le classement entre motards (segments) demandera un serveur : prévu dans la version Android.','ترتيب السائقين (المقاطع) يحتاج خادمًا: مخطط له في نسخة أندرويد.'));
+const ch=B.map(b=>`<span class="tag" style="opacity:${b[0]?1:.35};margin-bottom:6px">${b[1]} ${b[2]}</span>`).join('')+note(`${P('Records perso','أرقامي')} : ${Math.round(km)} km · ${vm} km/h · ${P('série','سلسلة')} ${st} ${P('j','يوم')}`)+note(P('Pour te comparer à d\'autres motards sur un même trajet : onglet Conduite → 📊 Comparer.','لتقارن نفسك بسائقين آخرين على نفس المسار: تبويب القيادة ← 📊 قارن.'));
 const fav=btn('fav','',P('📍 Épingler ma position','📍 تثبيت موقعي'),'p')+p.fav.map((f,i)=>row(`📍 ${esc(f.n)} <a class="lnk" target="_blank" rel="noopener" href="${mp(f.la,f.lo)}">🗺</a>`,del('fav',i))).join('')+`<div class="row" style="margin-top:12px;justify-content:flex-start;gap:8px;flex-wrap:wrap"><input id="px_km" type="number" value="50" style="width:80px"> km <select id="px_dir"><option value="0">${P('Nord','شمال')}</option><option value="90">${P('Est','شرق')}</option><option value="180">${P('Sud','جنوب')}</option><option value="270">${P('Ouest','غرب')}</option></select>${btn('loop','',P('🔄 Générer une boucle','🔄 إنشاء حلقة'),'p')}</div>`+note(P('Boucle approximative à partir de ta position : Google Maps l\'ajuste sur les vraies routes.','حلقة تقريبية من موقعك: خرائط غوغل تعدّلها على الطرق الحقيقية.'));
 const SO=[['tyre',P('Crevaison','ثقب العجلة')],['eng',P('Panne moteur','عطل المحرك')],['fuel',P('Panne d\'essence','نفاد الوقود')],['help',P('Besoin d\'aide (chute)','أحتاج مساعدة (سقوط)')]];
 const sos=SO.map(s=>btn('sos',s[1],s[1])).join(' ')+note(P('Envoie ta position à ton groupe par WhatsApp. L\'alerte automatique aux motards proches viendra avec le serveur (version Android).','يرسل موقعك إلى مجموعتك عبر واتساب. التنبيه التلقائي للسائقين القريبين يحتاج خادمًا (نسخة أندرويد).'));
@@ -1435,6 +1436,53 @@ $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
  else if(D.cmprl!==undefined){mkey='';mst='idle';render()}});
 $('main').addEventListener('change',e=>{if(e.target.id=='cmp_sh')setShare(e.target.checked)});
 document.head.insertAdjacentHTML('beforeend','<style>.cmp-w{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 0;max-width:100%}.cmp-t{border-collapse:collapse;font-size:14px;min-width:100%}.cmp-t th,.cmp-t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;vertical-align:top}.cmp-t tbody th{text-align:start;font-weight:600;font-size:12px;white-space:normal;min-width:70px;max-width:84px;line-height:1.2;position:sticky;inset-inline-start:0;background:var(--card);z-index:1}.cmp-t th,.cmp-t td{padding:6px 6px!important}.cmp-t thead th{font-size:13px}.cmp-b{font-size:11px;font-weight:700;color:var(--ink);opacity:.8;margin-top:2px}</style>');
+})();
+</script>
+<script>
+/* ===== Inclinaison colorée : tracé du dernier trajet coloré selon l'inclinaison + simulation — test-28 ===== */
+(function(){
+try{Object.assign(window.ENP||{},{"Pour te comparer à d'autres motards sur un même trajet : onglet Conduite → 📊 Comparer.":"To compare yourself with other riders on the same route: Riding tab → 📊 Compare."})}catch(e){}
+const T={fr:{last:"Ton dernier trajet",none:"Ton prochain trajet enregistré dans l'onglet Conduite sera dessiné ici, en couleurs selon ton inclinaison.",old:"Ce trajet a été enregistré avant cette version : pas de tracé. Le prochain sera dessiné ici.",leg:"Vert : moins de 20° · Jaune : 20 à 35° · Rouge : plus de 35°",sim:"▶ Voir une simulation",again:"↻ Rejouer",stop:"✕ Fermer la simulation",simT:"Simulation (trajet fictif, col de montagne)",max:"Inclinaison max",dep:"Départ",arr:"Arrivée",now:"En ce moment",left:"à gauche",right:"à droite",straight:"tout droit",tip:"Astuce : touche ▸ sur la carte « Conduite » pour démarrer un vrai trajet."},
+ar:{last:"آخر رحلة لك",none:"رحلتك القادمة المسجلة في تبويب القيادة سترسم هنا، ملونة حسب الميلان.",old:"سُجّلت هذه الرحلة قبل هذا الإصدار: لا يوجد مسار. الرحلة القادمة سترسم هنا.",leg:"أخضر: أقل من 20° · أصفر: من 20 إلى 35° · أحمر: أكثر من 35°",sim:"▶ شاهد محاكاة",again:"↻ إعادة",stop:"✕ إغلاق المحاكاة",simT:"محاكاة (مسار وهمي، ممر جبلي)",max:"أقصى ميلان",dep:"الانطلاق",arr:"الوصول",now:"الآن",left:"يسار",right:"يمين",straight:"مستقيم",tip:""},
+en:{last:"Your latest trip",none:"Your next trip recorded in the Riding tab will be drawn here, coloured by your lean angle.",old:"This trip was saved before this version: no track. The next one will be drawn here.",leg:"Green: under 20° · Yellow: 20 to 35° · Red: over 35°",sim:"▶ Watch a simulation",again:"↻ Replay",stop:"✕ Close simulation",simT:"Simulation (made-up trip, mountain pass)",max:"Max lean",dep:"Start",arr:"Finish",now:"Right now",left:"left",right:"right",straight:"straight",tip:""}};
+const t=()=>T[lang=='ar'?'ar':lang=='en'?'en':'fr'];
+const col=a=>a<20?'#16a34a':a<35?'#f2b705':'#e5312a';
+let sim=false,simT0=0,raf=0;const DUR=9000;
+/* trajet fictif : route de col en lacets, inclinaison tirée de la courbure */
+const SIM=(()=>{const P=[];let x=0,y=0,h=-Math.PI/2;const N=420;
+ for(let i=0;i<N;i++){const u=i/N;const k=Math.sin(u*Math.PI*7)*0.09+Math.sin(u*Math.PI*17+1)*0.05+(u>.55&&u<.7?0.16*Math.sin((u-.55)/.15*Math.PI*2):0);h+=k;x+=Math.cos(h);y+=Math.sin(h);
+  const a=Math.min(48,Math.abs(k)*260),sg=k>0?1:-1;P.push([x,y,Math.round(a),sg,Math.round(55+40*(1-Math.min(1,Math.abs(k)*9)))])}return P})();
+function proj(pts,geo,W,H,pad){let X=[],Y=[];const c=geo?Math.cos(pts[0][0]*Math.PI/180):1;
+ pts.forEach(p=>{if(geo){X.push(p[1]*c);Y.push(-p[0])}else{X.push(p[0]);Y.push(p[1])}});
+ const x0=Math.min(...X),x1=Math.max(...X),y0=Math.min(...Y),y1=Math.max(...Y),sc=Math.min((W-2*pad)/((x1-x0)||1e-9),(H-2*pad)/((y1-y0)||1e-9));
+ const ox=(W-(x1-x0)*sc)/2,oy=(H-(y1-y0)*sc)/2;return pts.map((p,i)=>[ox+(X[i]-x0)*sc,oy+(Y[i]-y0)*sc])}
+function draw(cv,pts,geo,upto){const dpr=window.devicePixelRatio||1,W=cv.clientWidth||300,H=cv.clientHeight||220;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+ if(pts.length<2)return null;const Q=proj(pts,geo,W,H,18),n=Math.max(1,Math.min(pts.length-1,Math.floor(upto)));
+ g.lineCap='round';g.lineJoin='round';g.strokeStyle='rgba(255,255,255,.14)';g.lineWidth=9;g.beginPath();Q.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke();
+ g.lineWidth=5;for(let i=1;i<=n;i++){g.strokeStyle=col(Math.max(pts[i][2],pts[i-1][2]));g.beginPath();g.moveTo(Q[i-1][0],Q[i-1][1]);g.lineTo(Q[i][0],Q[i][1]);g.stroke()}
+ const dot=(q,f,r)=>{g.fillStyle=f;g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.arc(q[0],q[1],r,0,7);g.fill();g.stroke()};
+ dot(Q[0],'#16a34a',6);if(n>=pts.length-1)dot(Q[Q.length-1],'#111',6);else dot(Q[n],'#fff',7);return n}
+function legend(){return `<div class="meta" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span><b style="color:#16a34a">━</b> &lt;20°</span><span><b style="color:#f2b705">━</b> 20–35°</span><span><b style="color:#e5312a">━</b> &gt;35°</span></div>`}
+const CV=k=>`<canvas data-lc="${k}" style="display:block;width:100%;height:230px;border-radius:14px;background:radial-gradient(120% 90% at 30% 10%,#26303a,#12161b);margin:8px 0"></canvas>`;
+window.mrLeanHtml=function(r){const k=t();let h='';
+ if(sim)h+=`<div class="meta"><b>🎬 ${k.simT}</b></div>${CV('sim')}<div class="meta" id="lc_live" style="font-size:16px">&nbsp;</div>${legend()}<div class="row"><button class="g" data-lcsim="1">${k.again}</button><button class="g" data-lcstop="1">${k.stop}</button></div>`;
+ else{
+  if(r&&r.tk&&r.tk.length>=2){const mx=Math.max(r.lL||0,r.lR||0);h+=`<div class="meta"><b>${k.last}</b> · ${esc(r.d)} · ${r.km} km · ${k.max} ${mx}°</div>${CV('last')}${legend()}`}
+  else h+=`<div class="meta">${r?k.old:k.none}</div>`;
+  h+=`<div class="row"><button class="p" data-lcsim="1">${k.sim}</button></div>`}
+ return h};
+function last(){const r=(S.rides||[])[0];return r&&r.tk&&r.tk.length>=2?r.tk:null}
+function live(i){const e=document.getElementById('lc_live');if(!e)return;const k=t(),p=SIM[Math.min(SIM.length-1,i)];if(!p)return;
+ e.innerHTML=`${k.now} : <b style="color:${col(p[2])}">${p[2]}°</b> ${p[2]<3?k.straight:(p[3]>0?k.right:k.left)} · <b>${p[4]} km/h</b>`}
+function paint(){const c1=document.querySelector('canvas[data-lc="last"]'),L=last();if(c1&&c1.clientWidth&&L)draw(c1,L,true,L.length);
+ const c2=document.querySelector('canvas[data-lc="sim"]');if(c2&&c2.clientWidth&&sim){const f=Math.min(1,(performance.now()-simT0)/DUR),i=draw(c2,SIM,false,f*(SIM.length-1));live(i||0)}}
+function loop(){cancelAnimationFrame(raf);const step=()=>{if(!sim)return;const c=document.querySelector('canvas[data-lc="sim"]');if(c&&c.clientWidth)paint();if(performance.now()-simT0<DUR)raf=requestAnimationFrame(step);else paint()};raf=requestAnimationFrame(step)}
+const _r=render;render=function(){const x=_r.apply(this,arguments);setTimeout(paint,0);return x};
+$('main').addEventListener('toggle',e=>{if(e.target&&e.target.dataset&&e.target.dataset.k=='lean')setTimeout(paint,30)},true);
+$('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
+ if(D.lcsim!==undefined){sim=true;simT0=performance.now();render();setTimeout(()=>{const c=document.querySelector('canvas[data-lc="sim"]');if(c)c.scrollIntoView({block:'center',behavior:'smooth'});loop()},40)}
+ else if(D.lcstop!==undefined){sim=false;cancelAnimationFrame(raf);render()}});
+addEventListener('resize',()=>setTimeout(paint,200));
 })();
 </script>
 <script>

@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-27 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
+**Dernière mise à jour : 19 octobre 2026, 20 h 40 — dernière version : test-28 (Android + iPhone, à tester). test-25 = même contenu que test-24 (fabriquée lors de la mise en ligne iPhone).**
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
@@ -38,6 +38,15 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - Après chaque changement de `www/`, relancer `scripts/maj-version-web.sh` pour mettre la version web à jour.
 - 20 h 05 : lien vérifié en ligne (même fichier que `www/index.html`) et transmis à Elaid pour son ami à iPhone ; à faire : retour de l'ami (installation, connexion, GPS, musique).
 - Limites sur iPhone : pas de pub AdMob, l'écran peut se mettre en veille, GPS/capteurs seulement app ouverte, bouton « Quitter » sans effet. Vraie app iPhone = compte Apple Developer (99 $/an) + TestFlight, plus tard.
+
+## Version test-28 (19/10, 21 h 15) — Inclinaison colorée qui marche vraiment
+
+- **Conduite enregistre maintenant le tracé GPS** du trajet : un point tous les ~25 m (ou 5 s), avec l'inclinaison max entre deux points (au-dessus de 15 km/h). Max 3000 points par trajet ; le tracé est gardé pour les 5 derniers trajets seulement (place sur le téléphone). Aussi sauvé dans l'enregistrement de secours si l'app se ferme.
+- **Route → MotoRoute Plus → « 🏍 Inclinaison colorée »** : dessine le dernier trajet en couleurs (vert < 20°, jaune 20–35°, rouge > 35°), départ en vert, arrivée en noir. L'ancien texte « arrivera avec la version Android » est retiré.
+- **« ▶ Voir une simulation »** : un col de montagne fictif se dessine en 9 s avec « En ce moment : 29° à gauche · 55 km/h », boutons Rejouer / Fermer.
+- Défis & badges : la phrase « classement entre motards demandera un serveur » est remplacée par « Conduite → 📊 Comparer ».
+- Testé dans un navigateur avec faux GPS + faux gyroscope : 40 s de trajet → 400 points enregistrés et dessinés.
+- Pas de fond de carte sous le tracé (dessin seul) ; une vraie carte en fond pourra venir plus tard.
 
 ## Version test-27 (19/10, 21 h) — comparaison plus facile à trouver
 
