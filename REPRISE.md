@@ -8,10 +8,10 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 | Quoi | Où |
 | --- | --- |
 | Code de l'application | dépôt GitHub `elaidremili-sudo/Elaid`, fichier `www/index.html` |
-| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-14**) |
-| Fichier pour Google Play (.aab) | même release, `MotoRoute-14.aab` |
+| Version Android à installer | onglet **Releases** du dépôt (dernière : **test-15**) |
+| Fichier pour Google Play (.aab) | même release, `MotoRoute-15.aab` |
 | Présentation animée | `www/presentation.html` (+ `www/lib/three.min.js`) |
-| Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql` ; **à exécuter : `rallye.sql`**) |
+| Scripts SQL Supabase | dossier `supabase/` (déjà exécutés : `suppression.sql`, `validation-groupes.sql`) |
 | Pages web publiques | `elaidremili-sudo.github.io/Elaid/` → `confidentialite.html`, `suppression-compte.html`, `nouveau-mot-de-passe.html` |
 | Images Play Store | dossier `play-store/` (icône 512, bannière 1024×500, 5 captures) |
 | Textes Play Store | doc Claude « MotoRoute – Fiche Google Play » |
@@ -30,12 +30,10 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 - ⚠️ La clé Brevo **expire après 90 jours sans aucun envoi**. Si les e-mails n'arrivent plus un jour : Brevo → SMTP & API → générer une nouvelle clé → la recoller dans Supabase (champ Password).
 - Ne **pas** activer le blocage des IP dans Brevo (Supabase envoie depuis des adresses qui changent).
 
-## Version test-14 (19/10)
+## Version test-15 (19/10)
 
-- **Rallye de régularité** (onglet Conduite, carte 🏁) : compétition légale entre motards. L'organisateur fixe départ, arrivée (sa position ou lien Google Maps), moyenne imposée (30–80 km/h) et vitesse maximale. Les motards s'inscrivent au tableau avec un code (RR-XXXX, partage WhatsApp). « Je suis au départ » : le chrono démarre tout seul quand la moto roule près du départ et s'arrête tout seul à l'arrivée. Classement = plus petit écart au temps idéal, + 10 s de pénalité par seconde au-dessus de la vitesse max. Stats de chacun : temps, moyenne, max, inclinaison (si calibré dans Conduite), fluidité. Badges : 🏆 le plus régulier, 🌊 le plus fluide, 🛡 zéro dépassement.
-- ⚠️ **À faire par Elaid** : exécuter `supabase/rallye.sql` dans Supabase (SQL Editor) avant d'essayer.
-- Correctif : les recherches Musique et le formulaire du rallye ne se perdent plus quand l'écran se redessine.
-- Prochaine étape envisagée : mode circuit fermé verrouillé par GPS (circuits validés par l'admin) + déclaration de responsabilité acceptée et horodatée.
+- **Rallye / course retirés** à la demande d'Elaid (pas de mode compétition ni course dans l'app ; `rallye.sql` supprimé, ne pas l'exécuter).
+- Conservé de test-14 : correctif des recherches Musique (radios, morceaux, liens) qui ne se perdent plus quand l'écran se redessine.
 
 ## Version test-13 (19/10)
 
@@ -97,4 +95,4 @@ Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (se
 7. Si Simou accepte : vrai **compte partenaire** sur Supabase (vitrine + photos sur le serveur).
 8. Feuille de route : lancement auto en Bluetooth, lecteur de musique intégré, cartes hors ligne, défis et badges.
 
-Prochaine fabrication = **test-15**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
+Prochaine fabrication = **test-16**. Les envois qui ne changent que REPRISE.md portent `[skip ci]` pour ne pas fabriquer de version.
