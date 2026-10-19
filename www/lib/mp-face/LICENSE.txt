@@ -1,0 +1,4 @@
+MediaPipe Face Detection (@mediapipe/face_detection 0.4.1646425229)
+Copyright Google LLC. Licensed under the Apache License, Version 2.0.
+https://www.apache.org/licenses/LICENSE-2.0
+Source: https://www.npmjs.com/package/@mediapipe/face_detection
