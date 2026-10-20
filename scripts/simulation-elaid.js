@@ -21,8 +21,16 @@ const brg = (a, b) => Math.atan2(Math.sin((b[1] - a[1]) * D2R) * Math.cos(b[0] *
   // altitude (Open-Meteo, par paquets de 100)
   const alt = [];
   for (let i = 0; i < pts.length; i += 100) { const ch = pts.slice(i, i + 100);
-    const j = await (await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${ch.map(p => p[0].toFixed(5)).join(',')}&longitude=${ch.map(p => p[1].toFixed(5)).join(',')}`)).json();
-    alt.push(...j.elevation); await sleep(300); }
+    let got = null;
+    for (let k = 0; k < 4 && !got; k++) {
+      try { const j = await (await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${ch.map(p => p[0].toFixed(5)).join(',')}&longitude=${ch.map(p => p[1].toFixed(5)).join(',')}`)).json();
+        if (Array.isArray(j.elevation)) got = j.elevation; else console.log('open-meteo', JSON.stringify(j).slice(0, 200)); } catch (e) { console.log('open-meteo err', e.message); }
+      if (!got) { try { const j = await (await fetch(`https://api.opentopodata.org/v1/srtm90m?locations=${ch.map(p => p[0].toFixed(5) + ',' + p[1].toFixed(5)).join('|')}`)).json();
+        if (j.results) got = j.results.map(x => x.elevation); else console.log('opentopodata', JSON.stringify(j).slice(0, 200)); } catch (e) { console.log('opentopodata err', e.message); } }
+      if (!got) await sleep(2500 * (k + 1));
+    }
+    if (!got) throw new Error('altitude indisponible');
+    alt.push(...got); await sleep(1100); }
   // vitesse réaliste selon le rayon du virage (+ freinage / accélération), inclinaison physique
   const n = pts.length, rad = new Array(n).fill(1e9), side = new Array(n).fill(0);
   for (let i = 3; i < n - 3; i++) { let dh = brg(pts[i], pts[i + 3]) - brg(pts[i - 3], pts[i]); while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
