@@ -1,0 +1,22 @@
+name: Vérifier le replay 3D (captures)
+on:
+  push:
+    branches: [verif-3d]
+  workflow_dispatch:
+jobs:
+  captures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Lancer les captures
+        run: |
+          mkdir -p /tmp/t && cd /tmp/t && npm init -y >/dev/null && npm i puppeteer-core@23 --no-audit --no-fund >/dev/null
+          cd $GITHUB_WORKSPACE/www && (python3 -m http.server 8080 >/dev/null 2>&1 &) && sleep 2
+          cp $GITHUB_WORKSPACE/scripts/verif-3d.js /tmp/t/ && cd /tmp/t && node verif-3d.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures-3d
+          path: /tmp/t/out/
