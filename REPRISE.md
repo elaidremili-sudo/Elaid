@@ -1,6 +1,11 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 15 h 45 — dernière version : test-36 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 16 h 20 — dernière version : test-37 (Android + iPhone).**
+
+## ✅ test-37 (20/10, 16 h 20)
+- Essai test-36 : l'app disait « SMS envoyé » mais le contact n'a rien reçu → l'ancien module ne vérifiait pas le vrai résultat.
+- Module MrSms refait : choix de la carte SIM (SIM SMS par défaut, sinon 1re SIM active — utile sur double SIM), vrai résultat du réseau (pas de réseau / mode avion / refus opérateur-crédit / pas de réponse en 60 s), accusé de réception « 📬 reçu par le téléphone » quand l'opérateur le fournit. Autorisation READ_PHONE_STATE ajoutée (groupe Téléphone).
+- SMS court sans émojis ni accents (≈ 185 caractères, 2 parties) : « MotoRoute SOS: … ».
 
 ## ✅ test-36 (20/10, 15 h 45)
 - Essai d'Elaid en test-35 : « SMS non envoyé (autorisation SMS refusée) ». Cause : Android 15+ bloque l'autorisation SMS des apps installées par APK (hors Google Play) → il faut ⋮ → « Autoriser les paramètres restreints » dans les infos de l'app, puis Autorisations → SMS → Autoriser. Disparaît une fois l'app sur Google Play.

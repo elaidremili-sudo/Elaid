@@ -89,10 +89,21 @@ fs.mkdirSync(javaDir, { recursive: true });
 fs.writeFileSync(javaDir + '/MrSmsPlugin.java', `package com.motoroute.app;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.telephony.SmsManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
+import androidx.core.content.ContextCompat;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -100,31 +111,113 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import java.util.ArrayList;
+import java.util.List;
 
 @CapacitorPlugin(
     name = "MrSms",
     permissions = {
         @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
-        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
+        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE })
     }
 )
 public class MrSmsPlugin extends Plugin {
+
+    private static String why(int code) {
+        switch (code) {
+            case Activity.RESULT_OK: return "ok";
+            case SmsManager.RESULT_ERROR_NO_SERVICE: return "pas-de-reseau";
+            case SmsManager.RESULT_ERROR_RADIO_OFF: return "mode-avion-ou-sim-coupee";
+            case SmsManager.RESULT_ERROR_NULL_PDU: return "message-invalide";
+            case SmsManager.RESULT_ERROR_GENERIC_FAILURE: return "refus-operateur-ou-credit";
+            default: return "erreur-" + code;
+        }
+    }
+
+    // Carte SIM à utiliser : celle des SMS par défaut, sinon la première SIM active
+    private int pickSub() {
+        int sub = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+        try { sub = SubscriptionManager.getDefaultSmsSubscriptionId(); } catch (Exception e) {}
+        if (sub != SubscriptionManager.INVALID_SUBSCRIPTION_ID) return sub;
+        try {
+            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                SubscriptionManager sm = (SubscriptionManager) getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+                List<SubscriptionInfo> l = sm == null ? null : sm.getActiveSubscriptionInfoList();
+                if (l != null && !l.isEmpty()) return l.get(0).getSubscriptionId();
+            }
+        } catch (Exception e) {}
+        return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+    }
+
+    private SmsManager managerFor(int sub) {
+        SmsManager base = Build.VERSION.SDK_INT >= 31 ? getContext().getSystemService(SmsManager.class) : SmsManager.getDefault();
+        if (sub == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return base;
+        return Build.VERSION.SDK_INT >= 31 ? base.createForSubscriptionId(sub) : SmsManager.getSmsManagerForSubscriptionId(sub);
+    }
+
     @PluginMethod
-    public void send(PluginCall call) {
-        String to = call.getString("to");
+    public void send(final PluginCall call) {
+        final String to = call.getString("to");
         String msg = call.getString("msg");
         if (to == null || to.isEmpty() || msg == null) { call.reject("numero-manquant"); return; }
         if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
-        try {
-            SmsManager sm = Build.VERSION.SDK_INT >= 31
-                ? getContext().getSystemService(SmsManager.class)
-                : SmsManager.getDefault();
-            ArrayList<String> parts = sm.divideMessage(msg);
-            sm.sendMultipartTextMessage(to, null, parts, null, null);
-            call.resolve();
-        } catch (Exception e) {
-            call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
+        final Context ctx = getContext();
+        final int sub = pickSub();
+        final SmsManager sm;
+        try { sm = managerFor(sub); } catch (Exception e) { call.reject("sim-introuvable"); return; }
+        final ArrayList<String> parts = sm.divideMessage(msg);
+        final int n = parts.size();
+        final String tag = Long.toString(System.nanoTime());
+        final String aSent = ctx.getPackageName() + ".SMS_SENT." + tag;
+        final String aDeliv = ctx.getPackageName() + ".SMS_DELIV." + tag;
+        final int[] got = {0};
+        final int[] firstErr = {Activity.RESULT_OK};
+        final boolean[] done = {false};
+        final Handler h = new Handler(Looper.getMainLooper());
+
+        final BroadcastReceiver deliv = new BroadcastReceiver() {
+            @Override public void onReceive(Context c, Intent i) {
+                JSObject d = new JSObject();
+                d.put("to", to);
+                d.put("ok", getResultCode() == Activity.RESULT_OK);
+                notifyListeners("smsDelivered", d);
+                try { ctx.unregisterReceiver(this); } catch (Exception e) {}
+            }
+        };
+        final BroadcastReceiver sent = new BroadcastReceiver() {
+            @Override public void onReceive(Context c, Intent i) {
+                int code = getResultCode();
+                if (code != Activity.RESULT_OK && firstErr[0] == Activity.RESULT_OK) firstErr[0] = code;
+                got[0]++;
+                if (got[0] >= n && !done[0]) {
+                    done[0] = true;
+                    try { ctx.unregisterReceiver(this); } catch (Exception e) {}
+                    if (firstErr[0] == Activity.RESULT_OK) {
+                        JSObject r = new JSObject(); r.put("parts", n); r.put("sim", sub); call.resolve(r);
+                    } else call.reject(why(firstErr[0]));
+                }
+            }
+        };
+        ContextCompat.registerReceiver(ctx, sent, new IntentFilter(aSent), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(ctx, deliv, new IntentFilter(aDeliv), ContextCompat.RECEIVER_NOT_EXPORTED);
+        int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+        ArrayList<PendingIntent> sIs = new ArrayList<>(), dIs = new ArrayList<>();
+        for (int k = 0; k < n; k++) {
+            sIs.add(PendingIntent.getBroadcast(ctx, k, new Intent(aSent).setPackage(ctx.getPackageName()), fl));
+            dIs.add(k == n - 1 ? PendingIntent.getBroadcast(ctx, 1000 + k, new Intent(aDeliv).setPackage(ctx.getPackageName()), fl) : null);
         }
+        try {
+            sm.sendMultipartTextMessage(to, null, parts, sIs, dIs);
+        } catch (Exception e) {
+            done[0] = true;
+            try { ctx.unregisterReceiver(sent); ctx.unregisterReceiver(deliv); } catch (Exception x) {}
+            call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
+            return;
+        }
+        h.postDelayed(new Runnable() { public void run() { try { ctx.unregisterReceiver(deliv); } catch (Exception e) {} } }, 600000);
+        // Sans réponse du réseau en 60 s : on le dit honnêtement
+        h.postDelayed(new Runnable() { public void run() {
+            if (!done[0]) { done[0] = true; try { ctx.unregisterReceiver(sent); } catch (Exception e) {} call.reject("pas-de-reponse-du-reseau"); }
+        }}, 60000);
     }
 
     @PluginMethod
@@ -144,7 +237,7 @@ public class MrSmsPlugin extends Plugin {
     public void dial(PluginCall call) {
         String to = call.getString("to");
         if (to == null || to.isEmpty()) { call.reject("numero-manquant"); return; }
-        boolean direct = getPermissionState("call") == PermissionState.GRANTED;
+        boolean direct = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
         try {
             Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + to));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -171,7 +264,7 @@ public class MainActivity extends BridgeActivity {
 }
 `);
 let man2 = fs.readFileSync(path, 'utf8');
-for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE']) {
+for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE', 'android.permission.READ_PHONE_STATE']) {
   if (!man2.includes(`"${p}"`)) man2 = man2.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
 if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
