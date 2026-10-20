@@ -1,6 +1,17 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 17 h 20 — dernière version : test-39 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 17 h 55 — dernière version installable : test-39. Travail en cours sur la branche `alertes-sonores`.**
+
+## 🚧 En cours (20/10, 17 h 55) — Alertes sonores gratuites + « anges gardiens »
+Constats : SMS remis (accusé de réception) mais pas vu par le contact → filtré chez lui (Spam / Bloqués / Expéditeurs inconnus) ; voix pendant l'appel GSM impossible (Android interdit d'injecter du son, l'anti-écho efface le haut-parleur). Aucun service d'appel gratuit durable (essai Twilio : 30 jours, 5 numéros).
+Solution choisie par Elaid : notification d'urgence gratuite (Firebase) → le téléphone du proche sonne (sirène) et lit l'alerte à voix haute.
+- ✅ Projet Firebase « Motoroute » (motoroute-9f566), appli Android com.motoroute.app enregistrée.
+- ✅ Clé de compte de service : Google Doc « Clé google base » (Drive, dossier Secret). ⚠️ Visible sur des captures du chat → la régénérer et supprimer l'ancienne une fois tout validé.
+- ✅ Supabase : tables push_tokens, guardian_codes, guardians, sos_push_log + fonctions mr_my_guard_code, mr_guard_join, mr_guard_list (script supabase/alertes-sonores.sql exécuté par Elaid, vérifié).
+- ✅ Fonction serveur `sos-push` en ligne (Supabase Edge Functions).
+- ✅ Code app prêt sur la branche `alertes-sonores` : www/js/push.js (jeton, canal sirène, réception, lecture vocale, carte « Mes anges gardiens » avec code à 6 lettres), MrSms.speak (voix sur canal alarme), sirène android-res/sos_alarm.wav, plugin @capacitor/push-notifications, SOS qui appelle sos-push.
+- ⏳ À FAIRE : (1) Elaid met le secret `FCM_SERVICE_ACCOUNT` (contenu du Doc « Clé google base ») dans Supabase → Edge Functions → Secrets ; (2) Elaid envoie le vrai fichier `google-services.json` (Téléchargements) → le placer dans android-res/google-services.json ; (3) fusionner `alertes-sonores` dans main → test-40 ; (4) tester avec 2 comptes (code ange gardien, simulation de chute → sirène + voix) ; (5) le test « afficher la carte anges gardiens avec faux serveur » n'a pas été lancé.
+
 
 ## ✅ test-39 (20/10, 17 h 20)
 - Essai test-38 d'Elaid : l'app affiche « SMS parti » mais le contact ne reçoit rien ; après le SMS, aucun appel ; avec « Tester l'appel vocal », l'appel passe mais le contact n'entend rien au décroché.
