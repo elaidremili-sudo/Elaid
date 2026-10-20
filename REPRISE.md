@@ -1,6 +1,9 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 14 h 50 — dernière version : test-34 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 15 h 15 — dernière version : test-35 (Android + iPhone).**
+
+## ✅ test-35 (20/10, 15 h 15)
+- Langue : un seul bouton 🌐 qui affiche la langue actuelle (FR / ع / EN) ; un appui ouvre un petit menu Français / العربية / English. Place gagnée dans la barre du haut.
 
 ## ✅ Fait le 20/10 (14 h 50) — test-34 : corrections après l'essai d'Elaid
 - **SOS de chute vraiment automatique** (Android) : au bout des 2 min, le téléphone envoie **lui-même un SMS** (nom, moto, groupe sanguin, lien Google Maps) aux 1 ou 2 numéros de la fiche d'urgence, puis **appelle le premier**. Marche sans internet (le réseau mobile suffit). Le GPS est redemandé juste avant l'envoi s'il manquait. Module Android `MrSms` écrit par `scripts/patch-android.js` (autorisations SEND_SMS + CALL_PHONE).

@@ -783,10 +783,25 @@ try{if(localStorage.getItem(LK)=='en'){lang='en';statics();render()}}catch(e){}
 </script>
 <script>
 (function(){
-const lb=$('lang'),bx=document.createElement('div');bx.className='lang';bx.style.padding='4px';bx.style.gap='2px';
-const mark=()=>bx.querySelectorAll('button').forEach(b=>{const on=b.dataset.lg==lang;b.style.background=on?'var(--acc)':'none';b.style.color=on?'var(--on-acc)':'#fff'});
-[['fr','FR'],['ar','ع'],['en','EN']].forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;b.dataset.lg=k;b.setAttribute('aria-label',k=='fr'?'Français':k=='ar'?'العربية':'English');b.style.cssText='border:0;font:700 14px Barlow,Cairo,sans-serif;padding:4px 9px;border-radius:99px;cursor:pointer';b.onclick=()=>{lang=k;try{localStorage.setItem(LK,k)}catch(e){}statics();render();mark()};bx.appendChild(b)});
-lb.parentNode.insertBefore(bx,lb);lb.style.display='none';mark();
+/* test-35 : un seul bouton de langue (langue actuelle) qui ouvre un petit menu */
+const lb=$('lang'),LG=[['fr','FR','Français'],['ar','ع','العربية'],['en','EN','English']];
+const bt=document.createElement('button');bt.className='lang hb mr-lgb';bt.setAttribute('aria-haspopup','menu');bt.setAttribute('aria-expanded','false');
+const mn=document.createElement('div');mn.className='mr-lgm';mn.setAttribute('role','menu');mn.hidden=true;
+const mark=()=>{const c=LG.find(x=>x[0]==lang)||LG[0];bt.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg><b>${c[1]}</b>`;bt.setAttribute('aria-label',(lang=='ar'?'اللغة':lang=='en'?'Language':'Langue')+' : '+c[2]);
+ mn.innerHTML=LG.map(([k,,n])=>`<button role="menuitemradio" aria-checked="${k==lang}" data-lg="${k}" lang="${k}"${k=='ar'?' dir="rtl"':''}>${k==lang?'✓ ':''}${n}</button>`).join('')};
+const close=()=>{mn.hidden=true;bt.setAttribute('aria-expanded','false')};
+const open=()=>{const r=bt.getBoundingClientRect();mn.hidden=false;const w=mn.offsetWidth;mn.style.top=Math.round(r.bottom+6)+'px';mn.style.left=Math.round(Math.min(Math.max(8,r.left),innerWidth-w-8))+'px';bt.setAttribute('aria-expanded','true');const f=mn.querySelector('[aria-checked="true"]');if(f)f.focus({preventScroll:true})};
+bt.onclick=e=>{e.stopPropagation();mn.hidden?open():close()};
+mn.onclick=e=>{const b=e.target.closest('[data-lg]');if(!b)return;e.stopPropagation();lang=b.dataset.lg;try{localStorage.setItem(LK,lang)}catch(x){}close();statics();render();mark()};
+document.addEventListener('click',e=>{if(!mn.hidden&&!mn.contains(e.target)&&e.target!==bt&&!bt.contains(e.target))close()},true);
+document.addEventListener('keydown',e=>{if(e.key=='Escape'&&!mn.hidden){close();bt.focus()}});
+addEventListener('resize',close);addEventListener('scroll',close,{passive:true});
+lb.parentNode.insertBefore(bt,lb);lb.style.display='none';document.body.appendChild(mn);mark();
+const st=document.createElement('style');st.textContent=`.tools .mr-lgb.hb,.mr-lgb{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:6px 10px!important;width:auto!important;min-width:60px}.mr-lgb b{font:700 14px Barlow,Cairo,sans-serif}
+.mr-lgm{position:fixed;z-index:2147483000;display:flex;flex-direction:column;min-width:150px;padding:6px;border-radius:14px;background:rgba(20,24,28,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+.mr-lgm[hidden]{display:none}
+.mr-lgm button{border:0;background:none;color:#fff;text-align:start;font:600 16px Barlow,Cairo,sans-serif;min-height:46px;padding:0 14px;border-radius:10px;cursor:pointer}
+.mr-lgm button[aria-checked="true"]{background:var(--acc);color:var(--on-acc)}`;document.head.appendChild(st);
 })();
 </script>
 <script>
