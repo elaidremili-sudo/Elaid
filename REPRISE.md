@@ -1,6 +1,12 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 16 h 40 — dernière version : test-38 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 17 h 20 — dernière version : test-39 (Android + iPhone).**
+
+## ✅ test-39 (20/10, 17 h 20)
+- Essai test-38 d'Elaid : l'app affiche « SMS parti » mais le contact ne reçoit rien ; après le SMS, aucun appel ; avec « Tester l'appel vocal », l'appel passe mais le contact n'entend rien au décroché.
+- SMS : un seul SMS court (≤ 160 caractères en FR/EN), **sans lien internet** (les liens Google Maps font souvent bloquer le SMS par l'opérateur ou le filtre anti-spam du téléphone qui reçoit) → coordonnées en clair « GPS 36.71234,4.04567 ».
+- Simulation : le SMS TEST est maintenant **suivi de l'appel de test** (avant : appel seulement si le SMS échouait). Vraie chute : SMS puis appel (inchangé, selon la case).
+- Voix pendant l'appel : non entendue par le contact → limite d'Android (une app ne peut pas injecter de son dans un appel GSM ; le filtre anti-écho efface le haut-parleur). Solution fiable = appel vocal lancé par un serveur (Bird) → décision d'Elaid à prendre.
 
 ## ✅ test-38 (20/10, 16 h 40)
 - Demande d'Elaid : si le SMS ne passe pas, appeler le contact et lui annoncer la chute par un message vocal.
