@@ -1,0 +1,3 @@
+TypeError: j.elevation is not iterable (cannot read property undefined)
+    at /tmp/t/simulation-elaid.js:25:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
