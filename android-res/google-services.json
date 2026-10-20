@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "203159047662",
+    "project_id": "motoroute-9f566",
+    "storage_bucket": "motoroute-9f566.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203159047662:android:5113bceafaccaf614612ff",
+        "android_client_info": {
+          "package_name": "com.motoroute.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXB3heuz2_ESN82fHA2R7Qcxvo4nMFH9Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
