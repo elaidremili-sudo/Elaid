@@ -10,7 +10,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await p.setViewport({ width: 412, height: 870, deviceScaleFactor: 1.5, isMobile: true, hasTouch: true });
   p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') L('console.' + m.type() + ': ' + m.text()); });
   p.on('pageerror', e => L('PAGEERROR: ' + e.message));
-  await p.goto('http://localhost:8080/index.html', { waitUntil: 'networkidle2', timeout: 60000 });
+  await p.goto('http://localhost:8080/index.html', { waitUntil: 'load', timeout: 120000 });
   await sleep(2500);
   const shot = async n => { await p.screenshot({ path: `out/${n}.png` }); L('capture ' + n); };
   await shot('00-app');
