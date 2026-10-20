@@ -1,6 +1,14 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 13 h 20 (demandé par Elaid, au travail) — dernière version : test-32 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 14 h 10 — dernière version : test-33 (Android + iPhone).**
+
+## ✅ Fait le 20/10 (14 h) — suivi des plantages Sentry
+- Projet Sentry **motoroute** (organisation remili-elaid, région Europe) créé par Claude via le connecteur Sentry.
+- `www/lib/sentry.min.js` (Sentry 11.8.0, embarqué : marche aussi hors ligne) + `www/js/sentry-init.js` chargés en tête de `index.html`.
+- Confidentialité : pas d'utilisateur, pas d'IP, liens coupés avant « ? » / « # », positions GPS, e-mails et téléphones masqués, ni la console ni ce qui est tapé.
+- Version dans Sentry : `motoroute@test-NN` sur Android (écrit par `scripts/patch-android.js`), `motoroute@web` sur iPhone/navigateur.
+- Pour voir les erreurs : demander à Claude « regarde Sentry » (connecteur) ou sentry.io → Issues.
+
 
 ## ✅ Fait le 20/10
 - Analyse complète de l'app + corrections : SOS chute **réellement envoyé aux groupes** (alerte rouge + sirène chez les membres, app ouverte), bouton « 📣 Alerter mes groupes », sécurité des groupes, confidentialité FR/AR/EN à jour, QR et polices hors ligne, AdMob configurable, fenêtres MotoRoute à la place des alertes grises.

@@ -77,3 +77,7 @@ if (banner && /^ca-app-pub-\d+\/\d+$/.test(banner) && process.env.ADMOB_APP_ID) 
 } else {
   console.log('AdMob bannière : identifiant de test Google (ADMOB_APP_ID + ADMOB_BANNER_ID à ajouter dans les variables GitHub)');
 }
+
+// Sentry : numéro de version dans l'app pour savoir quelle version a planté (test-33)
+fs.writeFileSync('www/js/version.js', `// Fabriqué automatiquement\nwindow.MR_VERSION = 'test-${run}';\n`);
+console.log(`Sentry : version test-${run}`);
