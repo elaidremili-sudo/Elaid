@@ -1,6 +1,13 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 16 h 20 — dernière version : test-37 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 16 h 40 — dernière version : test-38 (Android + iPhone).**
+
+## ✅ test-38 (20/10, 16 h 40)
+- Demande d'Elaid : si le SMS ne passe pas, appeler le contact et lui annoncer la chute par un message vocal.
+- Vraie chute : SMS puis appel (même si l'option d'appel est décochée quand aucun SMS n'est parti). Simulation : appel de test seulement si aucun SMS n'est parti.
+- Pendant l'appel : haut-parleur activé + volume au maximum + message lu en boucle par la synthèse vocale du téléphone (FR / AR / EN) : nom, moto, « a fait une chute… », coordonnées GPS chiffre par chiffre. Le micro transmet la voix (Android n'autorise pas d'injecter du son directement dans un appel) → à valider sur le vrai téléphone : certains filtres anti-écho peuvent atténuer la voix.
+- Bouton « 🔊 Tester l'appel vocal » dans la carte « Détection de chute » (avec confirmation).
+- Plan B si la voix passe mal : appel vocal envoyé par un serveur (ex. Bird, payant, nécessite internet).
 
 ## ✅ test-37 (20/10, 16 h 20)
 - Essai test-36 : l'app disait « SMS envoyé » mais le contact n'a rien reçu → l'ancien module ne vérifiait pas le vrai résultat.

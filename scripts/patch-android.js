@@ -233,16 +233,82 @@ public class MrSmsPlugin extends Plugin {
         }
     }
 
+    // test-38 : appel du contact + message vocal lu en boucle sur le haut-parleur (le micro le transmet)
+    private android.speech.tts.TextToSpeech tts;
+    private boolean speaking = false;
+
+    private void speakerOn(android.media.AudioManager am) {
+        try {
+            if (Build.VERSION.SDK_INT >= 31) {
+                for (android.media.AudioDeviceInfo d : am.getAvailableCommunicationDevices()) {
+                    if (d.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) { am.setCommunicationDevice(d); break; }
+                }
+            } else { am.setSpeakerphoneOn(true); }
+            am.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, am.getStreamMaxVolume(android.media.AudioManager.STREAM_VOICE_CALL), 0);
+            am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC), 0);
+        } catch (Exception e) {}
+    }
+
+    private void startVoice(final String say, final String lang, final int seconds) {
+        final Context ctx = getContext();
+        final android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+        final Handler h = new Handler(Looper.getMainLooper());
+        final long t0 = System.currentTimeMillis();
+        final long[] inCallSince = {0};
+        tts = new android.speech.tts.TextToSpeech(ctx, new android.speech.tts.TextToSpeech.OnInitListener() {
+            public void onInit(int st) {
+                if (st != android.speech.tts.TextToSpeech.SUCCESS || tts == null) return;
+                try {
+                    int r = tts.setLanguage(java.util.Locale.forLanguageTag(lang));
+                    if (r < 0) tts.setLanguage(java.util.Locale.FRENCH);
+                    tts.setSpeechRate(0.9f);
+                    tts.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                } catch (Exception e) {}
+                // Attend que l'appel soit établi, puis lit le message en boucle jusqu'à la fin de l'appel
+                h.post(new Runnable() { public void run() {
+                    long now = System.currentTimeMillis();
+                    if (now - t0 > (seconds + 40) * 1000L) { stopVoice(); return; }
+                    int mode = am == null ? -1 : am.getMode();
+                    boolean inCall = mode == android.media.AudioManager.MODE_IN_CALL;
+                    if (inCall && inCallSince[0] == 0) inCallSince[0] = now;
+                    // Appel terminé après avoir commencé : on arrête
+                    if (!inCall && inCallSince[0] != 0 && now - inCallSince[0] > 3000) { stopVoice(); return; }
+                    boolean ready = (inCallSince[0] != 0 && now - inCallSince[0] > 3000) || (inCallSince[0] == 0 && now - t0 > 12000);
+                    if (ready && !speaking && tts != null) {
+                        speaking = true;
+                        speakerOn(am);
+                        tts.speak(say, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "mr-sos");
+                        h.postDelayed(new Runnable() { public void run() { speaking = false; } }, 2500 + say.length() * 75L);
+                    }
+                    h.postDelayed(this, 1000);
+                }});
+            }
+        });
+    }
+
+    private void stopVoice() {
+        try { if (tts != null) { tts.stop(); tts.shutdown(); } } catch (Exception e) {}
+        tts = null; speaking = false;
+    }
+
     @PluginMethod
     public void dial(PluginCall call) {
         String to = call.getString("to");
+        String say = call.getString("say");
+        String lang = call.getString("lang", "fr");
+        int seconds = call.getInt("seconds", 90);
         if (to == null || to.isEmpty()) { call.reject("numero-manquant"); return; }
         boolean direct = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
         try {
             Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + to));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(i);
-            call.resolve();
+            stopVoice();
+            if (direct && say != null && !say.isEmpty()) startVoice(say, lang, seconds);
+            JSObject r = new JSObject(); r.put("direct", direct); r.put("voice", direct && say != null && !say.isEmpty());
+            call.resolve(r);
         } catch (Exception e) {
             call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
         }
