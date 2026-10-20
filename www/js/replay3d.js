@@ -103,7 +103,8 @@
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     S_.forEach(p => { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); });
     const lng2 = x => ((x + X0) / k / R_EARTH) / D2R, lat2 = z => (2 * Math.atan(Math.exp((-z + Y0) / k / R_EARTH)) - Math.PI / 2) / D2R;
-    return { S: S_, D: S_[m - 1].d, T: S_[m - 1].t, hasAlt, measured, box: [x0, x1, z0, z1], proj, lng2, lat2, lat0, date: r.d, demo: !!r.demo };
+    let gain = 0; for (let i = 1; i < m; i++) if (S_[i].y > S_[i - 1].y) gain += S_[i].y - S_[i - 1].y;
+    return { gain: Math.round(gain), S: S_, D: S_[m - 1].d, T: S_[m - 1].t, hasAlt, measured, box: [x0, x1, z0, z1], proj, lng2, lat2, lat0, date: r.d, demo: !!r.demo };
   }
 
   /* ================= Interface ================= */
@@ -193,43 +194,71 @@
     const skyC = document.createElement('canvas'); skyC.width = 4; skyC.height = 256;
     { const g = skyC.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#2f6fb3'); gr.addColorStop(0.55, '#9cc4e4'); gr.addColorStop(1, '#e9dcc4'); g.fillStyle = gr; g.fillRect(0, 0, 4, 256); }
     const skyT = new T.CanvasTexture(skyC); skyT.encoding = T.sRGBEncoding; scene.background = skyT;
-    scene.fog = new T.Fog(0xc9d6e0, 260, 2600);
+    scene.fog = new T.Fog(0xb7c6d2, 420, 3200);
     scene.add(new T.HemisphereLight(0xdfeeff, 0x4b4230, 0.85));
     const sun = new T.DirectionalLight(0xfff1dc, 1.25); sun.position.set(-300, 500, 200); scene.add(sun);
 
-    // Emprise et sol (carte OSM drapée sur le relief)
-    const [bx0, bx1, bz0, bz1] = G.box, pad = Math.max(260, (Math.max(bx1 - bx0, bz1 - bz0)) * 0.15);
+    // Emprise et relief : le sol suit l'altitude de la route et reste toujours SOUS la route (lacets compris)
+    const [bx0, bx1, bz0, bz1] = G.box, pad = Math.max(300, (Math.max(bx1 - bx0, bz1 - bz0)) * 0.18);
     const gx0 = bx0 - pad, gx1 = bx1 + pad, gz0 = bz0 - pad, gz1 = bz1 + pad;
     const step = Math.max(1, Math.floor(m / 400)), near = []; for (let i = 0; i < m; i += step) near.push(S_[i]);
+    const meanY = S_.reduce((a, p) => a + p.y, 0) / m;
+    const CELL = 25, BK = new Map(), bkey = (i, j) => i * 100003 + j;
+    for (let i = 0; i < m; i += 2) { const p = S_[i], k = bkey(Math.floor(p.x / CELL), Math.floor(p.z / CELL)); let a = BK.get(k); if (!a) BK.set(k, a = []); a.push(p); }
+    const noise = (x, z) => Math.sin(x * 0.011 + Math.sin(z * 0.007) * 2) * Math.cos(z * 0.013 - Math.sin(x * 0.005)) * 0.6 + Math.sin(x * 0.031 + z * 0.027) * 0.25 + Math.sin(x * 0.07 - z * 0.05) * 0.08;
+    const segs = 150, gw = gx1 - gx0, gd = gz1 - gz0, cellG = Math.max(gw, gd) / segs, carveR = Math.max(16, cellG * 1.6);
     const heightAt = (x, z) => {
-      if (!G.hasAlt) return 0;
-      let best = Infinity, h = 0, wsum = 0, hs = 0;
-      for (const p of near) { const dd = (p.x - x) ** 2 + (p.z - z) ** 2; if (dd < best) { best = dd; h = p.y; } if (dd < 250000) { const w = 1 / (dd + 400); wsum += w; hs += w * p.y; } }
-      const dist = Math.sqrt(best), base = wsum ? hs / wsum : h;
-      const blend = clamp((dist - 10) / 120, 0, 1);
-      return (h * (1 - blend) + base * blend) - 0.35 + Math.sin(x * 0.013) * Math.cos(z * 0.011) * blend * 6;
+      const ci = Math.floor(x / CELL), cj = Math.floor(z / CELL), R = Math.ceil(Math.max(80, carveR) / CELL);
+      let best = Infinity, hn = 0, cut = Infinity;
+      for (let a = -R; a <= R; a++) for (let b = -R; b <= R; b++) {
+        const arr = BK.get(bkey(ci + a, cj + b)); if (!arr) continue;
+        for (const p of arr) { const dd = (p.x - x) ** 2 + (p.z - z) ** 2; if (dd < best) { best = dd; hn = p.y; } if (dd < carveR * carveR) cut = Math.min(cut, p.y - 0.6 - Math.max(0, Math.sqrt(dd) - 9) * 0.05); }
+      }
+      let h, dist;
+      if (best < Infinity) { dist = Math.sqrt(best); h = hn; }
+      else { let w = 0, hs = 0, bd = Infinity; for (const p of near) { const dd = (p.x - x) ** 2 + (p.z - z) ** 2; bd = Math.min(bd, dd); const ww = 1 / (dd + 900); w += ww; hs += ww * p.y; } h = w ? hs / w : meanY; dist = Math.sqrt(bd); }
+      const far_ = clamp((dist - 14) / 140, 0, 1);
+      h = h - 0.6 + noise(x, z) * (G.hasAlt ? 22 : 7) * far_;
+      // bords de la zone : on rejoint doucement l'altitude moyenne
+      const ex = Math.min(x - gx0, gx1 - x, z - gz0, gz1 - z), edge = clamp(1 - ex / (pad * 0.8), 0, 1);
+      h = h * (1 - edge) + (meanY - 1) * edge;
+      return Math.min(h, cut);
     };
-    const segs = 110, gw = gx1 - gx0, gd = gz1 - gz0;
     const gGeo = new T.PlaneGeometry(gw, gd, segs, segs); gGeo.rotateX(-Math.PI / 2); gGeo.translate((gx0 + gx1) / 2, 0, (gz0 + gz1) / 2);
     { const pa = gGeo.attributes.position; for (let i = 0; i < pa.count; i++) pa.setY(i, heightAt(pa.getX(i), pa.getZ(i))); gGeo.computeVertexNormals(); }
-    const grass = document.createElement('canvas'); grass.width = grass.height = 256;
-    { const g = grass.getContext('2d'); g.fillStyle = '#6f8a4a'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 2600; i++) { g.fillStyle = ['#5d7a3c', '#7d9654', '#86935a', '#6a7f44', '#8a8458'][i % 5]; g.globalAlpha = 0.35; g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 5, 2 + Math.random() * 5); } }
-    const grassT = new T.CanvasTexture(grass); grassT.wrapS = grassT.wrapT = T.RepeatWrapping; grassT.repeat.set(gw / 60, gd / 60); grassT.encoding = T.sRGBEncoding;
-    const gMat = new T.MeshLambertMaterial({ map: grassT });
+    // Paysage (par défaut) : herbe, terre et roche
+    const land = document.createElement('canvas'); land.width = land.height = 512;
+    { const g = land.getContext('2d'); g.fillStyle = '#5f7a3c'; g.fillRect(0, 0, 512, 512);
+      const blob = (x, y, r, c, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, c); gr.addColorStop(1, c.slice(0, 7) + '00'); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); };
+      for (let i = 0; i < 70; i++) blob(Math.random() * 512, Math.random() * 512, 30 + Math.random() * 90, ['#4c6b2e', '#7a8a46', '#8c7f55', '#6e7f3c', '#94895f'][i % 5], 0.55);
+      for (let i = 0; i < 5000; i++) { g.globalAlpha = 0.28; g.fillStyle = ['#3f5a26', '#7d9a4c', '#98a060', '#5a6b34', '#a39a72'][i % 5]; g.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 1 + Math.random() * 3); }
+      g.globalAlpha = 1; }
+    const landT = new T.CanvasTexture(land); landT.wrapS = landT.wrapT = T.RepeatWrapping; landT.repeat.set(gw / 140, gd / 140); landT.encoding = T.sRGBEncoding;
+    landT.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const gMat = new T.MeshLambertMaterial({ map: landT });
     const ground = new T.Mesh(gGeo, gMat); scene.add(ground);
-    // grand plan lointain + collines
-    const far = new T.Mesh(new T.PlaneGeometry(14000, 14000), new T.MeshLambertMaterial({ color: 0x6d8148 })); far.rotation.x = -Math.PI / 2; far.position.set((gx0 + gx1) / 2, -2, (gz0 + gz1) / 2); scene.add(far);
+    const landUV = gGeo.attributes.uv.array.slice();
+    // plaine lointaine + montagnes autour
+    const far = new T.Mesh(new T.PlaneGeometry(16000, 16000), new T.MeshLambertMaterial({ color: 0x5f7a3c })); far.rotation.x = -Math.PI / 2; far.position.set((gx0 + gx1) / 2, meanY - 1.2, (gz0 + gz1) / 2); scene.add(far);
     {
-      const cx = (gx0 + gx1) / 2, cz = (gz0 + gz1) / 2, rr = Math.max(gw, gd) * 0.5 + 900;
-      const hm = new T.MeshLambertMaterial({ color: 0x7c8a6a, flatShading: true });
-      for (let i = 0; i < 26; i++) {
-        const a = i / 26 * Math.PI * 2 + Math.random() * 0.2, h = 260 + Math.random() * 520, r = 500 + Math.random() * 700;
-        const c = new T.Mesh(new T.ConeGeometry(r, h, 7, 1), hm); c.position.set(cx + Math.cos(a) * (rr + Math.random() * 600), h / 2 - 10, cz + Math.sin(a) * (rr + Math.random() * 600)); c.rotation.y = Math.random() * 3; scene.add(c);
+      const cx = (gx0 + gx1) / 2, cz = (gz0 + gz1) / 2, rr = Math.max(gw, gd) * 0.5 + 700;
+      const hm = new T.MeshLambertMaterial({ color: 0x6d7a62, flatShading: true }), snow = new T.MeshLambertMaterial({ color: 0xf2f4f6, flatShading: true });
+      for (let i = 0; i < 30; i++) {
+        const a = i / 30 * Math.PI * 2 + Math.random() * 0.15, h = 320 + Math.random() * 700, r = 520 + Math.random() * 700, d = rr + Math.random() * 700;
+        const c = new T.Mesh(new T.ConeGeometry(r, h, 8, 1), hm); c.position.set(cx + Math.cos(a) * d, meanY + h / 2 - 5, cz + Math.sin(a) * d); c.rotation.y = Math.random() * 3; scene.add(c);
+        if (h > 700) { const sc = new T.Mesh(new T.ConeGeometry(r * 0.28, h * 0.28, 8, 1), snow); sc.position.set(c.position.x, meanY + h * 0.86 - 5, c.position.z); sc.rotation.y = c.rotation.y; scene.add(sc); }
       }
     }
     // Carte OpenStreetMap
-    let mapOk = false;
-    (function loadMap() {
+    let mapOk = false, mapTex = null, mapUV = null, mapLoading = false, groundMode = 'land';
+    function setGround(mode) {
+      groundMode = mode; const uv = gGeo.attributes.uv;
+      if (mode === 'map' && mapTex) { uv.array.set(mapUV); gMat.map = mapTex; gMat.color.set(0xffffff); mapOk = true; }
+      else { uv.array.set(landUV); gMat.map = landT; gMat.color.set(0xffffff); mapOk = false; }
+      uv.needsUpdate = true; gMat.needsUpdate = true;
+    }
+    function loadMap(onDone) {
+      if (mapTex) { onDone(true); return; } if (mapLoading) return; mapLoading = true;
       const latN = G.lat2(gz0), latS = G.lat2(gz1), lngW = G.lng2(gx0), lngE = G.lng2(gx1);
       const tx = (lng, z) => (lng + 180) / 360 * 2 ** z, ty = (lat, z) => (1 - Math.log(Math.tan(lat * D2R) + 1 / Math.cos(lat * D2R)) / Math.PI) / 2 * 2 ** z;
       let z = 17, X0, X1, Y0, Y1;
@@ -240,14 +269,15 @@
       let left = nx * ny, okN = 0;
       const tile2lng = (x, z) => x / 2 ** z * 360 - 180, tile2lat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / 2 ** z; return Math.atan(Math.sinh(n)) / D2R; };
       const done = () => {
-        if (!V.alive || okN < Math.max(1, (nx * ny) * 0.5)) return;
+        mapLoading = false;
+        if (!V.alive) return;
+        if (okN < Math.max(1, (nx * ny) * 0.5)) { onDone(false); return; }
         const tex = new T.CanvasTexture(mc); tex.encoding = T.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
         // coordonnées locales des bords de la mosaïque → UV du sol
         const [ax, az] = G.proj(tile2lat(Y0, z), tile2lng(X0, z)), [bx, bz] = G.proj(tile2lat(Y1 + 1, z), tile2lng(X1 + 1, z));
-        const pa = gGeo.attributes.position, uv = gGeo.attributes.uv;
-        for (let i = 0; i < pa.count; i++) uv.setXY(i, (pa.getX(i) - ax) / (bx - ax), 1 - (pa.getZ(i) - az) / (bz - az));
-        uv.needsUpdate = true; tex.wrapS = tex.wrapT = T.ClampToEdgeWrapping;
-        gMat.map = tex; gMat.color.set(0xd9dccf); gMat.needsUpdate = true; mapOk = true;
+        const pa = gGeo.attributes.position; mapUV = new Float32Array(pa.count * 2);
+        for (let i = 0; i < pa.count; i++) { mapUV[i * 2] = (pa.getX(i) - ax) / (bx - ax); mapUV[i * 2 + 1] = 1 - (pa.getZ(i) - az) / (bz - az); }
+        tex.wrapS = tex.wrapT = T.ClampToEdgeWrapping; mapTex = tex; onDone(true);
       };
       for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
         const im = new Image(); im.crossOrigin = 'anonymous';
@@ -255,7 +285,7 @@
         im.onerror = () => { if (--left === 0) done(); };
         im.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
       }
-    })();
+    }
 
     // Route (ruban) + bordures colorées selon l'inclinaison
     const roadC = document.createElement('canvas'); roadC.width = 128; roadC.height = 256;
@@ -278,6 +308,13 @@
     scene.add(new T.Mesh(rg, new T.MeshLambertMaterial({ map: roadT, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })));
     const kg = new T.BufferGeometry(); kg.setAttribute('position', new T.Float32BufferAttribute(kp, 3)); kg.setAttribute('color', new T.Float32BufferAttribute(kc, 3)); kg.setIndex(kidx); kg.computeVertexNormals();
     scene.add(new T.Mesh(kg, new T.MeshBasicMaterial({ vertexColors: true, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })));
+    // talus sous les bords de la route (la route ne « flotte » jamais au-dessus du sol)
+    { const sp = [], si = [], E = W_ + KW;
+      for (let i = 0; i < m; i++) { const p = S_[i], nx = Math.cos(p.hd), nz = -Math.sin(p.hd), y = p.y + 0.1;
+        sp.push(p.x - nx * E, y, p.z - nz * E, p.x - nx * (E + 3), y - 7, p.z - nz * (E + 3), p.x + nx * E, y, p.z + nz * E, p.x + nx * (E + 3), y - 7, p.z + nz * (E + 3));
+        if (i < m - 1) { const a = i * 4; si.push(a, a + 4, a + 1, a + 1, a + 4, a + 5, a + 2, a + 6, a + 3, a + 3, a + 6, a + 7); } }
+      const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); sg.setIndex(si); sg.computeVertexNormals();
+      scene.add(new T.Mesh(sg, new T.MeshLambertMaterial({ color: 0x6e6046, side: T.DoubleSide }))); }
     // Drapeaux départ / arrivée
     const flag = (p, c) => { const g = new T.Group(); const pole = new T.Mesh(new T.CylinderGeometry(.08, .08, 4.5, 6), new T.MeshLambertMaterial({ color: 0xdddddd })); pole.position.y = 2.25; g.add(pole); const f = new T.Mesh(new T.PlaneGeometry(2, 1.2), new T.MeshBasicMaterial({ color: c, side: T.DoubleSide })); f.position.set(1, 3.8, 0); g.add(f); g.position.set(p.x + Math.cos(p.hd) * (W_ + 2), p.y, p.z - Math.sin(p.hd) * (W_ + 2)); scene.add(g); return g; };
     const flagA = flag(S_[0], 0x2ecc71), flagB = flag(S_[m - 1], 0x111111);
@@ -362,9 +399,10 @@
       <div class="abw" hidden><div class="mt">${W('Choisis le départ A et l’arrivée B du film :', 'اختر البداية A والنهاية B:', 'Pick start A and end B:')} <b class="abt"></b></div>
         <div class="ab"><div class="tr"></div><div class="sel"></div><input type="range" class="ra" min="0" max="1000" value="0" aria-label="A"><input type="range" class="rb" min="0" max="1000" value="1000" aria-label="B"></div></div>
       <div class="row sc">${cams.map(([k, l]) => `<button class="bt${k === st.cam ? ' on' : ''}" data-cam="${k}">${l}</button>`).join('')}</div>
-      <div class="row sc">${speeds.map(([k, l]) => `<button class="bt${k === st.speed ? ' on' : ''}" data-sp="${k}">${l}</button>`).join('')}</div>
+      <div class="row sc"><button class="bt" data-k="gnd">🗺 ${W('Carte', 'الخريطة', 'Map')}</button>${speeds.map(([k, l]) => `<button class="bt${k === st.speed ? ' on' : ''}" data-sp="${k}">${l}</button>`).join('')}</div>
       <div class="outw"></div>`;
     el.appendChild(pan);
+    let basePan = 190; requestAnimationFrame(() => { basePan = pan.offsetHeight || 190; });
     el.querySelector('.msg').remove();
     const $p = s => pan.querySelector(s);
     const tl = $p('.tl'), ra = $p('.ra'), rb = $p('.rb');
@@ -385,6 +423,11 @@
       else if (b.dataset.k === 'play') { st.playing = !st.playing; if (st.playing && st.t >= S_[idxAtFrac(st.b)].t - 0.01) st.t = S_[idxAtFrac(st.a)].t; b.textContent = st.playing ? '⏸' : '▶'; }
       else if (b.dataset.k === 'ab') { const w = $p('.abw'); w.hidden = !w.hidden; abUi(); }
       else if (b.dataset.k === 'rec') record();
+      else if (b.dataset.k === 'gnd') {
+        if (groundMode === 'map') { setGround('land'); b.classList.remove('on'); return; }
+        b.disabled = true; b.textContent = '⏳ ' + W('Carte…', 'الخريطة…', 'Map…');
+        loadMap(ok => { b.disabled = false; b.textContent = '🗺 ' + W('Carte', 'الخريطة', 'Map'); if (ok) { setGround('map'); b.classList.add('on'); } else alert(W('Carte indisponible (pas de réseau ?). Le paysage reste affiché.', 'الخريطة غير متاحة.', 'Map unavailable (no network?).')); });
+      }
     });
     abUi();
 
@@ -439,7 +482,8 @@
       g.font = `700 ${22 * s}px 'Barlow Condensed',Cairo,sans-serif`; g.fillStyle = '#fff'; g.shadowColor = '#000'; g.shadowBlur = 6 * s;
       g.textAlign = 'left'; g.fillText('MOTOROUTE' + (who ? ' · ' + who : ''), pad, Ht * 0.12 + 10 * s);
       g.font = `500 ${15 * s}px Barlow,Cairo,sans-serif`; g.fillStyle = '#ffffffd0';
-      g.fillText((G.demo ? W('Démo – col de montagne', 'عرض – ممر جبلي', 'Demo – mountain pass') : dateTxt) + ' · ' + (G.D / 1000).toFixed(1) + ' km', pad, Ht * 0.12 + 32 * s);
+      g.fillText(G.demo ? W('Démo – col de montagne', 'عرض – ممر جبلي', 'Demo – mountain pass') : dateTxt, pad, Ht * 0.12 + 32 * s);
+      g.fillText((G.D / 1000).toFixed(1) + ' km' + (G.hasAlt ? ' · D+ ' + G.gain + ' m' : ''), pad, Ht * 0.12 + 52 * s);
       // mini-carte
       const ms = Math.min(Wd, Ht) * 0.26, mx = Wd - ms - pad, my = Ht * 0.12 - 8 * s;
       g.shadowBlur = 0; g.fillStyle = '#0008'; g.beginPath(); g.roundRect ? g.roundRect(mx, my, ms, ms, 12 * s) : g.rect(mx, my, ms, ms); g.fill();
@@ -448,7 +492,7 @@
       [[pa, '#2ecc71', 'A'], [pb, '#ffffff', 'B']].forEach(([p, c, t]) => { g.fillStyle = c; g.beginPath(); g.arc(mx + p[0] * k, my + p[1] * k, 5 * s, 0, 7); g.fill(); g.fillStyle = '#000'; g.font = `700 ${8 * s}px sans-serif`; g.textAlign = 'center'; g.fillText(t, mx + p[0] * k, my + p[1] * k + 3 * s); });
       g.fillStyle = acc; g.strokeStyle = '#fff'; g.lineWidth = 2 * s; g.beginPath(); g.arc(mx + pc[0] * k, my + pc[1] * k, 6 * s, 0, 7); g.fill(); g.stroke();
       // compteur vitesse + inclinaison (bas gauche, au-dessus du panneau)
-      const by = Ht - (pan.offsetHeight * dpr) - 16 * s, cx = pad + 70 * s, cy = by - 70 * s;
+      const by = Ht - (basePan * dpr) - 16 * s, cx = pad + 70 * s, cy = by - 70 * s;
       g.fillStyle = '#000a'; g.beginPath(); g.arc(cx, cy, 68 * s, 0, 7); g.fill();
       const la = clamp(cur.lr, -60, 60) * D2R, lc = col(cur.lr).map(v => Math.round(v * 255)).join(',');
       g.strokeStyle = '#ffffff30'; g.lineWidth = 6 * s; g.beginPath(); g.arc(cx, cy, 58 * s, Math.PI * 1.17, Math.PI * 1.83); g.stroke();
@@ -497,10 +541,12 @@
       else if (mode === 'drone') { P.set(cur.x - fx * 22 + rx * 8, cur.y + 34, cur.z - fz * 22 + rz * 8); Lk.add(new T.Vector3(fx * 10, 0, fz * 10)); }
       else if (mode === 'side') P.set(cur.x + rx * 6.5 + fx * 1.5, cur.y + 1.3, cur.z + rz * 6.5 + fz * 1.5);
       else if (mode === 'front') { P.set(cur.x + fx * 8 - rx * 2, cur.y + 1.4, cur.z + fz * 8 - rz * 2); }
-      const gh = heightAt(P.x, P.z) + 0.8; if (P.y < gh) P.y = gh;
-      if (!camInit) { camPos.copy(P); camLook.copy(Lk); camInit = true; }
-      const kk = 1 - Math.exp(-dt * (mode === '360' ? 9 : 4.5)); camPos.lerp(P, kk); camLook.lerp(Lk, 1 - Math.exp(-dt * 10));
-      camera.position.copy(camPos); camera.lookAt(camLook);
+      // lissage dans le repère du pilote (la caméra ne « décroche » jamais, même en ×30)
+      const B0 = new T.Vector3(cur.x, cur.y, cur.z), off = P.clone().sub(B0), lo = Lk.clone().sub(B0);
+      if (!camInit || st.camMode !== mode) { if (!camInit) { camPos.copy(off); camLook.copy(lo); } camInit = true; st.camMode = mode; }
+      camPos.lerp(off, 1 - Math.exp(-dt * (mode === '360' ? 12 : 3.5))); camLook.lerp(lo, 1 - Math.exp(-dt * 8));
+      const C = B0.clone().add(camPos), gh = Math.max(heightAt(C.x, C.z), cur.y) + 0.9; if (C.y < gh) C.y = gh;
+      camera.position.copy(C); camera.lookAt(B0.clone().add(camLook));
       sun.position.set(cur.x - 300, cur.y + 500, cur.z + 200); sun.target.position.set(cur.x, cur.y, cur.z); sun.target.updateMatrixWorld();
       renderer.render(scene, camera);
       ctx.drawImage(renderer.domElement, 0, 0, Wd, Ht);

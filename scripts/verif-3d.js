@@ -19,7 +19,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(9000); await shot('01-demo-360');
   const clickTxt = async sel => { await p.evaluate(s => { const b = document.querySelector(s); b && b.click(); }, sel); };
   for (const [k, n] of [['chase', '02-poursuite'], ['drone', '03-drone'], ['side', '04-cote']]) { await clickTxt(`#r3d [data-cam="${k}"]`); await sleep(3500); await shot(n); }
-  await clickTxt('#r3d [data-cam="360"]'); await sleep(2500); await shot('05-360-bis');
+  await clickTxt('#r3d [data-cam="360"]'); await sleep(2500); await shot('05-360-bis'); await sleep(3000); await shot('05b-360-ter');
+  await clickTxt('#r3d [data-cam="cine"]'); await sleep(7500); await shot('05c-cinema');
+  await clickTxt('#r3d [data-k="gnd"]'); await sleep(6000); await shot('05d-carte-osm'); await clickTxt('#r3d [data-k="gnd"]'); await clickTxt('#r3d [data-cam="360"]');
   await clickTxt('#r3d [data-k="ab"]'); await sleep(500);
   await p.evaluate(() => { const a = document.querySelector('#r3d .ra'), b = document.querySelector('#r3d .rb'); a.value = 300; a.dispatchEvent(new Event('input')); b.value = 600; b.dispatchEvent(new Event('input')); });
   await sleep(1500); await shot('06-tronçon-AB');
