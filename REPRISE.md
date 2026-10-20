@@ -10,7 +10,8 @@ Solution choisie par Elaid : notification d'urgence gratuite (Firebase) → le t
 - ✅ Supabase : tables push_tokens, guardian_codes, guardians, sos_push_log + fonctions mr_my_guard_code, mr_guard_join, mr_guard_list (script supabase/alertes-sonores.sql exécuté par Elaid, vérifié).
 - ✅ Fonction serveur `sos-push` en ligne (Supabase Edge Functions).
 - ✅ Code app prêt sur la branche `alertes-sonores` : www/js/push.js (jeton, canal sirène, réception, lecture vocale, carte « Mes anges gardiens » avec code à 6 lettres), MrSms.speak (voix sur canal alarme), sirène android-res/sos_alarm.wav, plugin @capacitor/push-notifications, SOS qui appelle sos-push.
-- ⏳ À FAIRE : (1) Elaid met le secret `FCM_SERVICE_ACCOUNT` (contenu du Doc « Clé google base ») dans Supabase → Edge Functions → Secrets ; (2) Elaid envoie le vrai fichier `google-services.json` (Téléchargements) → le placer dans android-res/google-services.json ; (3) fusionner `alertes-sonores` dans main → test-40 ; (4) tester avec 2 comptes (code ange gardien, simulation de chute → sirène + voix) ; (5) le test « afficher la carte anges gardiens avec faux serveur » n'a pas été lancé.
+- ✅ Secret `FCM_SERVICE_ACCOUNT` enregistré dans Supabase par Elaid (20/10, 18 h 03).
+- ⏳ À FAIRE : (2) Elaid envoie le vrai fichier `google-services.json` (Téléchargements) → le placer dans android-res/google-services.json ; (3) fusionner `alertes-sonores` dans main → test-40 ; (4) tester avec 2 comptes (code ange gardien, simulation de chute → sirène + voix) ; (5) le test « afficher la carte anges gardiens avec faux serveur » n'a pas été lancé.
 
 
 ## ✅ test-39 (20/10, 17 h 20)
