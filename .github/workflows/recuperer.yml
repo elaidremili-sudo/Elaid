@@ -1,0 +1,22 @@
+name: Récupérer des fichiers (film)
+on:
+  workflow_dispatch:
+    inputs:
+      liens:
+        description: "nom=lien séparés par des espaces"
+        required: true
+permissions:
+  contents: write
+jobs:
+  get:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Télécharger
+        env:
+          LIENS: ${{ inputs.liens }}
+        run: |
+          mkdir -p verif/film
+          for x in $LIENS; do n="${x%%=*}"; u="${x#*=}"; curl -fsSL -o "verif/film/$n" "$u"; ls -la "verif/film/$n"; done
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add verif/film && git commit -m "Film récupéré [skip ci]" && git push
