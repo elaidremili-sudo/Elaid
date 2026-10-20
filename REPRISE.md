@@ -1,6 +1,47 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, matin — nouvelle version publiée après test-29 (Android + iPhone) : corrections de l'analyse complète + « Revoir mon trajet en 3D ».**
+**Point de reprise : 20 octobre 2026, 13 h 20 (demandé par Elaid, au travail) — dernière version : test-32 (Android + iPhone).**
+
+## ✅ Fait le 20/10
+- Analyse complète de l'app + corrections : SOS chute **réellement envoyé aux groupes** (alerte rouge + sirène chez les membres, app ouverte), bouton « 📣 Alerter mes groupes », sécurité des groupes, confidentialité FR/AR/EN à jour, QR et polices hors ligne, AdMob configurable, fenêtres MotoRoute à la place des alertes grises.
+- **🎬 Revoir mon trajet en 3D** (onglet Conduite) : route 3D du vrai tracé, vitesse + inclinaison, caméras 360°/poursuite/drone/côté/cinéma, carte OSM, tronçon A→B, film à partager.
+- Film réaliste IA (Haïzer → Tikjda) : fait puis **retiré de l'app** (« trop d'erreurs ») ; ne pas le remettre sans accord. ≈ 6 $ de clips sur le compte Composio.
+- **Supabase : les 3 scripts exécutés** (sécurité groupes, alertes SOS, comparaison trajets).
+
+## 🔜 Reste à faire
+
+```mermaid
+flowchart TD
+  A[📱 Installer test-32] --> B[Tests sur le téléphone]
+  B --> B1[Trajet Conduite → 🎬 Revoir en 3D + 📊 Comparer]
+  B --> B2[Pub AdMob + bouton ＋ ne chevauchent plus la barre]
+  B --> B3[Carte membre QR sans internet]
+  A --> C[👥 Tests à 2 téléphones]
+  C --> C1[Alerte SOS : simuler une chute sur l'un → alerte rouge sur l'autre]
+  C --> C2[Groupe « Sur validation » : demander / accepter]
+  C --> C3[Comparer → onglet Membres]
+  D[🏍 Partenaires & utilisateurs] --> D1[Démo espace annonceur à Simou Cycle]
+  D --> D2[Retour de l'ami iPhone]
+  E[🛒 Google Play] --> E1[Justificatif d'adresse – BLOQUANT]
+  E1 --> E2[12 testeurs Gmail – 14 jours]
+  E --> E3[Compte AdMob → variables GitHub ADMOB_APP_ID + ADMOB_BANNER_ID]
+  E --> E4[Play Console : compte de test + fiche d'urgence = donnée de santé]
+  E2 --> F[🚀 Publication]
+  E3 --> F
+  E4 --> F
+  G[💬 Décisions] --> G1[Studio IA : budget / vidéos / compte fal.ai]
+  G --> G2[Voix arabe darija pour la présentation]
+  G --> G3[Vérifier le solde Composio]
+  G --> G4[Vrai film filmé + données du trajet ?]
+```
+
+1. **Installer test-32** (onglet Releases du dépôt).
+2. **Tests seul** : trajet → Revoir en 3D + Comparer ; pub et bouton ＋ ; carte membre QR sans internet.
+3. **Tests avec un 2ᵉ téléphone** (quand Elaid en a un) : alerte SOS de chute entre 2 comptes du même groupe (app ouverte sur le 2ᵉ, simuler la chute sur le 1er, attendre 2 min) ; groupe « Sur validation » ; Comparer → Membres.
+4. **Simou Cycle** : montrer la démo de l'espace annonceur.
+5. **Ami iPhone** : retour sur installation, connexion, GPS, musique.
+6. **Google Play** : justificatif d'adresse (bloquant) → 12 testeurs Gmail ; compte AdMob ; compte de test + déclaration santé dans la Play Console.
+7. **Décisions** : Studio IA, voix arabe, solde Composio, vrai film filmé.
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
