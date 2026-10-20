@@ -1,6 +1,7 @@
 // Fabrique un film de démonstration « Revoir mon trajet en 3D » sur un vrai itinéraire :
 // Haïzer → col de Tikjda (Bouira), pilote : Elaid sur sa Kawasaki Z H2.
 const puppeteer = require('puppeteer-core'); const fs = require('fs'); const { execSync } = require('child_process');
+const _log = console.log; console.log = (...a) => { _log(...a); try { fs.mkdirSync('out', { recursive: true }); fs.appendFileSync('out/log-simulation.txt', a.join(' ') + '\n'); } catch (e) {} };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const D2R = Math.PI / 180, R = 6371000;
 const hv = (a, b) => { const dl = (b[0] - a[0]) * D2R, dn = (b[1] - a[1]) * D2R, x = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * D2R) * Math.cos(b[0] * D2R) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
@@ -26,15 +27,15 @@ const brg = (a, b) => Math.atan2(Math.sin((b[1] - a[1]) * D2R) * Math.cos(b[0] *
   const n = pts.length, rad = new Array(n).fill(1e9), side = new Array(n).fill(0);
   for (let i = 3; i < n - 3; i++) { let dh = brg(pts[i], pts[i + 3]) - brg(pts[i - 3], pts[i]); while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     rad[i] = Math.abs(dh) > 1e-3 ? 150 / Math.abs(dh) : 1e9; side[i] = Math.abs(dh) < 0.05 ? 0 : (dh > 0 ? 1 : -1); }
-  let v = rad.map(rr => Math.max(32, Math.min(95, Math.sqrt(9.81 * rr * Math.tan(42 * D2R)) * 3.6 * 0.82)));
+  let v = rad.map(rr => Math.max(32, Math.min(95, Math.sqrt(9.81 * rr * Math.tan(38 * D2R)) * 3.6)));
   for (let k = 0; k < 3; k++) v = v.map((x, i) => (v[Math.max(0, i - 1)] + x * 2 + v[Math.min(n - 1, i + 1)]) / 4);
   for (let i = 1; i < n; i++) v[i] = Math.min(v[i], Math.sqrt((v[i - 1] / 3.6) ** 2 + 2 * 2.6 * 25) * 3.6);
   for (let i = n - 2; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt((v[i + 1] / 3.6) ** 2 + 2 * 4.5 * 25) * 3.6);
   v[0] = 20; let t = 0;
-  const tk = pts.map((p, i) => { if (i) t += 25 / (((v[i] + v[i - 1]) / 2) / 3.6); const vs = v[i] / 3.6, lean = Math.min(48, Math.atan(vs * vs / (9.81 * rad[i])) / D2R);
+  const tk = pts.map((p, i) => { if (i) t += 25 / (((v[i] + v[i - 1]) / 2) / 3.6); const vs = v[i] / 3.6, lean = Math.min(38, Math.atan(vs * vs / (9.81 * rad[i])) / D2R);
     return [+p[0].toFixed(5), +p[1].toFixed(5), Math.round(lean), lean < 3 ? 0 : side[i], Math.round(v[i]), Math.round(t), Math.round(alt[i])]; });
   const km = (pts.length - 1) * 25 / 1000;
-  console.log('Trajet', km.toFixed(1), 'km,', Math.round(t / 60), 'min, altitude', Math.min(...alt), '→', Math.max(...alt), 'm, vmax', Math.round(Math.max(...v)));
+  console.log('Trajet', km.toFixed(1), 'km,', Math.round(t / 60), 'min, altitude', Math.min(...alt), '→', Math.max(...alt), 'm, vmax', Math.round(Math.max(...v)), 'inclinaison max', Math.max(...tk.map(q => q[2])), '°, virages ≥ 35° :', tk.filter(q => q[2] >= 35).length);
   fs.writeFileSync('out/trajet-tikjda.json', JSON.stringify(tk));
 
   const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new',
