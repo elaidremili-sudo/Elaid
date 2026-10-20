@@ -16,7 +16,7 @@ jobs:
         run: |
           mkdir -p /tmp/t && cd /tmp/t && npm init -y >/dev/null && npm i puppeteer-core@23 --no-audit --no-fund >/dev/null
           cd $GITHUB_WORKSPACE/www && (python3 -m http.server 8080 >/dev/null 2>&1 &) && sleep 2
-          cp $GITHUB_WORKSPACE/scripts/verif-3d.js /tmp/t/ && cd /tmp/t && node verif-3d.js
+          cp $GITHUB_WORKSPACE/scripts/verif-3d.js $GITHUB_WORKSPACE/scripts/simulation-elaid.js /tmp/t/ && cd /tmp/t && node verif-3d.js && node simulation-elaid.js
       - name: Ranger les captures dans la branche
         if: always()
         run: |

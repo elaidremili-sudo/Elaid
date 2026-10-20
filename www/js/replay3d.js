@@ -157,6 +157,8 @@
     try { window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.KeepAwake && Capacitor.Plugins.KeepAwake.allowSleep(); } catch (e) {}
   }
   window.mrR3dClose = close;
+  window.mrR3dManual = fps => V && V.manual && V.manual(fps);
+  window.mrR3dTick = () => V && V.tick ? V.tick() : null;
 
   async function open(ride) {
     close();
@@ -344,12 +346,19 @@
     const bike = (function () {
       const root = new T.Group(), body = new T.Group(); root.add(body);
       const M = (c, r, mt) => new T.MeshStandardMaterial({ color: c, roughness: r, metalness: mt });
-      const black = M('#121315', .6, .2), chrome = M('#c3c8cf', .25, .9), paint = M(acc, .3, .45), jacket = M('#1d2026', .8, 0), helmet = M(acc, .25, .35), visor = M('#0b0d12', .1, .8);
+      // Livrée selon la moto du profil (ex. « Kawasaki Z H2 » : gris métal, cadre treillis et liserés verts)
+      const moto = String((typeof S !== 'undefined' && S.me && S.me.moto) || window.MR3D_MOTO || '');
+      const kawa = /kawa|z ?h2|ninja|\bz ?\d{3,4}/i.test(moto);
+      const LV = kawa ? { paint: '#575c63', accent: '#3fe03f', helmet: '#16181b', jacket: '#4d5238', sleeve: '#1a1c1f', pants: '#2b4a78' }
+                      : { paint: acc, accent: acc, helmet: acc, jacket: '#1d2026', sleeve: '#1d2026', pants: '#26292f' };
+      const black = M('#121315', .6, .2), chrome = M('#c3c8cf', .25, .9), paint = M(LV.paint, .28, .65), jacket = M(LV.jacket, .85, 0), helmet = M(LV.helmet, .2, .45), visor = M('#0b0d12', .1, .8);
+      const accentM = new T.MeshStandardMaterial({ color: LV.accent, roughness: .35, metalness: .3, emissive: new T.Color(LV.accent), emissiveIntensity: kawa ? .35 : .1 });
+      const sleeveM = M(LV.sleeve, .85, 0), pantsM = M(LV.pants, .9, 0);
       const wheels = [];
       const wg = new T.TorusGeometry(.31, .09, 10, 24); wg.rotateY(Math.PI / 2);
       const rim = new T.CylinderGeometry(.22, .22, .06, 12); rim.rotateZ(Math.PI / 2);
       const spokeG = new T.BoxGeometry(.04, .42, .04);
-      [.72, -.72].forEach(z => { const w = new T.Group(); w.position.set(0, .4, z); w.add(new T.Mesh(wg, black), new T.Mesh(rim, chrome)); for (let k = 0; k < 3; k++) { const sp = new T.Mesh(spokeG, chrome); sp.rotation.x = k * Math.PI / 3; w.add(sp); } body.add(w); wheels.push(w); });
+      [.72, -.72].forEach(z => { const w = new T.Group(); w.position.set(0, .4, z); w.add(new T.Mesh(wg, black), new T.Mesh(rim, kawa ? black : chrome)); if (kawa) { const st = new T.Mesh(new T.TorusGeometry(.255, .012, 6, 28), accentM); st.rotation.y = Math.PI / 2; w.add(st); } for (let k = 0; k < 3; k++) { const sp = new T.Mesh(spokeG, chrome); sp.rotation.x = k * Math.PI / 3; w.add(sp); } body.add(w); wheels.push(w); });
       const add = (g, mt, x, y, z, rx) => { const o = new T.Mesh(g, mt); o.position.set(x, y, z); if (rx) o.rotation.x = rx; body.add(o); return o; };
       const sc = (g, mt, x, y, z, sx, sy, sz, rx) => { const o = add(g, mt, x, y, z, rx); o.scale.set(sx, sy, sz); return o; };
       // moto type roadster : bloc moteur, réservoir galbé, selle, coque arrière, phare rond
@@ -364,17 +373,23 @@
       hl.material.emissive = new T.Color('#fff4d0'); hl.material.emissiveIntensity = .9;
       add(new T.CylinderGeometry(.13, .12, .08, 18), black, 0, 1.03, .76, Math.PI / 2 - .25);
       add(new T.CylinderGeometry(.045, .07, .55, 10), chrome, .17, .48, -.5, Math.PI / 2.3);
+      // cadre treillis + écopes latérales
+      [-1, 1].forEach(k => { add(new T.CylinderGeometry(.022, .022, .62, 6), accentM, .17 * k, .72, .05, .9); add(new T.CylinderGeometry(.022, .022, .5, 6), accentM, .17 * k, .66, -.22, -.7);
+        const sc2 = sc(new T.BoxGeometry(.05, .2, .32), paint, .2 * k, .88, .5, 1, 1, 1, -.35); sc2.rotation.z = .15 * k; add(new T.BoxGeometry(.055, .03, .3), accentM, .21 * k, .8, .5, -.35); });
       add(new T.BoxGeometry(.66, .035, .035), black, 0, 1.12, .52);
       [-1, 1].forEach(k => { add(new T.CylinderGeometry(.01, .01, .2, 4), black, .3 * k, 1.2, .5); sc(new T.SphereGeometry(.045, 8, 6), black, .3 * k, 1.3, .5, 1.3, .7, .4); });
       // pilote penché vers l'avant (blouson sombre, liseré aux couleurs du thème)
       add(new T.CylinderGeometry(.19, .23, .6, 14), jacket, 0, 1.33, -.05, .7);
-      add(new T.CylinderGeometry(.235, .235, .07, 14), paint, 0, 1.2, -.13, .7);
-      add(new T.BoxGeometry(.42, .22, .54), M('#26292f', .8, 0), 0, 1.02, -.18);
-      const arm = new T.CylinderGeometry(.055, .06, .56, 8); add(arm, jacket, .22, 1.3, .3, Math.PI / 2 - .45); add(arm, jacket, -.22, 1.3, .3, Math.PI / 2 - .45);
-      const leg = new T.CylinderGeometry(.07, .075, .55, 8); add(leg, M('#26292f', .8, 0), .23, .82, .05, Math.PI / 2 + .6); add(leg, M('#26292f', .8, 0), -.23, .82, .05, Math.PI / 2 + .6);
+      add(new T.CylinderGeometry(.235, .235, .05, 14), accentM, 0, 1.2, -.13, .7);
+      [-1, 1].forEach(k => add(new T.SphereGeometry(.1, 10, 8), sleeveM, .2 * k, 1.5, .02));
+      add(new T.BoxGeometry(.42, .22, .54), pantsM, 0, 1.02, -.18);
+      const arm = new T.CylinderGeometry(.055, .06, .56, 8); add(arm, sleeveM, .22, 1.3, .3, Math.PI / 2 - .45); add(arm, sleeveM, -.22, 1.3, .3, Math.PI / 2 - .45);
+      [-1, 1].forEach(k => add(new T.CylinderGeometry(.058, .058, .03, 8), accentM, .22 * k, 1.36, .19, Math.PI / 2 - .45));
+      const leg = new T.CylinderGeometry(.07, .075, .55, 8); add(leg, pantsM, .23, .82, .05, Math.PI / 2 + .6); add(leg, pantsM, -.23, .82, .05, Math.PI / 2 + .6);
       [-1, 1].forEach(k => add(new T.BoxGeometry(.1, .1, .22), black, .24 * k, .62, -.12));
       const head = new T.Mesh(new T.SphereGeometry(.17, 16, 12), helmet); head.position.set(0, 1.66, .2); body.add(head);
       const vs = new T.Mesh(new T.SphereGeometry(.173, 16, 8, -1.1, 2.2, 1.2, .7), visor); vs.position.copy(head.position); body.add(vs);
+      const hs = new T.Mesh(new T.TorusGeometry(.172, .012, 6, 24, Math.PI), accentM); hs.position.copy(head.position); hs.rotation.y = Math.PI / 2; body.add(hs);
       const lampC = document.createElement('canvas'); lampC.width = lampC.height = 64; { const g = lampC.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(.3, '#fff7d0'); r.addColorStop(1, '#fff0'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }
       const lamp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(lampC), blending: T.AdditiveBlending, depthWrite: false, transparent: true })); lamp.position.set(0, 1.05, .86); lamp.scale.set(.9, .9, 1); body.add(lamp);
       const tail = new T.Sprite(new T.SpriteMaterial({ color: 0xff2a1a, map: lamp.material.map, blending: T.AdditiveBlending, depthWrite: false, transparent: true })); tail.position.set(0, .98, -.8); tail.scale.set(.45, .45, 1); body.add(tail);
@@ -388,7 +403,7 @@
     const st = { a: 0, b: 1, t: 0, playing: true, speed: 'auto', cam: '360', camT: 0, orbit: 0, last: performance.now(), recording: false };
     const segT = () => (S_[idxAtFrac(st.b)].t - S_[idxAtFrac(st.a)].t);
     const idxAtFrac = f => clamp(Math.round(f * (m - 1)), 0, m - 1);
-    const mult = () => st.speed === 'auto' ? Math.max(1, segT() / 45) : +st.speed;
+    const mult = () => st.speed === 'auto' ? Math.max(1, segT() / (window.MR3D_FILM_S || 45)) : +st.speed;
     st.t = S_[0].t;
     function sampleAt(t) {
       let lo = 0, hi = m - 1; if (t <= S_[0].t) return { i: 0, f: 0 }; if (t >= S_[hi].t) return { i: hi - 1, f: 1 };
@@ -502,7 +517,7 @@
       [[pa, '#2ecc71', 'A'], [pb, '#ffffff', 'B']].forEach(([p, c, t]) => { g.fillStyle = c; g.beginPath(); g.arc(mx + p[0] * k, my + p[1] * k, 5 * s, 0, 7); g.fill(); g.fillStyle = '#000'; g.font = `700 ${8 * s}px sans-serif`; g.textAlign = 'center'; g.fillText(t, mx + p[0] * k, my + p[1] * k + 3 * s); });
       g.fillStyle = acc; g.strokeStyle = '#fff'; g.lineWidth = 2 * s; g.beginPath(); g.arc(mx + pc[0] * k, my + pc[1] * k, 6 * s, 0, 7); g.fill(); g.stroke();
       // compteur vitesse + inclinaison (bas gauche, au-dessus du panneau)
-      const by = Ht - (basePan * dpr) - 16 * s, cx = pad + 70 * s, cy = by - 70 * s;
+      const by = V.fixed ? Ht - 40 * s : Ht - (basePan * dpr) - 16 * s, cx = pad + 70 * s, cy = by - 70 * s;
       g.fillStyle = '#000a'; g.beginPath(); g.arc(cx, cy, 68 * s, 0, 7); g.fill();
       const la = clamp(cur.lr, -60, 60) * D2R, lc = col(cur.lr).map(v => Math.round(v * 255)).join(',');
       g.strokeStyle = '#ffffff30'; g.lineWidth = 6 * s; g.beginPath(); g.arc(cx, cy, 58 * s, Math.PI * 1.17, Math.PI * 1.83); g.stroke();
@@ -523,12 +538,12 @@
 
     function frame(now) {
       if (!V.alive) return;
-      V.raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.1, (now - st.last) / 1000); st.last = now;
+      if (!V.fixed) V.raf = requestAnimationFrame(frame);
+      const dt = V.fixed ? V.fixed : Math.min(0.1, (now - st.last) / 1000); st.last = now;
       const ta = S_[idxAtFrac(st.a)].t, tb = S_[idxAtFrac(st.b)].t;
       if (st.playing) {
         st.t += dt * mult();
-        if (st.t >= tb) { st.t = tb; if (st.recording) { stopRec(); st.playing = false; pan.querySelector('[data-k=play]').textContent = '▶'; } else { st.t = ta; camInit = false; } }
+        if (st.t >= tb && V.fixed) st.t = tb; else if (st.t >= tb) { st.t = tb; if (st.recording) { stopRec(); st.playing = false; pan.querySelector('[data-k=play]').textContent = '▶'; } else { st.t = ta; camInit = false; } }
       }
       if (document.activeElement !== tl) tl.value = Math.round((st.t - S_[0].t) / Math.max(1e-6, S_[m - 1].t - S_[0].t) * 1000);
       pan.querySelector('.tm').textContent = `${fmt(st.t - S_[0].t)} / ${fmt(G.T - S_[0].t)}`;
@@ -563,6 +578,9 @@
       hud();
     }
     V.raf = requestAnimationFrame(t => { st.last = t; frame(t); });
+    // Mode image par image (fabrication d'un film parfaitement fluide, ex. vidéo de démonstration)
+    V.manual = fps => { V.fixed = 1 / fps; cancelAnimationFrame(V.raf); pan.style.display = 'none'; st.t = S_[idxAtFrac(st.a)].t; st.playing = true; camInit = false; st.orbit = 0; st.camT = 0; };
+    V.tick = () => { frame(0); return { t: st.t, tb: S_[idxAtFrac(st.b)].t, done: st.t >= S_[idxAtFrac(st.b)].t - 1e-6 }; };
   }
 
   /* ================= Partage de la vidéo ================= */
