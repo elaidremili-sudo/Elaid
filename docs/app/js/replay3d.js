@@ -607,9 +607,40 @@
   window.mrR3dOpen = id => { const r = id === 'demo' ? demoRide() : rides().find(x => String(x.id) === String(id)); if (r && (r.demo || hasTrack(r))) open(r); else alert(W('Ce trajet n’a pas de tracé GPS (enregistré avant la version test-28).', 'هذه الرحلة بدون مسار GPS.', 'This ride has no GPS track.')); };
   window.mrR3dBtn = (r, big) => hasTrack(r) ? (big ? ` <button class="g" data-r3d="${ESC(r.id)}">🎬 ${W('Revoir en 3D', 'إعادة 3D', 'Replay 3D')}</button>` : ` <button class="g" data-r3d="${ESC(r.id)}" style="padding:4px 10px;font-size:13px;margin-inline-start:6px">🎬 3D</button>`) : '';
   if (typeof window.mrCmpBtn === 'function') { const o = window.mrCmpBtn; window.mrCmpBtn = (r, big) => o(r, big) + window.mrR3dBtn(r, big); }
+  // Film d'exemple (vidéo réaliste) : vitrine pour donner envie aux motards
+  function exampleCard() {
+    return `<div class="card" style="overflow:hidden"><h3>🎥 ${W('Film de trajet – exemple', 'فيلم رحلة – مثال', 'Ride film – example')}</h3>
+      <div class="meta">${W('Elaid sur sa Kawasaki Z H2, de Haïzer au col de Tikjda : 23,8 km, virages jusqu’à 38°. La vitesse, l’inclinaison, la carte et l’altitude viennent du vrai trajet.', 'العيد على كاوازاكي Z H2 من حيزر إلى ممر تيكجدة: 23.8 كم ومنعطفات حتى 38°. السرعة والميلان والخريطة والارتفاع من الرحلة الحقيقية.', 'Elaid on his Kawasaki Z H2 from Haïzer to the Tikjda pass: 23.8 km, bends up to 38°. Speed, lean, map and altitude come from the real ride.')}</div>
+      <video src="video/exemple-trajet.mp4" poster="video/exemple-trajet.jpg" controls playsinline preload="none" style="width:100%;max-height:70vh;border-radius:12px;margin-top:10px;background:#000"></video>
+      <div class="meta" style="margin-top:6px;font-size:12px;opacity:.75">${W('Images réalistes créées par IA à partir du trajet ; données réelles du GPS.', 'صور واقعية مُنشأة بالذكاء الاصطناعي؛ بيانات GPS حقيقية.', 'Realistic AI-generated footage; real GPS data.')}</div></div>`;
+  }
+  window.mrExampleFilm = exampleCard;
+  // Bandeau d'accroche en haut de l'onglet Sorties → ouvre le film d'exemple dans Conduite
+  function teaser() {
+    try {
+      if (typeof tab === 'undefined' || tab != 1) return;
+      const m = document.getElementById('main'); if (!m || m.querySelector('#mr_teaser')) return;
+      let hide = false; try { hide = localStorage.getItem('mr_teaser_x') === '1'; } catch (e) {}
+      if (hide) return;
+      const d = document.createElement('div'); d.id = 'mr_teaser'; d.className = 'card';
+      d.style.cssText = 'display:flex;gap:12px;align-items:center;padding:10px;cursor:pointer';
+      d.innerHTML = `<img src="video/exemple-trajet.jpg" alt="" style="width:64px;height:110px;object-fit:cover;border-radius:10px;flex:0 0 auto">
+        <div style="flex:1"><b>🎥 ${W('Revois tes trajets en film', 'شاهد رحلاتك كفيلم', 'Watch your rides as a film')}</b>
+        <div class="meta">${W('Vitesse, inclinaison et carte de ton trajet – regarde l’exemple de Haïzer à Tikjda.', 'السرعة والميلان وخريطة رحلتك – شاهد مثال حيزر – تيكجدة.', 'Speed, lean and map of your ride – watch the Haïzer to Tikjda example.')}</div></div>
+        <button class="g" data-tx="1" aria-label="x" style="flex:0 0 auto;padding:4px 10px">✕</button>`;
+      d.addEventListener('click', e => {
+        if (e.target.closest('[data-tx]')) { try { localStorage.setItem('mr_teaser_x', '1'); } catch (er) {} d.remove(); return; }
+        const b = [...document.querySelectorAll('nav button')].find(x => /Conduite|القيادة|Riding|Ride/i.test(x.textContent));
+        if (b) b.click();
+        setTimeout(() => { const v = document.querySelector('video[src="video/exemple-trajet.mp4"]'); if (v) { v.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { v.play(); } catch (er) {} } }, 400);
+      });
+      m.insertBefore(d, m.firstChild);
+    } catch (e) {}
+  }
+  if (typeof render === 'function') { const _rt = render; render = function () { const r = _rt.apply(this, arguments); setTimeout(teaser, 0); return r; }; setTimeout(teaser, 500); }
   function card() {
     const L_ = rides().filter(hasTrack).slice(0, 5);
-    return `<div class="card"><h3>🎬 ${W('Revoir mon trajet en 3D', 'إعادة رحلتي ثلاثية الأبعاد', 'Replay my ride in 3D')}</h3>
+    return exampleCard() + `<div class="card"><h3>🎬 ${W('Revoir mon trajet en 3D', 'إعادة رحلتي ثلاثية الأبعاد', 'Replay my ride in 3D')}</h3>
       <div class="meta">${W('Ta route reconstruite en 3D sur la carte, avec ta vraie vitesse et ta vraie inclinaison. Caméra 360° autour de toi, choix du tronçon A → B et film à partager.', 'طريقك ثلاثي الأبعاد على الخريطة بسرعتك وميلانك الحقيقيين، كاميرا 360°، اختيار المقطع A → B وفيلم للمشاركة.', 'Your road rebuilt in 3D on the map with your real speed and lean. 360° camera, A → B section and a film to share.')}</div>
       ${L_.length ? L_.map(r => `<div class="row" style="justify-content:space-between;margin-top:8px"><span class="meta">${ESC(r.d)} · ${r.km} km · ${fmt(r.dur || 0)}</span><button class="g" data-r3d="${ESC(r.id)}">🎬 ${W('Revoir', 'إعادة', 'Replay')}</button></div>`).join('')
         : `<div class="meta" style="margin-top:6px">${W('Aucun trajet avec tracé pour l’instant : fais un trajet avec Démarrer → Arrêter.', 'لا توجد رحلة بمسار بعد.', 'No ride with a track yet: record one with Start → Stop.')}</div>`}
