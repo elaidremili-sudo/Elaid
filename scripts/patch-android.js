@@ -293,6 +293,40 @@ public class MrSmsPlugin extends Plugin {
         tts = null; speaking = false;
     }
 
+    // test-40 : lecture à voix haute d'une alerte reçue (téléphone de l'ange gardien), sur le canal « alarme »
+    @PluginMethod
+    public void speak(final PluginCall call) {
+        final String say = call.getString("say");
+        final String lang = call.getString("lang", "fr");
+        final int repeat = Math.max(1, Math.min(5, call.getInt("repeat", 3)));
+        if (say == null || say.isEmpty()) { call.reject("texte-manquant"); return; }
+        stopVoice();
+        final Context ctx = getContext();
+        final android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+        tts = new android.speech.tts.TextToSpeech(ctx, new android.speech.tts.TextToSpeech.OnInitListener() {
+            public void onInit(int st) {
+                if (st != android.speech.tts.TextToSpeech.SUCCESS || tts == null) return;
+                try {
+                    int r = tts.setLanguage(java.util.Locale.forLanguageTag(lang));
+                    if (r < 0) tts.setLanguage(java.util.Locale.FRENCH);
+                    tts.setSpeechRate(0.9f);
+                    tts.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                    if (am != null) am.setStreamVolume(android.media.AudioManager.STREAM_ALARM, am.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM), 0);
+                    for (int k = 0; k < repeat; k++) {
+                        tts.speak(say, k == 0 ? android.speech.tts.TextToSpeech.QUEUE_FLUSH : android.speech.tts.TextToSpeech.QUEUE_ADD, null, "mr-alerte-" + k);
+                        tts.playSilentUtterance(1500, android.speech.tts.TextToSpeech.QUEUE_ADD, "mr-pause-" + k);
+                    }
+                } catch (Exception e) {}
+            }
+        });
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopSpeak(PluginCall call) { stopVoice(); call.resolve(); }
+
     @PluginMethod
     public void dial(PluginCall call) {
         String to = call.getString("to");
@@ -336,3 +370,18 @@ for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE',
 if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
 fs.writeFileSync(path, man2);
 console.log('SOS : module MrSms (SMS + appel automatiques) ajouté');
+
+// test-40 : alertes sonores (notifications Firebase) — sirène dans res/raw, fichier Firebase si présent
+fs.mkdirSync('android/app/src/main/res/raw', { recursive: true });
+fs.copyFileSync('android-res/sos_alarm.wav', 'android/app/src/main/res/raw/sos_alarm.wav');
+if (fs.existsSync('android-res/google-services.json')) {
+  fs.copyFileSync('android-res/google-services.json', 'android/app/google-services.json');
+  console.log('Firebase : google-services.json copié (notifications actives)');
+  fs.appendFileSync('www/js/version.js', 'window.MR_FCM = true;\n');
+} else {
+  console.log('::warning::Firebase : google-services.json absent → pas de notifications dans cette version');
+}
+let man3 = fs.readFileSync(path, 'utf8');
+if (!man3.includes('android.permission.POST_NOTIFICATIONS')) man3 = man3.replace('</manifest>', '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>');
+if (!man3.includes('default_notification_channel_id')) man3 = man3.replace('</application>', '        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="sos_alarm" />\n    </application>');
+fs.writeFileSync(path, man3);

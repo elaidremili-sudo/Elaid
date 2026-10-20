@@ -1,1 +1,2 @@
-{ "appId": "com.motoroute.app", "appName": "MotoRoute", "webDir": "www" }
+{ "appId": "com.motoroute.app", "appName": "MotoRoute", "webDir": "www",
+  "plugins": { "PushNotifications": { "presentationOptions": [] } } }

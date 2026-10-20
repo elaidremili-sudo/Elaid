@@ -133,10 +133,10 @@
       <div class="k">${ago(a.created_at)}</div><div class="m">${ESC(a.msg || '')}</div>
       <div class="r">${map ? `<a href="${map}" target="_blank" rel="noopener">📍 ${W('Voir sa position', 'عرض موقعه', 'See location')}</a>` : ''}
       <button type="button" data-ok="1">✔ ${W('J’ai vu', 'رأيت', 'Seen')}</button></div></div>`;
-    const done = () => { markSeen(keyOf(a)); d.remove(); setTimeout(showSos, 80); };
+    const done = () => { markSeen(keyOf(a)); try { window.mrSpeakStop && window.mrSpeakStop(); } catch (e) {} d.remove(); setTimeout(showSos, 80); };
     d.querySelector('[data-ok]').onclick = done;
     const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
-    host.appendChild(d); siren(true);
+    host.appendChild(d); if (!a.voice) siren(true);
   }
   function receive(a) {
     const u = window.mrUser && window.mrUser();
@@ -167,6 +167,7 @@
       chan = c.channel('mr-sos-' + u.id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sos_alerts' }, p => receive(p.new)).subscribe();
     } catch (e) { chan = null; }
   }
+  window.mrSosReceive = receive;
   function boot() { listen(); poll(); }
   setTimeout(boot, 2500);
   setInterval(boot, 45000);
