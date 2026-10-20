@@ -1,0 +1,8 @@
+TimeoutError: Navigation timeout of 60000 ms exceeded
+    at new Deferred (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:60:34)
+    at Deferred.create (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:21:16)
+    at new LifecycleWatcher (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/LifecycleWatcher.js:69:60)
+    at CdpFrame.goto (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Frame.js:149:29)
+    at CdpFrame.<anonymous> (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:109:27)
+    at CdpPage.goto (/tmp/t/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:574:43)
+    at /tmp/t/verif-3d.js:13:11
