@@ -13,7 +13,9 @@ Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.
 
 ## Version du 20/10 (matin) — analyse complète de l'app, corrections + Revoir mon trajet en 3D
 
-**À faire par Elaid dans Supabase (SQL Editor → coller → Run), dans cet ordre :**
+**Supabase : FAIT le 20/10 à 13 h 16 par Elaid** (sos-alertes + securite collés ensemble → règle members_insert_safe visible ; comparaison-trajets → « Success »). Astuce : coller le CONTENU des scripts, pas leur nom ; sur téléphone l'éditeur ajoute parfois une « ) » en trop à la fin, à effacer.
+
+~~Ancienne consigne :~~ **À faire par Elaid dans Supabase (SQL Editor → coller → Run), dans cet ordre :**
 1. `supabase/securite.sql` — ferme la porte des groupes : plus personne ne peut entrer dans un groupe « sur validation » ou privé sans l'accord du chef / le code, et un membre ne peut plus se mettre « actif » ou « chef » lui-même. Le résultat affiche la liste des règles restantes.
 2. `supabase/sos-alertes.sql` — table `sos_alerts` pour les alertes SOS envoyées aux groupes (+ temps réel, effacement après 7 jours).
 3. (toujours en attente) `supabase/comparaison-trajets.sql`.
