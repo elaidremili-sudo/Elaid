@@ -1,6 +1,18 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 14 h 10 — dernière version : test-33 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 14 h 50 — dernière version : test-34 (Android + iPhone).**
+
+## ✅ Fait le 20/10 (14 h 50) — test-34 : corrections après l'essai d'Elaid
+- **SOS de chute vraiment automatique** (Android) : au bout des 2 min, le téléphone envoie **lui-même un SMS** (nom, moto, groupe sanguin, lien Google Maps) aux 1 ou 2 numéros de la fiche d'urgence, puis **appelle le premier**. Marche sans internet (le réseau mobile suffit). Le GPS est redemandé juste avant l'envoi s'il manquait. Module Android `MrSms` écrit par `scripts/patch-android.js` (autorisations SEND_SMS + CALL_PHONE).
+- « Simuler une chute » : SMS et alerte aux groupes marqués **🧪 TEST — ce n'est PAS un vrai accident**, sans appel.
+- Fiche d'urgence : **deuxième numéro** ; accès direct depuis 🪪 Mon espace (bouton « Fiche d'urgence et contact SOS ») et depuis la carte « Détection de chute » (contact en vert, ou en rouge s'il manque). Activer la détection demande les autorisations SMS/Téléphone puis ouvre la fiche si aucun numéro.
+- iPhone / navigateur : un SMS ne peut pas partir seul (limite d'Apple) → le SMS s'ouvre prérempli, il faut appuyer sur Envoyer ; c'est écrit dans l'app.
+- WhatsApp automatique : **impossible depuis le téléphone** (WhatsApp l'interdit) ; possible seulement via un serveur WhatsApp Business payant (ex. Bird) → à décider plus tard.
+- **Boutons du haut** : le titre « MotoRoute » passait par-dessus et bloquait les appuis → corrigé ; boutons agrandis (44 px de haut).
+- **Coupures d'image** : les vidéos de fond (8 s) sautaient d'un coup de la fin au début → maintenant fondu enchaîné avec le second lecteur, 1 s avant la fin.
+- Politique de confidentialité FR/AR/EN : SMS et appel automatiques ajoutés.
+- ⚠️ **Google Play** : l'autorisation SEND_SMS impose de remplir la **déclaration « Autorisations SMS et journal d'appels »** dans la Play Console → cas « Alertes de sécurité physique / d'urgence par SMS » (https://support.google.com/googleplay/android-developer/answer/10208820). Si Google refuse : plan B = SMS envoyés par un serveur.
+
 
 ## ✅ Fait le 20/10 (14 h) — suivi des plantages Sentry
 - Projet Sentry **motoroute** (organisation remili-elaid, région Europe) créé par Claude via le connecteur Sentry.

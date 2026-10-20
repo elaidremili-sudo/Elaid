@@ -81,3 +81,86 @@ if (banner && /^ca-app-pub-\d+\/\d+$/.test(banner) && process.env.ADMOB_APP_ID) 
 // Sentry : numéro de version dans l'app pour savoir quelle version a planté (test-33)
 fs.writeFileSync('www/js/version.js', `// Fabriqué automatiquement\nwindow.MR_VERSION = 'test-${run}';\n`);
 console.log(`Sentry : version test-${run}`);
+
+// test-34 : SOS automatique — petit module Android « MrSms » qui envoie le SMS et lance l'appel
+// sans que le motard (peut-être inconscient) ait à toucher l'écran.
+const javaDir = 'android/app/src/main/java/com/motoroute/app';
+fs.mkdirSync(javaDir, { recursive: true });
+fs.writeFileSync(javaDir + '/MrSmsPlugin.java', `package com.motoroute.app;
+
+import android.Manifest;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.telephony.SmsManager;
+import com.getcapacitor.PermissionState;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import java.util.ArrayList;
+
+@CapacitorPlugin(
+    name = "MrSms",
+    permissions = {
+        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
+        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
+    }
+)
+public class MrSmsPlugin extends Plugin {
+    @PluginMethod
+    public void send(PluginCall call) {
+        String to = call.getString("to");
+        String msg = call.getString("msg");
+        if (to == null || to.isEmpty() || msg == null) { call.reject("numero-manquant"); return; }
+        if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
+        try {
+            SmsManager sm = Build.VERSION.SDK_INT >= 31
+                ? getContext().getSystemService(SmsManager.class)
+                : SmsManager.getDefault();
+            ArrayList<String> parts = sm.divideMessage(msg);
+            sm.sendMultipartTextMessage(to, null, parts, null, null);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void dial(PluginCall call) {
+        String to = call.getString("to");
+        if (to == null || to.isEmpty()) { call.reject("numero-manquant"); return; }
+        boolean direct = getPermissionState("call") == PermissionState.GRANTED;
+        try {
+            Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + to));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
+        }
+    }
+}
+`);
+const mainPath = javaDir + '/MainActivity.java';
+fs.writeFileSync(mainPath, `package com.motoroute.app;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(MrSmsPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+`);
+let man2 = fs.readFileSync(path, 'utf8');
+for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE']) {
+  if (!man2.includes(`"${p}"`)) man2 = man2.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
+}
+if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
+fs.writeFileSync(path, man2);
+console.log('SOS : module MrSms (SMS + appel automatiques) ajouté');
