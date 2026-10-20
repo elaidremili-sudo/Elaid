@@ -507,7 +507,8 @@
       g.font = `700 ${22 * s}px 'Barlow Condensed',Cairo,sans-serif`; g.fillStyle = '#fff'; g.shadowColor = '#000'; g.shadowBlur = 6 * s;
       g.textAlign = 'left'; g.fillText('MOTOROUTE' + (who ? ' · ' + who : ''), pad, Ht * 0.12 + 10 * s);
       g.font = `500 ${15 * s}px Barlow,Cairo,sans-serif`; g.fillStyle = '#ffffffd0';
-      g.fillText(G.demo ? W('Démo – col de montagne', 'عرض – ممر جبلي', 'Demo – mountain pass') : dateTxt, pad, Ht * 0.12 + 32 * s);
+      const motoTxt = (() => { try { return String((S.me && S.me.moto) || '').slice(0, 28); } catch (e) { return ''; } })();
+      g.fillText((G.demo ? W('Démo – col de montagne', 'عرض – ممر جبلي', 'Demo – mountain pass') : dateTxt) + (motoTxt ? ' · ' + motoTxt : ''), pad, Ht * 0.12 + 32 * s);
       g.fillText((G.D / 1000).toFixed(1) + ' km' + (G.hasAlt ? ' · D+ ' + G.gain + ' m' : ''), pad, Ht * 0.12 + 52 * s);
       // mini-carte
       const ms = Math.min(Wd, Ht) * 0.26, mx = Wd - ms - pad, my = Ht * 0.12 - 8 * s;

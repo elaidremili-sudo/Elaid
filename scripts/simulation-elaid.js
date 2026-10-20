@@ -33,10 +33,12 @@ const brg = (a, b) => Math.atan2(Math.sin((b[1] - a[1]) * D2R) * Math.cos(b[0] *
     alt.push(...got); await sleep(1100); }
   // vitesse réaliste selon le rayon du virage (+ freinage / accélération), inclinaison physique
   const n = pts.length, rad = new Array(n).fill(1e9), side = new Array(n).fill(0);
-  for (let i = 3; i < n - 3; i++) { let dh = brg(pts[i], pts[i + 3]) - brg(pts[i - 3], pts[i]); while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
-    rad[i] = Math.abs(dh) > 1e-3 ? 150 / Math.abs(dh) : 1e9; side[i] = Math.abs(dh) < 0.05 ? 0 : (dh > 0 ? 1 : -1); }
-  let v = rad.map(rr => Math.max(32, Math.min(95, Math.sqrt(9.81 * rr * Math.tan(38 * D2R)) * 3.6)));
-  for (let k = 0; k < 3; k++) v = v.map((x, i) => (v[Math.max(0, i - 1)] + x * 2 + v[Math.min(n - 1, i + 1)]) / 4);
+  for (let i = 1; i < n - 1; i++) { let dh = brg(pts[i], pts[i + 1]) - brg(pts[i - 1], pts[i]); while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
+    rad[i] = Math.abs(dh) > 1e-3 ? 25 / Math.abs(dh) : 1e9; side[i] = Math.abs(dh) < 0.03 ? 0 : (dh > 0 ? 1 : -1); }
+  // rayon du virage = le plus serré sur ±2 points (on freine avant, on remet les gaz après)
+  const rad2 = rad.map((_, i) => Math.min(...rad.slice(Math.max(0, i - 2), i + 3))); for (let i = 0; i < n; i++) rad[i] = Math.max(12, rad2[i]);
+  let v = rad.map(rr => Math.max(28, Math.min(92, Math.sqrt(9.81 * rr * Math.tan(38 * D2R)) * 3.6)));
+  for (let k = 0; k < 2; k++) v = v.map((x, i) => (v[Math.max(0, i - 1)] + x * 2 + v[Math.min(n - 1, i + 1)]) / 4);
   for (let i = 1; i < n; i++) v[i] = Math.min(v[i], Math.sqrt((v[i - 1] / 3.6) ** 2 + 2 * 2.6 * 25) * 3.6);
   for (let i = n - 2; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt((v[i + 1] / 3.6) ** 2 + 2 * 4.5 * 25) * 3.6);
   v[0] = 20; let t = 0;
