@@ -5,7 +5,7 @@
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
 
-## Version du 20/10 (midi) — film d'exemple dans l'app
+## Version du 20/10 (midi) — film d'exemple dans l'app (RETIRÉ à 12 h 55 : Elaid trouve « trop d'erreurs » ; ne plus le remettre sans son accord)
 
 - **Film réaliste v3** (Haïzer → col de Tikjda, Elaid sur Z H2, 1 min 14) : 12 plans Veo, sans marche arrière (les passages où la caméra tournait plus vite que la moto ont été coupés après mesure du mouvement), plan « au ras de la caméra » demandé par Elaid (caméra fixe au bord du virage, la moto passe en frôlant l'objectif), 360° gardés seulement là où la moto avance clairement, compteur / inclinaison calés sur l'image, kilomètres dans l'ordre (2,2 → 23,8 km). Coût total des clips IA ce jour ≈ 6 $ (compte Composio d'Elaid).
 - **Dans l'app** : `www/video/exemple-trajet.mp4` (540×960, 10 Mo) + affiche `exemple-trajet.jpg`. Carte « 🎥 Film de trajet – exemple » en tête de l'onglet Conduite (mention « images créées par IA, données GPS réelles ») et bandeau d'accroche en haut de Sorties (✕ pour le masquer) qui ouvre le film.

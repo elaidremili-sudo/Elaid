@@ -615,32 +615,9 @@
       <div class="meta" style="margin-top:6px;font-size:12px;opacity:.75">${W('Images réalistes créées par IA à partir du trajet ; données réelles du GPS.', 'صور واقعية مُنشأة بالذكاء الاصطناعي؛ بيانات GPS حقيقية.', 'Realistic AI-generated footage; real GPS data.')}</div></div>`;
   }
   window.mrExampleFilm = exampleCard;
-  // Bandeau d'accroche en haut de l'onglet Sorties → ouvre le film d'exemple dans Conduite
-  function teaser() {
-    try {
-      if (typeof tab === 'undefined' || tab != 1) return;
-      const m = document.getElementById('main'); if (!m || m.querySelector('#mr_teaser')) return;
-      let hide = false; try { hide = localStorage.getItem('mr_teaser_x') === '1'; } catch (e) {}
-      if (hide) return;
-      const d = document.createElement('div'); d.id = 'mr_teaser'; d.className = 'card';
-      d.style.cssText = 'display:flex;gap:12px;align-items:center;padding:10px;cursor:pointer';
-      d.innerHTML = `<img src="video/exemple-trajet.jpg" alt="" style="width:64px;height:110px;object-fit:cover;border-radius:10px;flex:0 0 auto">
-        <div style="flex:1"><b>🎥 ${W('Revois tes trajets en film', 'شاهد رحلاتك كفيلم', 'Watch your rides as a film')}</b>
-        <div class="meta">${W('Vitesse, inclinaison et carte de ton trajet – regarde l’exemple de Haïzer à Tikjda.', 'السرعة والميلان وخريطة رحلتك – شاهد مثال حيزر – تيكجدة.', 'Speed, lean and map of your ride – watch the Haïzer to Tikjda example.')}</div></div>
-        <button class="g" data-tx="1" aria-label="x" style="flex:0 0 auto;padding:4px 10px">✕</button>`;
-      d.addEventListener('click', e => {
-        if (e.target.closest('[data-tx]')) { try { localStorage.setItem('mr_teaser_x', '1'); } catch (er) {} d.remove(); return; }
-        const b = [...document.querySelectorAll('nav button')].find(x => /Conduite|القيادة|Riding|Ride/i.test(x.textContent));
-        if (b) b.click();
-        setTimeout(() => { const v = document.querySelector('video[src="video/exemple-trajet.mp4"]'); if (v) { v.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { v.play(); } catch (er) {} } }, 400);
-      });
-      m.insertBefore(d, m.firstChild);
-    } catch (e) {}
-  }
-  if (typeof render === 'function') { const _rt = render; render = function () { const r = _rt.apply(this, arguments); setTimeout(teaser, 0); return r; }; setTimeout(teaser, 500); }
   function card() {
     const L_ = rides().filter(hasTrack).slice(0, 5);
-    return exampleCard() + `<div class="card"><h3>🎬 ${W('Revoir mon trajet en 3D', 'إعادة رحلتي ثلاثية الأبعاد', 'Replay my ride in 3D')}</h3>
+    return `<div class="card"><h3>🎬 ${W('Revoir mon trajet en 3D', 'إعادة رحلتي ثلاثية الأبعاد', 'Replay my ride in 3D')}</h3>
       <div class="meta">${W('Ta route reconstruite en 3D sur la carte, avec ta vraie vitesse et ta vraie inclinaison. Caméra 360° autour de toi, choix du tronçon A → B et film à partager.', 'طريقك ثلاثي الأبعاد على الخريطة بسرعتك وميلانك الحقيقيين، كاميرا 360°، اختيار المقطع A → B وفيلم للمشاركة.', 'Your road rebuilt in 3D on the map with your real speed and lean. 360° camera, A → B section and a film to share.')}</div>
       ${L_.length ? L_.map(r => `<div class="row" style="justify-content:space-between;margin-top:8px"><span class="meta">${ESC(r.d)} · ${r.km} km · ${fmt(r.dur || 0)}</span><button class="g" data-r3d="${ESC(r.id)}">🎬 ${W('Revoir', 'إعادة', 'Replay')}</button></div>`).join('')
         : `<div class="meta" style="margin-top:6px">${W('Aucun trajet avec tracé pour l’instant : fais un trajet avec Démarrer → Arrêter.', 'لا توجد رحلة بمسار بعد.', 'No ride with a track yet: record one with Start → Stop.')}</div>`}
