@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 17 h 55 — dernière version installable : test-39. Travail en cours sur la branche `alertes-sonores`.**
+**Point de reprise : 20 octobre 2026, 18 h 10 — test-40 en fabrication (alertes sonores Firebase + anges gardiens), branche `alertes-sonores` fusionnée dans main.**
 
 ## 🚧 En cours (20/10, 17 h 55) — Alertes sonores gratuites + « anges gardiens »
 Constats : SMS remis (accusé de réception) mais pas vu par le contact → filtré chez lui (Spam / Bloqués / Expéditeurs inconnus) ; voix pendant l'appel GSM impossible (Android interdit d'injecter du son, l'anti-écho efface le haut-parleur). Aucun service d'appel gratuit durable (essai Twilio : 30 jours, 5 numéros).
@@ -11,7 +11,8 @@ Solution choisie par Elaid : notification d'urgence gratuite (Firebase) → le t
 - ✅ Fonction serveur `sos-push` en ligne (Supabase Edge Functions).
 - ✅ Code app prêt sur la branche `alertes-sonores` : www/js/push.js (jeton, canal sirène, réception, lecture vocale, carte « Mes anges gardiens » avec code à 6 lettres), MrSms.speak (voix sur canal alarme), sirène android-res/sos_alarm.wav, plugin @capacitor/push-notifications, SOS qui appelle sos-push.
 - ✅ Secret `FCM_SERVICE_ACCOUNT` enregistré dans Supabase par Elaid (20/10, 18 h 03).
-- ⏳ À FAIRE : (2) Elaid envoie le vrai fichier `google-services.json` (Téléchargements) → le placer dans android-res/google-services.json ; (3) fusionner `alertes-sonores` dans main → test-40 ; (4) tester avec 2 comptes (code ange gardien, simulation de chute → sirène + voix) ; (5) le test « afficher la carte anges gardiens avec faux serveur » n'a pas été lancé.
+- ✅ google-services.json reçu (texte collé par Elaid) → android-res/google-services.json ; branche fusionnée → test-40.
+- ⏳ À FAIRE : (4) tester avec 2 comptes (code ange gardien, simulation de chute → sirène + voix) ; (5) le test « afficher la carte anges gardiens avec faux serveur » n'a pas été lancé.
 
 
 ## ✅ test-39 (20/10, 17 h 20)
