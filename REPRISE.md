@@ -1,6 +1,11 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 15 h 15 — dernière version : test-35 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, 15 h 45 — dernière version : test-36 (Android + iPhone).**
+
+## ✅ test-36 (20/10, 15 h 45)
+- Essai d'Elaid en test-35 : « SMS non envoyé (autorisation SMS refusée) ». Cause : Android 15+ bloque l'autorisation SMS des apps installées par APK (hors Google Play) → il faut ⋮ → « Autoriser les paramètres restreints » dans les infos de l'app, puis Autorisations → SMS → Autoriser. Disparaît une fois l'app sur Google Play.
+- Carte « Détection de chute » : état de l'autorisation (✅ / ❌), boutons « Autoriser les SMS » et « Ouvrir les réglages » (nouvelle méthode Android `openSettings`) + explication.
+- Écran SOS : plus de « SMS envoyé » trompeur quand rien n'est parti ; en simulation, l'autorisation est redemandée avant l'envoi.
 
 ## ✅ test-35 (20/10, 15 h 15)
 - Langue : un seul bouton 🌐 qui affiche la langue actuelle (FR / ع / EN) ; un appui ouvre un petit menu Français / العربية / English. Place gagnée dans la barre du haut.

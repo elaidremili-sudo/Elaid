@@ -128,6 +128,19 @@ public class MrSmsPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void openSettings(PluginCall call) {
+        try {
+            Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + getContext().getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void dial(PluginCall call) {
         String to = call.getString("to");
         if (to == null || to.isEmpty()) { call.reject("numero-manquant"); return; }
