@@ -309,12 +309,14 @@
     const kg = new T.BufferGeometry(); kg.setAttribute('position', new T.Float32BufferAttribute(kp, 3)); kg.setAttribute('color', new T.Float32BufferAttribute(kc, 3)); kg.setIndex(kidx); kg.computeVertexNormals();
     scene.add(new T.Mesh(kg, new T.MeshBasicMaterial({ vertexColors: true, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })));
     // talus sous les bords de la route (la route ne « flotte » jamais au-dessus du sol)
-    { const sp = [], si = [], E = W_ + KW;
+    { const sp = [], su = [], si = [], E = W_ + KW, OUT = 7, DN = 6;
+      const uvw = (x, z) => su.push((x - gx0) / gw, (gz1 - z) / gd);
       for (let i = 0; i < m; i++) { const p = S_[i], nx = Math.cos(p.hd), nz = -Math.sin(p.hd), y = p.y + 0.1;
-        sp.push(p.x - nx * E, y, p.z - nz * E, p.x - nx * (E + 3), y - 7, p.z - nz * (E + 3), p.x + nx * E, y, p.z + nz * E, p.x + nx * (E + 3), y - 7, p.z + nz * (E + 3));
+        const v = [[p.x - nx * E, y, p.z - nz * E], [p.x - nx * (E + OUT), y - DN, p.z - nz * (E + OUT)], [p.x + nx * E, y, p.z + nz * E], [p.x + nx * (E + OUT), y - DN, p.z + nz * (E + OUT)]];
+        v.forEach(q => { sp.push(q[0], q[1], q[2]); uvw(q[0], q[2]); });
         if (i < m - 1) { const a = i * 4; si.push(a, a + 4, a + 1, a + 1, a + 4, a + 5, a + 2, a + 6, a + 3, a + 3, a + 6, a + 7); } }
-      const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); sg.setIndex(si); sg.computeVertexNormals();
-      scene.add(new T.Mesh(sg, new T.MeshLambertMaterial({ color: window.MR3D_DBG ? 0xff0000 : 0x6e6046, side: T.DoubleSide }))); }
+      const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); sg.setAttribute('uv', new T.Float32BufferAttribute(su, 2)); sg.setIndex(si); sg.computeVertexNormals();
+      scene.add(new T.Mesh(sg, new T.MeshLambertMaterial(window.MR3D_DBG ? { color: 0xff0000, side: T.DoubleSide } : { map: landT, color: 0xcfc6b0, side: T.DoubleSide }))); }
     // Drapeaux départ / arrivée
     const flag = (p, c) => { const g = new T.Group(); const pole = new T.Mesh(new T.CylinderGeometry(.08, .08, 4.5, 6), new T.MeshLambertMaterial({ color: 0xdddddd })); pole.position.y = 2.25; g.add(pole); const f = new T.Mesh(new T.PlaneGeometry(2, 1.2), new T.MeshBasicMaterial({ color: c, side: T.DoubleSide })); f.position.set(1, 3.8, 0); g.add(f); g.position.set(p.x + Math.cos(p.hd) * (W_ + 2), p.y, p.z - Math.sin(p.hd) * (W_ + 2)); scene.add(g); return g; };
     const flagA = flag(S_[0], 0x2ecc71), flagB = flag(S_[m - 1], 0x111111);
@@ -349,20 +351,28 @@
       const spokeG = new T.BoxGeometry(.04, .42, .04);
       [.72, -.72].forEach(z => { const w = new T.Group(); w.position.set(0, .4, z); w.add(new T.Mesh(wg, black), new T.Mesh(rim, chrome)); for (let k = 0; k < 3; k++) { const sp = new T.Mesh(spokeG, chrome); sp.rotation.x = k * Math.PI / 3; w.add(sp); } body.add(w); wheels.push(w); });
       const add = (g, mt, x, y, z, rx) => { const o = new T.Mesh(g, mt); o.position.set(x, y, z); if (rx) o.rotation.x = rx; body.add(o); return o; };
-      add(new T.BoxGeometry(.32, .3, .95), black, 0, .62, 0);
-      add(new T.BoxGeometry(.4, .26, .52), paint, 0, .88, .22);
-      add(new T.BoxGeometry(.3, .12, .5), black, 0, .86, -.25);
-      add(new T.BoxGeometry(.34, .2, .4), paint, 0, .92, -.58, .32);
-      add(new T.CylinderGeometry(.035, .035, .75, 6), chrome, .12, .72, .62, -.45);
-      add(new T.CylinderGeometry(.035, .035, .75, 6), chrome, -.12, .72, .62, -.45);
-      add(new T.BoxGeometry(.32, .28, .2), paint, 0, 1.04, .72, -.3);
-      add(new T.CylinderGeometry(.05, .075, .62, 8), chrome, .16, .5, -.45, Math.PI / 2.4);
-      add(new T.BoxGeometry(.62, .04, .04), black, 0, 1.12, .52);
-      // pilote penché vers l'avant
-      add(new T.CylinderGeometry(.19, .23, .6, 12), jacket, 0, 1.33, -.05, .7);
-      add(new T.BoxGeometry(.42, .22, .54), jacket, 0, 1.02, -.18);
-      const arm = new T.BoxGeometry(.1, .1, .58); add(arm, jacket, .22, 1.3, .3, .5); add(arm, jacket, -.22, 1.3, .3, .5);
-      const leg = new T.BoxGeometry(.13, .13, .55); add(leg, jacket, .23, .82, .05, -.6); add(leg, jacket, -.23, .82, .05, -.6);
+      const sc = (g, mt, x, y, z, sx, sy, sz, rx) => { const o = add(g, mt, x, y, z, rx); o.scale.set(sx, sy, sz); return o; };
+      // moto type roadster : bloc moteur, réservoir galbé, selle, coque arrière, phare rond
+      add(new T.BoxGeometry(.3, .32, .62), black, 0, .55, .02);
+      add(new T.CylinderGeometry(.16, .16, .34, 14), M('#2a2c30', .4, .7), 0, .5, .12).rotation.z = Math.PI / 2;
+      sc(new T.SphereGeometry(.3, 20, 14), paint, 0, .9, .22, .78, .62, 1.12);
+      sc(new T.SphereGeometry(.2, 16, 10), black, 0, .87, -.22, .78, .32, 1.35);
+      sc(new T.ConeGeometry(.17, .55, 12), paint, 0, .95, -.62, 1, 1, .55, -Math.PI / 2 + .18);
+      add(new T.CylinderGeometry(.035, .035, .78, 8), chrome, .11, .74, .6, -.42);
+      add(new T.CylinderGeometry(.035, .035, .78, 8), chrome, -.11, .74, .6, -.42);
+      const hl = add(new T.CylinderGeometry(.11, .1, .1, 18), M('#ffffff', .2, .3), 0, 1.02, .8, Math.PI / 2 - .25);
+      hl.material.emissive = new T.Color('#fff4d0'); hl.material.emissiveIntensity = .9;
+      add(new T.CylinderGeometry(.13, .12, .08, 18), black, 0, 1.03, .76, Math.PI / 2 - .25);
+      add(new T.CylinderGeometry(.045, .07, .55, 10), chrome, .17, .48, -.5, Math.PI / 2.3);
+      add(new T.BoxGeometry(.66, .035, .035), black, 0, 1.12, .52);
+      [-1, 1].forEach(k => { add(new T.CylinderGeometry(.01, .01, .2, 4), black, .3 * k, 1.2, .5); sc(new T.SphereGeometry(.045, 8, 6), black, .3 * k, 1.3, .5, 1.3, .7, .4); });
+      // pilote penché vers l'avant (blouson sombre, liseré aux couleurs du thème)
+      add(new T.CylinderGeometry(.19, .23, .6, 14), jacket, 0, 1.33, -.05, .7);
+      add(new T.CylinderGeometry(.235, .235, .07, 14), paint, 0, 1.2, -.13, .7);
+      add(new T.BoxGeometry(.42, .22, .54), M('#26292f', .8, 0), 0, 1.02, -.18);
+      const arm = new T.CylinderGeometry(.055, .06, .56, 8); add(arm, jacket, .22, 1.3, .3, Math.PI / 2 - .45); add(arm, jacket, -.22, 1.3, .3, Math.PI / 2 - .45);
+      const leg = new T.CylinderGeometry(.07, .075, .55, 8); add(leg, M('#26292f', .8, 0), .23, .82, .05, Math.PI / 2 + .6); add(leg, M('#26292f', .8, 0), -.23, .82, .05, Math.PI / 2 + .6);
+      [-1, 1].forEach(k => add(new T.BoxGeometry(.1, .1, .22), black, .24 * k, .62, -.12));
       const head = new T.Mesh(new T.SphereGeometry(.17, 16, 12), helmet); head.position.set(0, 1.66, .2); body.add(head);
       const vs = new T.Mesh(new T.SphereGeometry(.173, 16, 8, -1.1, 2.2, 1.2, .7), visor); vs.position.copy(head.position); body.add(vs);
       const lampC = document.createElement('canvas'); lampC.width = lampC.height = 64; { const g = lampC.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(.3, '#fff7d0'); r.addColorStop(1, '#fff0'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }
