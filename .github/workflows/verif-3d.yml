@@ -2,6 +2,7 @@ name: Vérifier le replay 3D (captures)
 on:
   push:
     branches: [verif-3d]
+    paths: ['scripts/verif-3d.js', 'scripts/simulation-elaid.js', 'www/js/**']
   workflow_dispatch:
 permissions:
   contents: write

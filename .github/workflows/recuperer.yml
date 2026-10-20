@@ -1,10 +1,8 @@
 name: Récupérer des fichiers (film)
 on:
-  workflow_dispatch:
-    inputs:
-      liens:
-        description: "nom=lien séparés par des espaces"
-        required: true
+  push:
+    branches: [verif-3d]
+    paths: ['verif/liens.txt']
 permissions:
   contents: write
 jobs:
@@ -13,9 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Télécharger
-        env:
-          LIENS: ${{ inputs.liens }}
         run: |
+          LIENS=$(cat verif/liens.txt)
           mkdir -p verif/film
           for x in $LIENS; do n="${x%%=*}"; u="${x#*=}"; curl -fsSL -o "verif/film/$n" "$u"; ls -la "verif/film/$n"; done
           git config user.name "github-actions" && git config user.email "actions@github.com"
