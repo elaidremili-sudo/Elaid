@@ -36,6 +36,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     S.rides = [{ id: 1760000000000, d: '2026-10-18', km: 3.5, dur: 260, vmax: 88, vavg: 48, lL: 30, lR: 28, vc: 60, vca: 50, tk: d }].concat((S.rides || []).filter(r => r.id !== 1760000000000)); window.mrR3dOpen(1760000000000); });
   await sleep(8000); await shot('09-ancien-trajet');
   await p.evaluate(() => window.mrR3dClose());
+  // debug couleurs : talus rouge, plaine lointaine bleue, sol vert
+  await p.evaluate(() => { window.MR3D_DBG = 1; window.mrR3dOpen('demo'); }); await sleep(5000);
+  await clickTxt('#r3d [data-cam="drone"]'); await sleep(3500); await shot('09b-debug-drone'); await clickTxt('#r3d [data-cam="chase"]'); await sleep(3000); await shot('09c-debug-chase');
+  await p.evaluate(() => { window.MR3D_DBG = 0; window.mrR3dClose(); });
   // 3) carte « Revoir en 3D » dans l'onglet Conduite
   await p.evaluate(() => { const g = document.querySelector('dialog[open]'); g && g.close && g.close(); const t = [...document.querySelectorAll('nav button')].find(x => /Conduite/.test(x.textContent)); t && t.click(); });
   await sleep(1200); await p.evaluate(() => { const c = [...document.querySelectorAll('.card h3')].find(h => /3D/.test(h.textContent)); c && c.scrollIntoView(); }); await sleep(600); await shot('10-carte-conduite');

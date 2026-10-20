@@ -235,11 +235,11 @@
       g.globalAlpha = 1; }
     const landT = new T.CanvasTexture(land); landT.wrapS = landT.wrapT = T.RepeatWrapping; landT.repeat.set(gw / 140, gd / 140); landT.encoding = T.sRGBEncoding;
     landT.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    const gMat = new T.MeshLambertMaterial({ map: landT });
+    const gMat = window.MR3D_DBG ? new T.MeshLambertMaterial({ color: 0x00ff00 }) : new T.MeshLambertMaterial({ map: landT });
     const ground = new T.Mesh(gGeo, gMat); scene.add(ground);
     const landUV = gGeo.attributes.uv.array.slice();
     // plaine lointaine + montagnes autour
-    const far = new T.Mesh(new T.PlaneGeometry(16000, 16000), new T.MeshLambertMaterial({ color: 0x5f7a3c })); far.rotation.x = -Math.PI / 2; far.position.set((gx0 + gx1) / 2, meanY - 1.2, (gz0 + gz1) / 2); scene.add(far);
+    const far = new T.Mesh(new T.PlaneGeometry(16000, 16000), new T.MeshLambertMaterial({ color: window.MR3D_DBG ? 0x0000ff : 0x5f7a3c })); far.rotation.x = -Math.PI / 2; far.position.set((gx0 + gx1) / 2, meanY - 1.2, (gz0 + gz1) / 2); scene.add(far);
     {
       const cx = (gx0 + gx1) / 2, cz = (gz0 + gz1) / 2, rr = Math.max(gw, gd) * 0.5 + 700;
       const hm = new T.MeshLambertMaterial({ color: 0x6d7a62, flatShading: true }), snow = new T.MeshLambertMaterial({ color: 0xf2f4f6, flatShading: true });
@@ -314,7 +314,7 @@
         sp.push(p.x - nx * E, y, p.z - nz * E, p.x - nx * (E + 3), y - 7, p.z - nz * (E + 3), p.x + nx * E, y, p.z + nz * E, p.x + nx * (E + 3), y - 7, p.z + nz * (E + 3));
         if (i < m - 1) { const a = i * 4; si.push(a, a + 4, a + 1, a + 1, a + 4, a + 5, a + 2, a + 6, a + 3, a + 3, a + 6, a + 7); } }
       const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); sg.setIndex(si); sg.computeVertexNormals();
-      scene.add(new T.Mesh(sg, new T.MeshLambertMaterial({ color: 0x6e6046, side: T.DoubleSide }))); }
+      scene.add(new T.Mesh(sg, new T.MeshLambertMaterial({ color: window.MR3D_DBG ? 0xff0000 : 0x6e6046, side: T.DoubleSide }))); }
     // Drapeaux départ / arrivée
     const flag = (p, c) => { const g = new T.Group(); const pole = new T.Mesh(new T.CylinderGeometry(.08, .08, 4.5, 6), new T.MeshLambertMaterial({ color: 0xdddddd })); pole.position.y = 2.25; g.add(pole); const f = new T.Mesh(new T.PlaneGeometry(2, 1.2), new T.MeshBasicMaterial({ color: c, side: T.DoubleSide })); f.position.set(1, 3.8, 0); g.add(f); g.position.set(p.x + Math.cos(p.hd) * (W_ + 2), p.y, p.z - Math.sin(p.hd) * (W_ + 2)); scene.add(g); return g; };
     const flagA = flag(S_[0], 0x2ecc71), flagB = flag(S_[m - 1], 0x111111);
@@ -536,7 +536,7 @@
       if (mode === 'cine') mode = ['360', 'chase', 'side', 'drone', '360', 'front'][Math.floor(st.camT / 7) % 6];
       const fx = Math.sin(cur.hd), fz = Math.cos(cur.hd), rx = Math.cos(cur.hd), rz = -Math.sin(cur.hd);
       const P = new T.Vector3(), Lk = new T.Vector3(cur.x, cur.y + 1.1, cur.z);
-      if (mode === '360') { st.orbit += dt * 0.42; const a = cur.hd + Math.PI + st.orbit; P.set(cur.x + Math.sin(a) * 6.5, cur.y + 2.3 + Math.sin(st.orbit * 0.7) * 0.6, cur.z + Math.cos(a) * 6.5); }
+      if (mode === '360') { st.orbit += dt * 0.42; const a = cur.hd + Math.PI + st.orbit; P.set(cur.x + Math.sin(a) * 8.5, cur.y + 2.6 + Math.sin(st.orbit * 0.7) * 0.7, cur.z + Math.cos(a) * 8.5); Lk.y = cur.y + 0.35; }
       else if (mode === 'chase') P.set(cur.x - fx * 7.5, cur.y + 2.9, cur.z - fz * 7.5);
       else if (mode === 'drone') { P.set(cur.x - fx * 22 + rx * 8, cur.y + 34, cur.z - fz * 22 + rz * 8); Lk.add(new T.Vector3(fx * 10, 0, fz * 10)); }
       else if (mode === 'side') P.set(cur.x + rx * 6.5 + fx * 1.5, cur.y + 1.3, cur.z + rz * 6.5 + fz * 1.5);
