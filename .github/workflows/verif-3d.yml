@@ -3,6 +3,8 @@ on:
   push:
     branches: [verif-3d]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   captures:
     runs-on: ubuntu-latest
@@ -15,8 +17,9 @@ jobs:
           mkdir -p /tmp/t && cd /tmp/t && npm init -y >/dev/null && npm i puppeteer-core@23 --no-audit --no-fund >/dev/null
           cd $GITHUB_WORKSPACE/www && (python3 -m http.server 8080 >/dev/null 2>&1 &) && sleep 2
           cp $GITHUB_WORKSPACE/scripts/verif-3d.js /tmp/t/ && cd /tmp/t && node verif-3d.js
-      - uses: actions/upload-artifact@v4
+      - name: Ranger les captures dans la branche
         if: always()
-        with:
-          name: captures-3d
-          path: /tmp/t/out/
+        run: |
+          rm -rf verif && mkdir -p verif && cp -r /tmp/t/out/. verif/ 2>/dev/null || true
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add verif && git commit -m "Captures replay 3D [skip ci]" && git push || true
