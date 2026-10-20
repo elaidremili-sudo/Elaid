@@ -30,7 +30,8 @@ Testés tous les deux sur une base Postgres d'essai : entrée directe refusée (
 - « 👀 Voir une démo » : col de montagne fictif.
 - Les anciens trajets (avant test-28) n'ont pas de tracé ; ceux enregistrés avant cette version ont un tracé sans vitesse/altitude : la 3D estime alors la vitesse et l'inclinaison.
 - Vérifié dans un vrai Chrome (branche `verif-3d`, captures) : toutes les caméras, tronçon A→B, enregistrement MP4, ancien format de trajet.
-- Film de démonstration fait pour Elaid : Haïzer → col de Tikjda (23,9 km, 592 → 1510 m, virages jusqu'à 38°) sur sa Z H2 : branche `verif-3d`, dossier `verif/`.
+- 1er film (3D de l'app) jugé « dessin animé » par Elaid → refait en **vidéo réaliste** comme la présentation : 8 clips Veo 3.1 Lite (8 s, 9:16, ≈ 0,40 $ chacun, ≈ 3,20 $ en tout) sur le vrai trajet Haïzer → col de Tikjda (OSRM + altitude, 23,8 km, 592 → 1510 m, virages jusqu'à 38°), pilote type Elaid (Z H2 gris/vert, blouson kaki-noir liseré vert, jean), compteur / inclinaison / km / altitude / mini-carte du vrai trajet incrustés, intro carte + fin. Fichier : branche `verif-3d`, `verif/film/MotoRoute-Elaid-ZH2-Tikjda-realiste.mp4`.
+- Idée à décider : proposer ce « film réaliste de mon trajet » dans l'app (option payante / Studio IA : ≈ 3 $ de clips IA par film, demande un serveur et un compte de génération vidéo).
 
 ## Où tout se trouve
 
