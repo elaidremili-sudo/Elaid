@@ -63,3 +63,17 @@ if (fs.existsSync(stylesPath)) {
   }
   console.log('Écran complet (encoche/caméra) : activé');
 }
+
+// AdMob : bannière MotoRoute réelle si la variable GitHub ADMOB_BANNER_ID est fournie (sinon bannière de test Google)
+// La copie de www/ vers Android se fait après ce script (npx cap sync), donc on modifie www/index.html ici.
+const banner = process.env.ADMOB_BANNER_ID;
+if (banner && /^ca-app-pub-\d+\/\d+$/.test(banner) && process.env.ADMOB_APP_ID) {
+  const ip = 'www/index.html';
+  let h = fs.readFileSync(ip, 'utf8');
+  h = h.replace("const BANNER_ID='ca-app-pub-3940256099942544/6300978111',TESTING=true;",
+                `const BANNER_ID='${banner}',TESTING=false;`);
+  fs.writeFileSync(ip, h);
+  console.log('AdMob bannière : identifiant MotoRoute (publicités réelles)');
+} else {
+  console.log('AdMob bannière : identifiant de test Google (ADMOB_APP_ID + ADMOB_BANNER_ID à ajouter dans les variables GitHub)');
+}

@@ -1,9 +1,36 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 19 octobre 2026, 21 h 50 (demandé par Elaid) — dernière version : test-29 (Android + iPhone).**
+**Point de reprise : 20 octobre 2026, matin — nouvelle version publiée après test-29 (Android + iPhone) : corrections de l'analyse complète + « Revoir mon trajet en 3D ».**
 
 ⚠️ Règle : chaque changement de `www/` est aussi copié dans la version iPhone (`scripts/maj-version-web.sh`) dans le même envoi.
 Pour reprendre, dis simplement à Claude : « On reprend MotoRoute, lis REPRISE.md dans mon dépôt Elaid ».
+
+## Version du 20/10 (matin) — analyse complète de l'app, corrections + Revoir mon trajet en 3D
+
+**À faire par Elaid dans Supabase (SQL Editor → coller → Run), dans cet ordre :**
+1. `supabase/securite.sql` — ferme la porte des groupes : plus personne ne peut entrer dans un groupe « sur validation » ou privé sans l'accord du chef / le code, et un membre ne peut plus se mettre « actif » ou « chef » lui-même. Le résultat affiche la liste des règles restantes.
+2. `supabase/sos-alertes.sql` — table `sos_alerts` pour les alertes SOS envoyées aux groupes (+ temps réel, effacement après 7 jours).
+3. (toujours en attente) `supabase/comparaison-trajets.sql`.
+Testés tous les deux sur une base Postgres d'essai : entrée directe refusée (groupe sur validation, privé, se faire chef), demande « en attente » acceptée, chef qui crée son groupe OK ; SOS envoyé seulement vers ses groupes actifs, lu seulement par les membres, impossible d'usurper un autre compte.
+
+**Corrections :**
+- **SOS chute (le plus important)** : avant, l'écran disait « alerte diffusée au groupe » mais rien ne partait. Maintenant, après les 2 minutes, l'alerte (prénom, moto, groupe sanguin, position) est vraiment envoyée aux membres actifs de tous ses groupes ; l'écran dit si c'est envoyé (« ✅ Alerte envoyée à N groupes ») ou pourquoi pas (pas connecté, aucun groupe, pas de réseau → 3 essais). Chez les autres membres, l'app ouverte affiche une alerte rouge plein écran avec sirène, vibration et « 📍 Voir sa position ». SOS manuel (onglet Route) : nouveau bouton « 📣 Alerter mes groupes ». Limite honnête affichée : les membres la reçoivent si MotoRoute est ouvert (les notifications app fermée demanderont Firebase plus tard).
+- **Politique de confidentialité** (FR/AR/EN, 20/10) : trajets partagés, alertes SOS, playlists, Brevo, Radio Browser/Audius, caméra/micro, OpenStreetMap pour la 3D, fiche d'urgence = donnée de santé.
+- **AdMob** : il suffira d'ajouter dans GitHub → Settings → Secrets and variables → Actions → **Variables** : `ADMOB_APP_ID` (ca-app-pub-…~…) et `ADMOB_BANNER_ID` (ca-app-pub-…/…). Sans elles, ce sont toujours les pubs de test.
+- **Sans internet** : le QR de la carte membre et les polices sont maintenant dans l'app (`www/lib/qrcode.min.js`, `www/lib/fonts/`).
+- **Fenêtres d'information** au style MotoRoute à la place des alertes grises du téléphone.
+- Protection du texte renforcée (apostrophe).
+- **Trajets** : chaque point du tracé enregistre maintenant aussi la vitesse, le temps, le côté du virage et l'altitude (sert à la 3D).
+
+**Nouveau : 🎬 Revoir mon trajet en 3D** (onglet Conduite, carte « Revoir mon trajet en 3D » + bouton 🎬 3D sous chaque trajet avec tracé) — `www/js/replay3d.js` :
+- route reconstruite en 3D à partir du tracé GPS (relief si le téléphone a donné l'altitude), paysage ou **🗺 Carte OpenStreetMap** drapée au sol, bordures colorées selon l'inclinaison, drapeaux A/B, mini-carte.
+- le pilote roule à sa vraie vitesse et avec sa vraie inclinaison ; livrée selon la moto du profil (Kawasaki / Z H2 : gris métal, cadre et liserés verts).
+- caméras : 🔄 360° (on tourne autour du pilote), poursuite, drone, côté, 🎞 cinéma (enchaîne les plans).
+- ✂️ choix du tronçon A → B, vitesse Auto (film ≈ 45 s), ×1, ×5, ×10, ×30 ; ⏺ Vidéo → film MP4 avec compteur, inclinaison, temps, distance → 📤 Partager / enregistrer (WhatsApp, Galerie… via les modules Capacitor `@capacitor/filesystem` + `@capacitor/share` ajoutés).
+- « 👀 Voir une démo » : col de montagne fictif.
+- Les anciens trajets (avant test-28) n'ont pas de tracé ; ceux enregistrés avant cette version ont un tracé sans vitesse/altitude : la 3D estime alors la vitesse et l'inclinaison.
+- Vérifié dans un vrai Chrome (branche `verif-3d`, captures) : toutes les caméras, tronçon A→B, enregistrement MP4, ancien format de trajet.
+- Film de démonstration fait pour Elaid : Haïzer → col de Tikjda (23,9 km, 592 → 1510 m, virages jusqu'à 38°) sur sa Z H2 : branche `verif-3d`, dossier `verif/`.
 
 ## Où tout se trouve
 
