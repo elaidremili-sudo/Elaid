@@ -1,0 +1,20 @@
+OSRM 23.9 km, 1118 points
+open-meteo {"reason":"Minutely API request limit exceeded. Please try again in one minute.","error":true}
+open-meteo {"error":true,"reason":"Minutely API request limit exceeded. Please try again in one minute."}
+open-meteo {"error":true,"reason":"Minutely API request limit exceeded. Please try again in one minute."}
+Trajet 23.9 km, 15 min, altitude 568 → 1535 m, vmax 95 inclinaison max 38 °, virages ≥ 35° : 28
+image 150 t 60 / 907
+image 300 t 121 / 907
+image 450 t 181 / 907
+image 600 t 242 / 907
+image 750 t 302 / 907
+image 900 t 363 / 907
+image 1050 t 423 / 907
+image 1200 t 484 / 907
+image 1350 t 544 / 907
+image 1500 t 605 / 907
+image 1650 t 665 / 907
+image 1800 t 726 / 907
+image 1950 t 786 / 907
+image 2100 t 847 / 907
+image 2250 t 907 / 907
