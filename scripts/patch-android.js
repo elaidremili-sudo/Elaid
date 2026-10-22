@@ -475,6 +475,9 @@ public class MrSirenService extends Service {
     public static final String CH_SOUND = "mr_sos_sound_v2"; // secours : alerte avec le son de sirène du canal
     public static volatile String pending = null;            // alerte touchée, en attente d'être affichée par l'app
     private static MrSirenService current = null;
+    // test-49 : après « Arrêter » (ou alerte ouverte), plus aucune sirène pendant 3 min ; une seule sirène par motard
+    public static volatile long mutedUntil = 0;
+    private static String playingUid = null;
 
     private MediaPlayer mp;
     private TextToSpeech tts;
@@ -576,6 +579,7 @@ public class MrSirenService extends Service {
     @Override
     public int onStartCommand(Intent i, int flags, int startId) {
         if (i != null && "stop".equals(i.getAction())) {
+            mutedUntil = System.currentTimeMillis() + 180000;
             if (current != null) current.finish(); else stopSelf();
             return START_NOT_STICKY;
         }
@@ -583,20 +587,42 @@ public class MrSirenService extends Service {
         JSONObject j;
         try { j = new JSONObject(data == null ? "{}" : data); } catch (Exception e) { j = new JSONObject(); }
         channels(this);
-        if (current != null && current != this) current.finish();
-        nid = idOf(j);
-        Notification n = build(this, j, CH, true);
+        long now = System.currentTimeMillis();
+        boolean test = "1".equals(j.optString("test"));
+        long at = 0;
+        try { at = Long.parseLong(j.optString("at", "0")); } catch (Exception e) {}
+        long age = at > 0 ? now - at : 0;
+        String uid = j.optString("uid", "");
+        // alerte arrivée en retard (téléphone injoignable un moment), ou sirène coupée il y a moins de 3 min : sans son
+        boolean quiet = now < mutedUntil || age > (test ? 120000L : 1800000L);
+        // même motard déjà en train de sonner : on met juste l'alerte à jour, sans relancer la sirène
+        boolean same = current != null && !current.done && uid.equals(playingUid);
+        int id = idOf(j);
+        Notification n = build(this, j, CH, !quiet);
         try {
-            if (Build.VERSION.SDK_INT >= 34) startForeground(nid, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
-            else startForeground(nid, n);
+            if (Build.VERSION.SDK_INT >= 34) startForeground(same ? nid : id, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
+            else startForeground(same ? nid : id, n);
         } catch (Exception e) {
-            fallback(this, j.toString());
+            if (!quiet) fallback(this, j.toString());
+            else try { NotificationManagerCompat.from(this).notify(id, n); } catch (Exception x) {}
             stopSelf();
             return START_NOT_STICKY;
         }
+        if (same) return START_NOT_STICKY;
+        if (quiet) {
+            if (current == null || current.done) {
+                try { if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false); } catch (Exception e) {}
+                stopSelf();
+            }
+            return START_NOT_STICKY;
+        }
+        // (un service Android n'existe qu'en un seul exemplaire : on coupe le son en cours sans arrêter le service)
+        if (current != null && !current.done) current.mute();
+        nid = id;
         current = this;
+        playingUid = uid;
         done = false;
-        siren(j);
+        siren(j, test);
         return START_NOT_STICKY;
     }
 
@@ -604,11 +630,11 @@ public class MrSirenService extends Service {
     public void onTimeout(int startId) { finish(); }
     public void onTimeout(int startId, int type) { finish(); }
 
-    private void siren(final JSONObject j) {
+    private void siren(final JSONObject j, final boolean test) {
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         try {
             if (am != null) {
-                savedVol = am.getStreamVolume(AudioManager.STREAM_ALARM);
+                if (savedVol < 0) savedVol = am.getStreamVolume(AudioManager.STREAM_ALARM);
                 int max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM);
                 am.setStreamVolume(AudioManager.STREAM_ALARM, Math.max(savedVol, (int) Math.ceil(max * 0.9)), 0);
             }
@@ -626,12 +652,12 @@ public class MrSirenService extends Service {
             // pas de lecteur : on montre au moins l'alerte avec le son du canal de secours
             fallback(this, j.toString());
         }
-        // 24 s de sirène, puis le message lu à voix haute (2 fois)
-        h.postDelayed(new Runnable() { public void run() { stopPlayer(); speak(j); } }, 24000);
+        // 24 s de sirène (8 s pour un test), puis le message lu à voix haute (2 fois, 1 fois pour un test)
+        h.postDelayed(new Runnable() { public void run() { stopPlayer(); speak(j, test); } }, test ? 8000 : 24000);
         h.postDelayed(new Runnable() { public void run() { finish(); } }, 90000);
     }
 
-    private void speak(JSONObject j) {
+    private void speak(JSONObject j, final boolean test) {
         final String say = j.optString("say", "");
         if (say.isEmpty() || done) { finish(); return; }
         String lg = j.optString("lang", "fr");
@@ -649,12 +675,22 @@ public class MrSirenService extends Service {
                         public void onDone(String id) { if ("mr-fin".equals(id)) h.post(new Runnable() { public void run() { finish(); } }); }
                         public void onError(String id) { h.post(new Runnable() { public void run() { finish(); } }); }
                     });
-                    tts.speak(say, TextToSpeech.QUEUE_FLUSH, null, "mr-1");
-                    tts.playSilentUtterance(1500, TextToSpeech.QUEUE_ADD, "mr-pause");
-                    tts.speak(say, TextToSpeech.QUEUE_ADD, null, "mr-fin");
+                    if (test) tts.speak(say, TextToSpeech.QUEUE_FLUSH, null, "mr-fin");
+                    else {
+                        tts.speak(say, TextToSpeech.QUEUE_FLUSH, null, "mr-1");
+                        tts.playSilentUtterance(1500, TextToSpeech.QUEUE_ADD, "mr-pause");
+                        tts.speak(say, TextToSpeech.QUEUE_ADD, null, "mr-fin");
+                    }
                 } catch (Exception e) { finish(); }
             }
         });
+    }
+
+    private void mute() {
+        h.removeCallbacksAndMessages(null);
+        stopPlayer();
+        try { if (tts != null) { tts.stop(); tts.shutdown(); } } catch (Exception e) {}
+        tts = null;
     }
 
     private void stopPlayer() {
@@ -670,11 +706,12 @@ public class MrSirenService extends Service {
         try { if (tts != null) { tts.stop(); tts.shutdown(); } } catch (Exception e) {}
         tts = null;
         try { if (am != null && savedVol >= 0) am.setStreamVolume(AudioManager.STREAM_ALARM, savedVol, 0); } catch (Exception e) {}
+        savedVol = -1;
         // l'alerte reste affichée (on enlève seulement le bouton « Arrêter la sirène » en la reposant)
         try {
             if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false);
         } catch (Exception e) {}
-        if (current == this) current = null;
+        if (current == this) { current = null; playingUid = null; }
         stopSelf();
     }
 
@@ -712,6 +749,7 @@ public class MainActivity extends BridgeActivity {
         String d = i.getStringExtra("mr_sos");
         if (d != null) {
             MrSirenService.pending = d;
+            MrSirenService.mutedUntil = System.currentTimeMillis() + 180000;
             MrSirenService.stopAll();
             i.removeExtra("mr_sos");
         }
@@ -729,7 +767,7 @@ public class MainActivity extends BridgeActivity {
     public void stopSpeak(PluginCall call) { stopVoice(); MrSirenService.stopAll(); call.resolve(); }
 
     @PluginMethod
-    public void stopSiren(PluginCall call) { MrSirenService.stopAll(); call.resolve(); }
+    public void stopSiren(PluginCall call) { MrSirenService.mutedUntil = System.currentTimeMillis() + 180000; MrSirenService.stopAll(); call.resolve(); }
 
     @PluginMethod
     public void takeSos(PluginCall call) {
