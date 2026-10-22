@@ -16,7 +16,7 @@
   /* ---------- Lecture vocale de l'alerte reçue ---------- */
   function sayText(d) {
     if (d.say) return d.say;
-    const n = d.from || W('Un motard', 'دراج', 'A rider');
+    const n = d.who || d.from || W('Un motard', 'دراج', 'A rider');
     const t = d.test === '1' ? W('Ceci est un test. ', 'هذه تجربة. ', 'This is a test. ') : '';
     return t + W(`Alerte MotoRoute. ${n} a fait une chute à moto et ne répond plus. Ouvre MotoRoute pour voir sa position.`,
       `تنبيه موتوروت. ${n} سقط بالدراجة النارية ولا يرد. افتح موتوروت لرؤية موقعه.`,
@@ -27,7 +27,7 @@
   function handle(d) {
     if (!d || d.type !== 'sos') return;
     const lat = d.lat !== '' && d.lat != null ? +d.lat : null, lng = d.lng !== '' && d.lng != null ? +d.lng : null;
-    const a = { user_id: d.uid || ('push-' + (d.from || '')), first_name: d.from, kind: 'chute', msg: d.msg || '', lat, lng,
+    const a = { user_id: d.uid || ('push-' + (d.who || d.from || '')), first_name: d.who || d.from, kind: 'chute', msg: d.msg || '', lat, lng,
       created_at: new Date(+d.at || Date.now()).toISOString(), voice: true };
     try { window.mrSosReceive && window.mrSosReceive(a); } catch (e) {}
     try { MR() && MR().speak({ say: sayText(d), lang: L(), repeat: 3 }); } catch (e) {}

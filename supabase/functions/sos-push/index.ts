@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
           message: {
             token: t.token,
             notification: { title, body },
-            data: { type: "sos", uid: me, from: name, msg, lat, lng, test: test ? "1" : "0", say, at: String(Date.now()) },
+            // "from" est un mot réservé par Firebase (refus « Invalid data payload key: from ») → "who"
+            data: { type: "sos", uid: me, who: name, msg, lat, lng, test: test ? "1" : "0", say, at: String(Date.now()) },
             android: {
               priority: "HIGH",
               ttl: "3600s",
