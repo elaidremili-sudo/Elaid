@@ -1546,7 +1546,7 @@ window.mrLeanHtml=function(r){const k=t();let h='';
  else{
   if(r&&r.tk&&r.tk.length>=2){const mx=Math.max(r.lL||0,r.lR||0);h+=`<div class="meta"><b>${k.last}</b> · ${esc(r.d)} · ${r.km} km · ${k.max} ${mx}°</div>${CV('last')}${legend()}`}
   else h+=`<div class="meta">${r?k.old:k.none}</div>`;
-  h+=`<div class="row"><button class="p" data-lcsim="1">${k.sim}</button></div>`}
+  /* test-42 : bouton « Voir une simulation » (col fictif dessiné) retiré à la demande d'Elaid */}
  return h};
 function last(){const r=(S.rides||[])[0];return r&&r.tk&&r.tk.length>=2?r.tk:null}
 function live(i){const e=document.getElementById('lc_live');if(!e)return;const k=t(),p=SIM[Math.min(SIM.length-1,i)];if(!p)return;
@@ -2379,7 +2379,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 </style>
 <script src="js/sos.js"></script>
 <script src="js/push.js"></script>
-<script src="js/replay3d.js"></script>
+<!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 
 <style>
 /* test-34 : la barre du haut passe au-dessus du titre (le titre bloquait les appuis) et ses boutons sont plus grands */
