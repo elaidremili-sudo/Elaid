@@ -638,24 +638,48 @@ const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.si
    Maintenant : le GPS décide s'il y a virage (cap donné par le GPS lui-même quand il existe, sinon cap sur 15 m au moins ;
    taux de virage mesuré sur 2 s au moins ; médianes contre les points GPS faux), le gyroscope ne fait qu'affiner autour de
    l'angle exigé par ce virage ; ligne droite → 0° ; sans GPS récent → 10° au plus ; téléphone qui bouge sans virage → message. */
-let Ug=null,lTs=0,wBi=0,looseT=0,looseS=0,lastB=null,leanU=0;const gH=[],wB=[],bH=[],oH=[],rH=[];
+/* test-50 (22/10) : méthode des études sur la mesure d'inclinaison au téléphone (TU Darmstadt / IFZ 2020, Schlipsing 2012) :
+   filtre complémentaire = 1) vitesse de roulis du gyroscope intégrée (réaction immédiate, précise en virage)
+   + 2) angle « d'équilibre » tiré du lacet : sin(angle) = vitesse × lacet mesuré dans le repère de la moto / g
+   (test-47 l'avait remplacé à tort par atan : atan vaut pour le lacet au sol (GPS), pas pour celui mesuré par la moto penchée).
+   L'axe avant de la moto dans le téléphone est appris tout seul en roulant (axe de roulis = direction principale de rotation
+   perpendiculaire à la verticale, son sens est donné par la concordance avec l'angle d'équilibre).
+   Garde-fou GPS conservé (ligne droite → 0°, téléphone en main → message). Erreur visée par les études : ~2-4°. */
+let Ug=null,lTs=0,wBi=0,looseT=0,looseS=0,lastB=null,leanU=0,lss=0,lssP=0,rr=0,fAx=null,fN=0,fCor=0;const gH=[],wB=[],bH=[],oH=[],rH=[],C3=[[0,0,0],[0,0,0],[0,0,0]];
+/* axe avant appris lors des trajets précédents (effacé quand on recalibre : le téléphone a pu changer de support) */
+try{const q=S.rollAx;if(q&&q.a&&q.a.length==3){fAx=q.a;fN=301;fCor=q.c>0?25:-25}}catch(e){}
 function gpsLean(n,ms){const v=gH.filter(h=>n-h[0]<=ms).map(h=>h[1]).sort((p,q)=>p-q);return v.length?v[Math.floor(v.length/2)]:null} /* médiane : un point GPS faux ne crée plus de virage */
-function leanCap(n){const c=gpsLean(n,3000);return c==null?10:c<4?4:Math.min(62,c*1.1+6)}
+function leanCap(n){const c=gpsLean(n,3000);return c==null?12:c<4?5:Math.min(62,c*1.15+8)}
+/* axe de roulis : vecteur propre principal (puissance itérée) des rotations perpendiculaires à la verticale */
+function learnAxis(gp){const m=Math.hypot(...gp);if(m<.15||m>4)return;for(let i=0;i<3;i++)for(let j=0;j<3;j++)C3[i][j]=C3[i][j]*.998+gp[i]*gp[j];fN++;
+ let v=fAx||[gp[0]/m,gp[1]/m,gp[2]/m];for(let k=0;k<3;k++){const w=[0,1,2].map(i=>C3[i][0]*v[0]+C3[i][1]*v[1]+C3[i][2]*v[2]);const q=Math.hypot(...w)||1;v=w.map(x=>x/q)}
+ if(fAx&&v[0]*fAx[0]+v[1]*fAx[1]+v[2]*fAx[2]<0)v=v.map(x=>-x);fAx=v}
 function mot(e){const a=e.accelerationIncludingGravity;if(a){let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);if(Math.hypot(x,y,z)>25)lastImp=Date.now();
   const h=Math.hypot(x,y,z);if(h>6&&h<14){const v=[x/h,y/h,z/h];if(!Ug)Ug=U?U.slice():v;else{const k=.006;Ug=Ug.map((q,i)=>q*(1-k)+v[i]*k);const m=Math.hypot(...Ug);Ug=Ug.map(q=>q/m)}}}
  if(!on||!U)return;const r=e.rotationRate;if(!r)return;const n=Date.now(),dt=lTs?Math.min(.2,(n-lTs)/1000):.016;lTs=n;
- if(spd<15){lean*=.9;leanU*=.9;looseS=0;return}
- const A=Ug||U,w0=((r.beta||0)*A[0]+(r.gamma||0)*A[1]+(r.alpha||0)*A[2])*R2;
+ if(spd<15){lean*=.9;leanU*=.9;lss*=.9;looseS=0;return}
+ const A=Ug||U,gv=[(r.beta||0)*R2,(r.gamma||0)*R2,(r.alpha||0)*R2],w0=gv[0]*A[0]+gv[1]*A[1]+gv[2]*A[2];
  /* dérive du gyroscope : apprise quand le GPS voit une ligne droite, puis retirée */
  {const gl=gpsLean(n,2500);if(gl!=null&&gl<2&&Math.abs(w0-wBi)<.15)wBi=wBi*.9995+w0*.0005}
- const w=w0-wBi,raw=Math.atan((spd/3.6)*w/9.81)/R2; /* tan(angle) = accélération latérale / g (avant : asin, qui exagérait les grands angles) */
+ const w=w0-wBi,vm=spd/3.6,raw=Math.asin(Math.max(-.883,Math.min(.883,vm*w/9.81)))/R2;
+ lss=lss*.85+raw*.15; /* angle d'équilibre lissé (~0,1 s) */
+ /* vitesse de roulis : rotation perpendiculaire à la verticale, projetée sur l'axe avant appris */
+ const gp=[gv[0]-w0*A[0],gv[1]-w0*A[1],gv[2]-w0*A[2]];learnAxis(gp);
+ rr=rr*.6+(fAx?(gp[0]*fAx[0]+gp[1]*fAx[1]+gp[2]*fAx[2])/R2:0)*.4; /* °/s, filtré ~5 Hz */
+ const dL=(lss-lssP)/dt;lssP=lss;if(fAx&&Math.abs(dL)<200)fCor=fCor*.999+rr*dL*dt;
+ const sg=fCor<0?-1:1,ok=fAx&&fN>300&&Math.abs(fCor)>20;
  wB.push([n,w]);while(wB.length&&n-wB[0][0]>800)wB.shift();
  /* téléphone tenu en main ou mal fixé : le gyroscope s'agite alors que le GPS ne voit aucun virage */
  const wm=wB.reduce((p,q)=>p+q[1],0)/wB.length,wsd=Math.sqrt(wB.reduce((p,q)=>p+(q[1]-wm)**2,0)/wB.length),gl=gpsLean(n,2500);
- if(Math.abs(leanU)>12){const sg=Math.sign(leanU);if(!rH.length||rH[rH.length-1][1]!=sg)rH.push([n,sg])}while(rH.length&&n-rH[0][0]>4000)rH.shift();
+ if(Math.abs(leanU)>12){const s2=Math.sign(leanU);if(!rH.length||rH[rH.length-1][1]!=s2)rH.push([n,s2])}while(rH.length&&n-rH[0][0]>4000)rH.shift();
  /* la main fait tourner le téléphone dans un sens puis dans l'autre ; un vrai virage tourne toujours du même côté */
- if((wsd>.8||rH.length>=2)&&(gl==null||gl<4))looseT=n;
- let t=lean*.9+raw*.1;const mx=40*dt;t=Math.max(lean-mx,Math.min(lean+mx,t));const cap=leanCap(n);lean=Math.max(-cap,Math.min(cap,t));
+ let g4=0;for(const h of gH)if(n-h[0]<=4500)g4=Math.max(g4,h[1]);
+ if((wsd>.8||rH.length>=2)&&gH.length&&g4<4)looseT=n; /* GPS droit pendant 4,5 s (pas une simple sortie de virage) */
+ /* filtre complémentaire : roulis intégré (court terme) + angle d'équilibre (long terme, constante 1,2 s) */
+ const K=ok?1.2/(1.2+dt):0;let t=ok?K*(lean+sg*rr*dt)+(1-K)*lss:lean*.9+lss*.1;
+ /* plafond GPS seulement si le téléphone a bougé dans les 20 dernières secondes (en main, en voiture) : sur un support fixe il retardait
+    et rabotait les vrais virages (simulation : 9,6° d'erreur au lieu de 1,9°) */
+ const mx=90*dt;t=Math.max(lean-mx,Math.min(lean+mx,t));const cap=looseT&&n-looseT<20000?leanCap(n):62;lean=Math.max(-cap,Math.min(cap,t));
  /* sans le contrôle GPS, seulement pour la détection de chute (le téléphone bascule quand la moto tombe) */
  leanU=Math.max(-62,Math.min(62,leanU*.9+raw*.1))}
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
@@ -692,14 +716,15 @@ async function calib(){if(!await perm())return;calOn=true;calS=[];msg=kk().calw;
  setTimeout(()=>{calOn=false;const n=calS.length;if(n<10){msg=(evN?kk().calf:'Aucun signal des capteurs : le navigateur les bloque. Ouvrez la page dans Chrome et autorisez Capteurs de mouvement dans Parametres du site.')+' (signaux : '+evN+')';alert(msg);render();return}
   const m=[0,1,2].map(i=>calS.reduce((p,q)=>p+q[i],0)/n),h=Math.hypot(m[0],m[1],m[2]),sd=Math.sqrt(calS.reduce((p,q)=>p+((Math.hypot(q[0],q[1],q[2])-h)**2),0)/n);
   if(h<5||h>15||sd>3.5){msg=kk().calf+' (g='+h.toFixed(1)+', bruit='+sd.toFixed(1)+')';alert(msg);render();return}
-  U=m.map(x=>x/h);S.ridecal=U;save();msg='';render()},3000)}
+  U=m.map(x=>x/h);S.ridecal=U;fAx=null;fN=0;fCor=0;C3.forEach(r=>r.fill(0));S.rollAx=null;save();msg='';render()},3000)}
 async function rstart(){if(on)return;if(!U){alert(kk().nocal);return}if(!navigator.geolocation){alert(kk().nogps);return}if(!await perm())return;
- on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;segS=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];gH.length=0;wB.length=0;bH.length=0;oH.length=0;rH.length=0;lastB=null;looseT=0;looseS=0;leanU=0;lTs=0;wBi=0;
+ on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;segS=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];gH.length=0;wB.length=0;bH.length=0;oH.length=0;rH.length=0;lastB=null;looseT=0;looseS=0;leanU=0;lss=0;lssP=0;rr=0;lTs=0;wBi=0;
  try{wg=navigator.geolocation.watchPosition(gps,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}catch(e){}
  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>{wl=l}).catch(()=>{})}catch(e){}
  ti=setInterval(tick,200);try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
 function rstop(){if(!on)return;on=false;clearInterval(ti);try{if(wg!=null)navigator.geolocation.clearWatch(wg)}catch(e){}wg=null;try{wl&&wl.release()}catch(e){}wl=null;
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}try{localStorage.removeItem(RK)}catch(e){}
+ try{if(fAx&&fN>300&&Math.abs(fCor)>20)S.rollAx={a:fAx.map(v=>Math.round(v*1e4)/1e4),c:fCor>0?1:-1}}catch(e){}
  const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk},Date.now());keepR(x);sumR=x;render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
 function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="meta">${k.none}</div>`;
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));

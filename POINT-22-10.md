@@ -8,6 +8,10 @@ Dernière version publiée : **test-46** (aucune version au-delà dans le dépô
 - **Inclinaison** : le GPS décide s'il y a virage (cap du GPS, mesure sur 2 s, médianes), le gyroscope affine ; formule corrigée (atan au lieu de asin, qui exagérait : 41° au lieu de 33°) ; message « Le téléphone bouge » si tenu en main. Simulation : autoroute 127 km/h téléphone en main 47° max → 12° max (moyenne 1°), virages justes (16° et 33° attendus → 16-17° et 33°).
 - **Présentation** : clé « déjà vue » versionnée (se remontre une fois), sauvegarde Android coupée, Sentry prévenu si elle ne s'affiche pas.
 
+## 🏍 Inclinaison – test-50 (22/10, 20 h)
+Méthode des études (TU Darmstadt/IFZ 2020 : erreur ~2° au téléphone ; Schlipsing 2012) : roulis du gyroscope intégré + angle d'équilibre sin(angle) = vitesse × lacet (repère moto) / g, filtre complémentaire 1,2 s ; axe avant appris tout seul et mémorisé (effacé au recalibrage). Corrige 2 erreurs de test-47 : atan au lieu de asin (sous-estimait) et plafond GPS appliqué même téléphone fixé (rabotait les virages). Plafond GPS seulement si le téléphone bouge.
+Simulation col (virages 13-30 m/s) : test-46 2,9° d'erreur (20° en ligne droite), test-49 11,5°, test-50 1,9° (95 % < 4,5°), téléphone monté de travers idem.
+
 ## ✅ Nouveau
 - **Compte Google Play Console VALIDÉ** (justificatif d'adresse accepté, numéro de téléphone vérifié). Plus rien ne bloque côté compte.
 
