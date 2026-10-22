@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
     const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
     let sent = 0;
     const dead: string[] = [];
+    const errs: string[] = [];
     await Promise.all((toks || []).map(async (t) => {
       const L = (T as Record<string, { t: string; tt: string }>)[t.lang] || T.fr;
       const title = (test ? L.tt : L.t).replace("{n}", name);
@@ -131,14 +132,20 @@ Deno.serve(async (req) => {
       });
       if (r.ok) sent++;
       else {
+        // 22/10 (test-45) : avant, toute erreur INVALID_ARGUMENT/NOT_FOUND effaçait le jeton du téléphone,
+        // même quand le problème venait du message → les 2 jetons ont été effacés. Maintenant on n'efface
+        // que si Google dit clairement que le jeton n'existe plus (UNREGISTERED), et on garde l'erreur exacte.
         const e = await r.json().catch(() => ({}));
         const code = JSON.stringify(e);
-        if (/UNREGISTERED|NOT_FOUND|INVALID_ARGUMENT/.test(code)) dead.push(t.user_id);
+        const ec = (e?.error?.details || []).map((d: { errorCode?: string }) => d?.errorCode).filter(Boolean).join(",");
+        errs.push(`${r.status} ${ec || e?.error?.status || ""} ${String(e?.error?.message || "").slice(0, 120)}`);
+        console.error("FCM", r.status, code.slice(0, 500));
+        if (/UNREGISTERED/.test(ec) || /not a valid FCM registration token/i.test(code)) dead.push(t.user_id);
       }
     }));
     if (dead.length) await admin.from("push_tokens").delete().in("user_id", dead);
     await admin.from("sos_push_log").insert({ user_id: me, sent });
-    return json({ ok: true, recipients: list.length, withApp: (toks || []).length, sent, guardians: nGuard });
+    return json({ ok: true, recipients: list.length, withApp: (toks || []).length, sent, guardians: nGuard, errors: errs.slice(0, 3), dead: dead.length });
   } catch (e) {
     return json({ ok: false, why: "erreur", detail: String((e as Error)?.message || e).slice(0, 200) }, 500);
   }

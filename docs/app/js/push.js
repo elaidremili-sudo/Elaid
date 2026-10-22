@@ -34,10 +34,10 @@
   }
 
   /* ---------- Enregistrement du téléphone ---------- */
-  let regUser = null, listening = false;
+  let regUser = null, regAt = 0, listening = false;
   async function setup() {
     const P = PN(), c = sb(), u = me();
-    if (!P || !c || !u || regUser === u.id) return;
+    if (!P || !c || !u || (regUser === u.id && Date.now() - regAt < 30 * 60 * 1000)) return;
     try {
       if (!listening) {
         listening = true;
@@ -57,7 +57,11 @@
       let p = await P.checkPermissions();
       if (p.receive === 'prompt' || p.receive === 'prompt-with-rationale') p = await P.requestPermissions();
       if (p.receive !== 'granted') return;
-      regUser = u.id;
+      regUser = u.id; regAt = Date.now();
+      /* test-45 : si le serveur a effacé le jeton de ce téléphone (jugé mort), on en redemande un tout neuf à Firebase */
+      let mine = null;
+      try { const q = await c.from('push_tokens').select('token').eq('user_id', u.id).maybeSingle(); mine = q.data; } catch (e) {}
+      if (!mine && P.unregister) { try { await P.unregister(); } catch (e) {} }
       await P.register();
     } catch (e) {}
   }
@@ -78,7 +82,8 @@
   window.mrPushStatus = function (r) {
     if (r && r.ok) {
       if (!r.recipients) return '<span style="color:#ff6b6b">' + W('🔕 <b>Personne n’a reçu la sirène</b> : aucun ange gardien relié et aucun membre dans tes groupes. Sur le téléphone de ton proche : Route → Détection de chute → « Veiller sur un motard » → entre ton code.', '🔕 <b>لم يتلقَّ أحد الصفارة</b>: لا يوجد ملاك حارس مرتبط ولا أعضاء في مجموعاتك. في هاتف قريبك: الطريق ← كشف السقوط ← «حراسة دراج» ← أدخل رمزك.', '🔕 <b>Nobody got the siren</b>: no guardian angel linked and nobody in your groups. On your close one’s phone: Route → Crash detection → “Watch over a rider” → enter your code.') + '</span>';
-      if (!r.sent) return '<span style="color:#ff6b6b">' + W(`🔕 ${r.recipients} personne(s) à prévenir, mais aucune n’a MotoRoute Android à jour et connecté : la sirène n’a sonné nulle part.`, `🔕 ${r.recipients} شخص للتنبيه لكن لا أحد لديه التطبيق المحدث: لم ترن الصفارة.`, `🔕 ${r.recipients} to alert, but none has an up-to-date signed-in MotoRoute Android: the siren rang nowhere.`) + '</span>';
+      if (!r.sent && r.errors && r.errors.length) return '<span style="color:#ff6b6b">' + W(`🔕 Google a refusé l'envoi de la sirène. Ferme puis rouvre MotoRoute sur les deux téléphones et réessaie.`, `🔕 رفضت غوغل إرسال الصفارة. أغلق MotoRoute وافتحه على الهاتفين ثم أعد المحاولة.`, `🔕 Google refused to send the siren. Close and reopen MotoRoute on both phones and try again.`) + `<br><small>${ESC(r.errors[0])}</small></span>`;
+      if (!r.sent) return '<span style="color:#ff6b6b">' + W(`🔕 ${r.recipients} personne(s) à prévenir, mais leur téléphone n’est pas enregistré pour les alertes. Sur leur téléphone : ouvrir MotoRoute (connecté), accepter les notifications, attendre 10 secondes, puis réessaie.`, `🔕 ${r.recipients} شخص للتنبيه لكن لا أحد لديه التطبيق المحدث: لم ترن الصفارة.`, `🔕 ${r.recipients} to alert, but none has an up-to-date signed-in MotoRoute Android: the siren rang nowhere.`) + '</span>';
       return '🔔 ' + W(`Alerte sonore envoyée à ${r.sent} téléphone${r.sent > 1 ? 's' : ''}`, `أُرسل تنبيه صوتي إلى ${r.sent} هاتف`, `Siren alert sent to ${r.sent} phone${r.sent > 1 ? 's' : ''}`) +
         (r.recipients > r.sent ? W(` (${r.recipients - r.sent} sans l'app Android à jour)`, ` (${r.recipients - r.sent} بدون التطبيق)`, ` (${r.recipients - r.sent} without the Android app)`) : '');
     }
