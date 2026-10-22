@@ -439,6 +439,8 @@ public class MrSosService extends com.capacitorjs.plugins.pushnotifications.Mess
         super.onMessageReceived(m);
         Map<String, String> d = m.getData();
         if (d != null && "sos".equals(d.get("type"))) MrSirenService.start(getApplicationContext(), d);
+        // test-51 : notification simple (vitrines partenaires : publication à valider, acceptée, refusée)
+        else if (d != null && "info".equals(d.get("type"))) MrSirenService.info(getApplicationContext(), d);
     }
 }
 `);
@@ -531,6 +533,28 @@ public class MrSirenService extends Service {
             channels(c);
             JSONObject j = new JSONObject(data);
             NotificationManagerCompat.from(c).notify(idOf(j), build(c, j, CH_SOUND, false));
+        } catch (Exception e) {}
+    }
+
+    public static final String CH_INFO = "mr_info_v1";
+    static void info(Context c, Map<String, String> d) {
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null && nm.getNotificationChannel(CH_INFO) == null)
+                    nm.createNotificationChannel(new NotificationChannel(CH_INFO, "MotoRoute (infos)", NotificationManager.IMPORTANCE_DEFAULT));
+            }
+            String title = d.get("title") == null ? "MotoRoute" : d.get("title");
+            String body = d.get("body") == null ? "" : d.get("body");
+            String tag = d.get("tag") == null ? "mr-info" : d.get("tag");
+            Intent o = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent pi = PendingIntent.getActivity(c, tag.hashCode(), o, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Notification n = new NotificationCompat.Builder(c, CH_INFO)
+                .setSmallIcon(android.R.drawable.stat_notify_more)
+                .setContentTitle(title).setContentText(body)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                .setAutoCancel(true).setContentIntent(pi).build();
+            NotificationManagerCompat.from(c).notify(tag, 1, n);
         } catch (Exception e) {}
     }
 

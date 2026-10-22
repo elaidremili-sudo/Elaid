@@ -27,6 +27,7 @@
   /* test-47 : la sirène et la lecture vocale sont jouées par le service Android (même app fermée).
      Ici : afficher l'alerte ; si on vient de toucher l'alerte (tapped), couper la sirène et lire le message une fois. */
   function handle(d, tapped) {
+    if (d && d.type === 'info') { try { window.mrPartnersReload && window.mrPartnersReload(); } catch (e) {} return; }
     if (!d || d.type !== 'sos') return;
     if (d.self === '1') { selfOk = Date.now(); const o = document.getElementById('mr_gself'); if (o) o.innerHTML = '✅ ' + W('<b>Reçu !</b> Ce téléphone reçoit bien les alertes de MotoRoute.', '<b>وصل!</b> هذا الهاتف يستقبل تنبيهات MotoRoute.', '<b>Received!</b> This phone gets MotoRoute alerts.'); if (!tapped) return; }
     const lat = d.lat !== '' && d.lat != null ? +d.lat : null, lng = d.lng !== '' && d.lng != null ? +d.lng : null;

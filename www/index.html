@@ -1603,7 +1603,7 @@ addEventListener('resize',()=>setTimeout(paint,200));
 })();
 </script>
 <script>
-/* ===== Vitrines partenaires + Espace annonceur (démo) + icônes de la barre du bas — test-10 ===== */
+/* ===== Vitrines partenaires + Espace annonceur (comptes partenaires, validation MotoRoute — test-51) + icônes de la barre du bas ===== */
 (function(){
 const K='mr_vitrines_v1';
 const T={
@@ -1633,115 +1633,178 @@ const h=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 const day=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-/* ---------- données (sur le téléphone pour la démo) ---------- */
-let DB={};try{DB=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch(e){DB={}}
-function save(){try{localStorage.setItem(K,JSON.stringify(DB));return true}catch(e){alert(D().full);return false}}
-function seedFor(name){
- if(name!=='Simou Cycle')return[];
- return[
-  {id:uid(),kind:'promo',title:'Révision complète',price:6500,old:8500,desc:'Vidange, filtres, chaîne et freins contrôlés. Offre réservée aux membres MotoRoute.',until:day(14),feat:true,ex:true},
-  {id:uid(),kind:'news',title:'Nouvel arrivage de casques',desc:'Casques intégraux et modulables homologués, toutes tailles.',feat:true,ex:true},
-  {id:uid(),kind:'prod',title:'Gants été ventilés',price:4500,ex:true},
-  {id:uid(),kind:'prod',title:'Kit chaîne + pignons',price:12000,ex:true},
-  {id:uid(),kind:'prod',title:'Pneus route (la paire)',price:28000,ex:true},
-  {id:uid(),kind:'prod',title:'Blouson renforcé',price:19500,old:23000,ex:true}];
+/* ---------- données : serveur Supabase (test-51 : comptes partenaires + validation par MotoRoute) ----------
+   Chaque partenaire entre son code d'accès (bouton « J'ai un code partenaire ») et gère SA vitrine.
+   Ses publications et changements d'informations restent « en attente » jusqu'à la validation d'un administrateur.
+   Les administrateurs (comptes d'Elaid) ont l'onglet « Validation » et « Accès partenaires ». */
+const T2={
+fr:{claim:'🔑 J’ai un code partenaire',claimQ:'Code partenaire reçu de MotoRoute (6 caractères) :',claimOk:'✅ Tu gères maintenant la vitrine « {n} ». Tes publications seront visibles après validation par MotoRoute.',claimBad:'Code inconnu.',claimTaken:'Cette vitrine a déjà un gestionnaire. Demande un nouveau code à MotoRoute.',claimLogin:'Connecte-toi d’abord à ton compte MotoRoute.',
+ mod:'Validation',acc:'Accès partenaires',modT:'Publications à valider',pending:'⏳ En attente de validation',online:'✅ En ligne',refused:'❌ Refusée',why:'Motif',
+ sent:'✅ Envoyé ! Ce sera visible par les membres après validation par MotoRoute.',sentInfo:'✅ Informations envoyées : elles remplaceront les anciennes après validation.',infoWait:'⏳ Nouvelles informations en attente de validation.',infoRef:'❌ Dernières informations refusées',
+ approve:'✅ Accepter',reject:'❌ Refuser',rejQ:'Motif du refus (le partenaire le verra) :',nothing:'Rien à valider pour l’instant 👍',newInfo:'Nouvelles informations proposées',
+ code:'Code d’accès',sendCode:'📤 Envoyer le code',newCode:'🔄 Nouveau code',newCodeQ:'Créer un nouveau code ? L’ancien ne marchera plus et le gestionnaire actuel perdra l’accès.',manager:'Gestionnaire',nomgr:'aucun pour l’instant',suspend:'Suspendre la vitrine',activate:'Réactiver la vitrine',suspended:'Vitrine suspendue (invisible pour les membres)',addP:'+ Ajouter un partenaire',addName:'Nom du nouveau partenaire ?',addCity:'Ville ?',
+ shareTxt:'Bonjour {n} ! Votre vitrine MotoRoute est prête. 1) Installez MotoRoute et créez votre compte. 2) Onglet Annonces → « J’ai un code partenaire » → entrez ce code : {c}. Vous pourrez ensuite publier vos promotions, nouveautés et produits (validés par MotoRoute avant parution).',
+ people:'Membres différents',intC:'« Je suis intéressé »',views30:'Vues (30 derniers jours)',offline:'Pas de connexion au serveur : vitrines affichées depuis la dernière visite.',busy:'Envoi…',err:'Impossible pour l’instant (internet ?).',photoErr:'La photo n’a pas pu être envoyée.',onlyPend:'{n} publication(s) en attente : invisibles pour les membres tant qu’elles ne sont pas validées.',partnerMode:'Les membres voient seulement ce qui est validé par MotoRoute.',adminMode:'Mode administrateur : ce que tu publies ici est en ligne tout de suite.'},
+ar:{claim:'🔑 لدي رمز شريك',claimQ:'رمز الشريك الذي أرسلته MotoRoute (6 أحرف):',claimOk:'✅ أنت الآن تدير متجر «{n}». تظهر منشوراتك بعد موافقة MotoRoute.',claimBad:'رمز غير معروف.',claimTaken:'لهذا المتجر مسيّر بالفعل. اطلب رمزًا جديدًا من MotoRoute.',claimLogin:'سجّل الدخول إلى حسابك أولًا.',
+ mod:'المراجعة',acc:'وصول الشركاء',modT:'منشورات للمراجعة',pending:'⏳ في انتظار الموافقة',online:'✅ منشور',refused:'❌ مرفوض',why:'السبب',
+ sent:'✅ أُرسل! سيظهر للأعضاء بعد موافقة MotoRoute.',sentInfo:'✅ أُرسلت المعلومات: تحل محل القديمة بعد الموافقة.',infoWait:'⏳ معلومات جديدة في انتظار الموافقة.',infoRef:'❌ رُفضت آخر المعلومات',
+ approve:'✅ قبول',reject:'❌ رفض',rejQ:'سبب الرفض (سيراه الشريك):',nothing:'لا شيء للمراجعة حاليًا 👍',newInfo:'معلومات جديدة مقترحة',
+ code:'رمز الدخول',sendCode:'📤 إرسال الرمز',newCode:'🔄 رمز جديد',newCodeQ:'إنشاء رمز جديد؟ لن يعمل القديم وسيفقد المسيّر الحالي الوصول.',manager:'المسيّر',nomgr:'لا أحد بعد',suspend:'تعليق المتجر',activate:'إعادة تفعيل المتجر',suspended:'المتجر معلّق (غير ظاهر للأعضاء)',addP:'+ إضافة شريك',addName:'اسم الشريك الجديد؟',addCity:'المدينة؟',
+ shareTxt:'مرحبًا {n}! متجركم على MotoRoute جاهز. 1) ثبّتوا MotoRoute وأنشئوا حسابكم. 2) تبويب الإعلانات ← «لدي رمز شريك» ← أدخلوا هذا الرمز: {c}. بعدها يمكنكم نشر العروض والجديد والمنتجات (بعد موافقة MotoRoute).',
+ people:'أعضاء مختلفون',intC:'«أنا مهتم»',views30:'المشاهدات (30 يومًا)',offline:'لا اتصال بالخادم: المتاجر من آخر زيارة.',busy:'جارٍ الإرسال…',err:'غير ممكن الآن (الإنترنت؟).',photoErr:'تعذر إرسال الصورة.',onlyPend:'{n} منشور في الانتظار: غير ظاهر للأعضاء حتى الموافقة.',partnerMode:'يرى الأعضاء فقط ما وافقت عليه MotoRoute.',adminMode:'وضع المسؤول: ما تنشره هنا يظهر فورًا.'},
+en:{claim:'🔑 I have a partner code',claimQ:'Partner code received from MotoRoute (6 characters):',claimOk:'✅ You now manage the “{n}” shop. Your posts will appear after MotoRoute approves them.',claimBad:'Unknown code.',claimTaken:'This shop already has a manager. Ask MotoRoute for a new code.',claimLogin:'Sign in to your MotoRoute account first.',
+ mod:'Approval',acc:'Partner access',modT:'Posts to approve',pending:'⏳ Waiting for approval',online:'✅ Live',refused:'❌ Rejected',why:'Reason',
+ sent:'✅ Sent! Members will see it once MotoRoute approves it.',sentInfo:'✅ Details sent: they will replace the old ones once approved.',infoWait:'⏳ New details waiting for approval.',infoRef:'❌ Latest details rejected',
+ approve:'✅ Approve',reject:'❌ Reject',rejQ:'Reason for rejecting (the partner will see it):',nothing:'Nothing to approve right now 👍',newInfo:'Proposed new details',
+ code:'Access code',sendCode:'📤 Send the code',newCode:'🔄 New code',newCodeQ:'Create a new code? The old one will stop working and the current manager loses access.',manager:'Manager',nomgr:'nobody yet',suspend:'Suspend the shop',activate:'Reactivate the shop',suspended:'Shop suspended (hidden from members)',addP:'+ Add a partner',addName:'New partner’s name?',addCity:'City?',
+ shareTxt:'Hello {n}! Your MotoRoute shop is ready. 1) Install MotoRoute and create your account. 2) Ads tab → “I have a partner code” → enter this code: {c}. You can then post your promotions, new arrivals and products (approved by MotoRoute before going live).',
+ people:'Different members',intC:'“I’m interested”',views30:'Views (last 30 days)',offline:'No server connection: shops shown from your last visit.',busy:'Sending…',err:'Not possible right now (internet?).',photoErr:'The photo could not be sent.',onlyPend:'{n} post(s) waiting: hidden from members until approved.',partnerMode:'Members only see what MotoRoute has approved.',adminMode:'Admin mode: what you post here goes live immediately.'}};
+const DD=()=>({...(T[lang]||T.fr),...(T2[lang]||T2.fr)});
+const CK='mr_partners_cache_v2',sbc=()=>window.mrSb,me=()=>window.mrUser&&window.mrUser();
+const COLS='id,name,kind,city,about,phone,addr,hours,active,sort,owner_id,pending,pending_at,info_note';
+const ICOLS='id,partner_id,kind,title,descr,price,old_price,until,img,feat,ex,status,note,created_at,updated_at';
+let SP=null,IT=[],ADM=false,loadAt=0,loading=false,srvOk=true,loadUid=null;
+try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c&&c.p){SP=c.p;IT=c.i||[]}}catch(e){}
+async function load(force){
+ const c=sbc(),u0=me()&&me().id||null;if(!c||loading)return;if(!force&&u0===loadUid&&Date.now()-loadAt<60000)return;loading=true;loadUid=u0;
+ try{
+  const a=await c.from('partners').select(COLS).order('sort');if(a.error)throw a.error;
+  const b=await c.from('partner_items').select(ICOLS).order('created_at',{ascending:false});if(b.error)throw b.error;
+  SP=a.data||[];IT=b.data||[];srvOk=true;loadAt=Date.now();
+  try{localStorage.setItem(CK,JSON.stringify({p:SP.filter(p=>p.active).map(p=>({...p,pending:null})),i:IT.filter(x=>x.status=='approved')}))}catch(e){}
+  ADM=false;if(me()){try{const r=await c.rpc('mr_is_admin');ADM=!r.error&&r.data===true}catch(e){}}
+ }catch(e){srvOk=false;loadAt=Date.now()-45000}
+ loading=false;refresh();if(vaD.open)drawAdmin();
 }
-function get(p){
- if(!DB[p.name])DB[p.name]={about:'',phone:p.phone||'',addr:p.addr||'',hours:'',items:seedFor(p.name),stats:{views:0,wa:0,call:0,route:0}};
- if(!DB[p.name].phone&&p.phone)DB[p.name].phone=p.phone;
- return DB[p.name];
-}
-const partners=()=>(typeof PARTNERS!=='undefined'?PARTNERS:[]);
-const pAt=i=>partners()[+i];
+const partners=()=>SP&&SP.length?SP:(typeof PARTNERS!=='undefined'?PARTNERS.filter(p=>!p.slot).map((p,i)=>({id:'local'+i,name:p.name,kind:p.kind,city:p.city,phone:p.phone||'',about:'',addr:p.addr||'',hours:'',active:true})):[]);
+const pById=id=>partners().find(p=>p.id==id);
+const mine=p=>{const u=me();return !!(u&&p&&p.owner_id&&p.owner_id==u.id)};
+const canManage=p=>!!p&&!String(p.id).startsWith('local')&&(ADM||mine(p));
+const V=i=>({...i,desc:i.descr,old:i.old_price});
+const itemsOf=(p,all)=>IT.filter(i=>i.partner_id==p.id&&(all||i.status=='approved')).map(V);
+const pendN=()=>IT.filter(i=>i.status=='pending').length+(SP||[]).filter(p=>p.pending).length;
+function evt(pid,kind,item){const c=sbc(),u=me(),p=pById(pid);if(!c||!u||!p||String(p.id).startsWith('local'))return;try{c.from('partner_events').insert({partner_id:p.id,kind,item_id:item||null,user_id:u.id}).then(()=>{},()=>{})}catch(e){}}
+function notify(body){const c=sbc();if(!c)return;try{c.functions.invoke('partner-notify',{body}).catch(()=>{})}catch(e){}}
+window.mrPartnersReload=()=>load(true);setInterval(()=>{if(typeof tab!=='undefined'&&tab==2)load()},30000);setTimeout(()=>load(true),2500);
 const money=n=>(Number(n)||0).toLocaleString(lang=='ar'?'ar-DZ':lang=='en'?'en-GB':'fr-FR')+' '+D().cur;
 const promoOn=i=>i.kind=='promo'&&(!i.until||i.until>=new Date().toISOString().slice(0,10));
 const pct=i=>i.old&&i.price&&+i.old>+i.price?Math.round((1-i.price/i.old)*100):0;
 const fdate=s=>{try{return new Date(s+'T12:00').toLocaleDateString(lang=='ar'?'ar-DZ':lang=='en'?'en-GB':'fr-FR',{day:'numeric',month:'long'})}catch(e){return s}};
 const ICO={prod:'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',promo:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',news:'<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'};
-const pic=(i,cls)=>i.img?`<img class="${cls}" src="${h(i.img)}" alt="">`:`<div class="${cls} vt-ph vt-${i.kind}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICO[i.kind]||ICO.prod}</svg></div>`;
-function waLink(p,v,item){
- const ph=(v.phone||'').replace(/\D/g,'');if(!ph)return'';
+const pic=(i,cls)=>i.img?`<img class="${cls}" src="${h(i.img)}" alt="" loading="lazy">`:`<div class="${cls} vt-ph vt-${i.kind}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICO[i.kind]||ICO.prod}</svg></div>`;
+function waLink(p,item){
+ const ph=(p.phone||'').replace(/\D/g,'');if(!ph)return'';
  const msg=item?D().wamsg.replace('{p}',p.name).replace('{i}',item.title):'';
  return 'https://wa.me/'+ph+(msg?'?text='+encodeURIComponent(msg):'');
 }
-const mapLink=(p,v)=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+(v.addr||p.city||''));
+const mapLink=p=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+(p.addr||p.city||''));
+const stBadge=i=>{const d=DD();return i.status=='approved'?`<span class="vt-st ok">${d.online}</span>`:i.status=='rejected'?`<span class="vt-st ko">${d.refused}</span>`:`<span class="vt-st wt">${d.pending}</span>`};
 
 /* ---------- carte partenaire dans « Annonces » ---------- */
 partnersHtml=function(t){
- const d=D();
- return `<div class="meta" style="color:#fff;font-weight:600;margin:4px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+partners().map((p,ix)=>{
-  if(p.slot)return `<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${t.slot_name}</h3><div class="meta">${t.slot_txt}</div></div>`;
-  const v=get(p),feat=v.items.filter(i=>i.feat).slice(0,3),hot=v.items.some(promoOn),wl=waLink(p,v);
+ load();const d=DD(),n=ADM?pendN():0;
+ const list=partners().filter(p=>p.active||canManage(p));
+ return `<div class="meta" style="color:#fff;font-weight:600;margin:4px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+
+ (ADM?`<button class="vt-modbtn${n?' hot':''}" data-vmod="1">🛡 ${d.modT}${n?` · <b>${n}</b>`:''}</button>`:'')+
+ (!srvOk&&SP?`<div class="meta" style="color:#fff;opacity:.8">${d.offline}</div>`:'')+
+ list.map(p=>{
+  const its=itemsOf(p),feat=its.filter(i=>i.feat).slice(0,3),hot=its.some(promoOn),wl=waLink(p),id=h(p.id);
+  const myPend=canManage(p)?IT.filter(i=>i.partner_id==p.id&&i.status=='pending').length+(p.pending?1:0):0;
   return `<div class="card partner vt-card"><div class="vt-top"><span class="tag a">${t.ad_label}</span>${hot?`<span class="vt-hot">${d.promos}</span>`:''}</div>
   <h3 style="margin-top:8px">${h(p.name)}</h3><div class="meta">${h(p.kind||'')} · ${h(p.city||'')}</div>
-  ${feat.length?`<div class="vt-strip" data-vt="${ix}">${feat.map(i=>`<div class="vt-mini">${pic(i,'vt-mimg')}<div class="vt-mt">${h(i.title)}</div>${i.price?`<div class="vt-mp">${money(i.price)}</div>`:''}</div>`).join('')}</div>`:''}
-  <div class="vt-acts"><button class="p" data-vt="${ix}">${d.see}</button>${v.phone?`<a class="lnk" href="tel:${h(v.phone)}" data-vs="${ix}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${ix}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p,v))}" data-vs="${ix}|route">${d.route}</a></div>
-  <button class="vt-admin" data-va="${ix}">⚙ ${d.manage}</button></div>`;
- }).join('');
+  ${p.active?'':`<div class="meta" style="color:#ff6b6b">⏸ ${d.suspended}</div>`}
+  ${feat.length?`<div class="vt-strip" data-vt="${id}">${feat.map(i=>`<div class="vt-mini">${pic(i,'vt-mimg')}<div class="vt-mt">${h(i.title)}</div>${i.price?`<div class="vt-mp">${money(i.price)}</div>`:''}</div>`).join('')}</div>`:''}
+  <div class="vt-acts"><button class="p" data-vt="${id}">${d.see}</button>${p.phone?`<a class="lnk" href="tel:${h(p.phone)}" data-vs="${id}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${id}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p))}" data-vs="${id}|route">${d.route}</a></div>
+  ${canManage(p)?`<button class="vt-admin" data-va="${id}">⚙ ${d.manage}${myPend?` · ⏳ ${myPend}`:''}</button>`:''}</div>`;
+ }).join('')+
+ `<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${t.slot_name}</h3><div class="meta">${t.slot_txt}</div><button class="vt-admin" style="margin-left:0" data-vclaim="1">${d.claim}</button></div>`;
 };
 
 /* ---------- boîtes de dialogue ---------- */
 document.body.insertAdjacentHTML('beforeend','<dialog id="vtD" class="mp-dlg vt-dlg"></dialog><dialog id="vaD" class="mp-dlg vt-dlg"></dialog>');
 const vtD=document.getElementById('vtD'),vaD=document.getElementById('vaD');
-let curP=null,vaTab='dash',vaEdit=null,vaImg=null;
+let curP=null,vaTab='dash',vaEdit=null,vaImg=null,vaMsg='',vaStats=null,vaAcc=null,busy=false;
 
-function openShop(ix,count){
- const p=pAt(ix);if(!p)return;curP=+ix;const v=get(p),d=D();
- if(count!==false){v.stats.views++;save()}
- const pro=v.items.filter(i=>i.kind=='promo'),nw=v.items.filter(i=>i.kind=='news'),pr=v.items.filter(i=>i.kind=='prod');
- const card=(i,big)=>{const off=pct(i),wl=waLink(p,v,i);
+function openShop(id,count){
+ const p=pById(id);if(!p)return;curP=p.id;const d=DD();
+ if(count!==false)evt(p.id,'view');
+ const its=itemsOf(p),pro=its.filter(i=>i.kind=='promo'),nw=its.filter(i=>i.kind=='news'),pr=its.filter(i=>i.kind=='prod');
+ const np=canManage(p)?IT.filter(i=>i.partner_id==p.id&&i.status=='pending').length:0;
+ const card=(i,big)=>{const off=pct(i),wl=waLink(p,i);
   return `<div class="vt-item${big?' big':''}">${pic(i,'vt-img')}<div class="vt-ib">
   <div class="vt-it">${h(i.title)}${i.ex?` <span class="vt-ex">${d.ex}</span>`:''}</div>
   ${i.price?`<div class="vt-pr">${money(i.price)}${i.old&&off?` <s>${money(i.old)}</s> <span class="vt-off">-${off} %</span>`:''}</div>`:''}
   ${i.desc?`<div class="meta">${h(i.desc)}</div>`:''}
   ${i.kind=='promo'&&i.until?`<div class="vt-until">${promoOn(i)?'⏳ '+d.until+' '+fdate(i.until):'⌛ '+fdate(i.until)}</div>`:''}
-  ${wl?`<a class="vt-int" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${ix}|wa">${d.interested}</a>`:`<button class="vt-int" data-vnp="1">${d.interested}</button>`}
+  ${wl?`<a class="vt-int" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${h(p.id)}|int|${h(i.id)}">${d.interested}</a>`:`<button class="vt-int" data-vnp="1">${d.interested}</button>`}
   </div></div>`};
  const sec=(lab,arr,big)=>arr.length?`<div class="vt-sec">${lab}</div><div class="${big?'vt-list':'vt-grid'}">${arr.map(i=>card(i,big)).join('')}</div>`:'';
  vtD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">✔ ${d.official}</div><h2>${h(p.name)}</h2><div class="meta">${h(p.kind||'')} · ${h(p.city||'')}</div></div></div>
- <div class="vt-b">${v.about?`<p class="vt-about">${h(v.about)}</p>`:''}
- ${v.addr||v.hours?`<div class="meta">${v.addr?'📍 '+h(v.addr):''}${v.addr&&v.hours?'<br>':''}${v.hours?'🕘 '+h(v.hours):''}</div>`:''}
- <div class="vt-acts">${v.phone?`<a class="lnk" href="tel:${h(v.phone)}" data-vs="${ix}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(waLink(p,v))}" data-vs="${ix}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p,v))}" data-vs="${ix}|route">${d.route}</a></div>
- ${v.items.length?sec(d.promos,pro,true)+sec(d.news,nw,true)+sec(d.prods,pr,false):`<div class="empty">${d.empty}</div>`}</div>
+ <div class="vt-b">${np?`<div class="vt-demo">${d.onlyPend.replace('{n}',np)}</div>`:''}${p.about?`<p class="vt-about">${h(p.about)}</p>`:''}
+ ${p.addr||p.hours?`<div class="meta">${p.addr?'📍 '+h(p.addr):''}${p.addr&&p.hours?'<br>':''}${p.hours?'🕘 '+h(p.hours):''}</div>`:''}
+ <div class="vt-acts">${p.phone?`<a class="lnk" href="tel:${h(p.phone)}" data-vs="${h(p.id)}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(waLink(p))}" data-vs="${h(p.id)}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p))}" data-vs="${h(p.id)}|route">${d.route}</a></div>
+ ${its.length?sec(d.promos,pro,true)+sec(d.news,nw,true)+sec(d.prods,pr,false):`<div class="empty">${d.empty}</div>`}</div>
  <div class="vt-f"><button class="g" data-vclose="vtD">${d.close}</button></div>`;
  if(!vtD.open)vtD.showModal();vtD.querySelector('.vt-b').scrollTop=0;
 }
 
-function openAdmin(ix){curP=+ix;vaTab='dash';vaEdit=null;vaImg=null;drawAdmin();if(!vaD.open)vaD.showModal()}
+function openAdmin(id,tabName){curP=id||null;vaTab=tabName||'dash';vaEdit=null;vaImg=null;vaMsg='';vaStats=null;vaAcc=null;drawAdmin();if(!vaD.open)vaD.showModal();load(true)}
+function stats(){const c=sbc();if(!c||!curP||vaStats)return;vaStats={};c.rpc('mr_partner_stats',{pid:curP}).then(r=>{vaStats=r.error?{}:(r.data||{});if(vaD.open&&vaTab=='dash')drawAdmin()},()=>{})}
+function accList(){const c=sbc();if(!c||vaAcc)return;vaAcc=[];c.rpc('mr_partner_admin_list').then(r=>{vaAcc=r.error?[]:(r.data||[]);if(vaD.open&&vaTab=='acc')drawAdmin()},()=>{})}
 function drawAdmin(){
- const p=pAt(curP);if(!p)return;const v=get(p),d=D(),s=v.stats;
- const tabs=['dash','shop','pub'].map(k=>`<button class="${vaTab==k?'on':''}" data-vtab="${k}">${d[k]}</button>`).join('');
+ const d=DD(),p=curP?pById(curP):null;
+ const keys=(p?['dash','shop','pub']:[]).concat(ADM?['mod','acc']:[]);if(!keys.includes(vaTab))vaTab=keys[0]||'mod';
+ const lab={dash:d.dash,shop:d.shop,pub:d.pub,mod:d.mod+(pendN()?' ('+pendN()+')':''),acc:d.acc};
+ const tabs=keys.map(k=>`<button class="${vaTab==k?'on':''}" data-vtab="${k}">${lab[k]}</button>`).join('');
  let body='';
- if(vaTab=='dash'){
-  const st=(n,l)=>`<div class="vt-stat"><b>${n}</b><span>${l}</span></div>`;
-  body=`<div class="vt-stats">${st(s.views,d.views)}${st(s.wa,d.waC)}${st(s.call,d.callC)}${st(s.route,d.routeC)}</div>
+ if(vaTab=='dash'&&p){
+  stats();const s=vaStats||{},st=(n,l)=>`<div class="vt-stat"><b>${n==null?'…':n}</b><span>${l}</span></div>`;
+  const all=IT.filter(i=>i.partner_id==p.id).map(V);
+  body=`<div class="vt-stats">${st(s.views,d.views)}${st(s.views30,d.views30)}${st(s.wa,d.waC)}${st(s.call,d.callC)}${st(s.route,d.routeC)}${st(s.int,d.intC)}</div>
   <div class="meta" style="margin:10px 0">${d.tip}</div>
-  <div class="vt-sec">${d.items} (${v.items.length})</div>
-  ${v.items.length?v.items.map(i=>`<div class="vt-row">${pic(i,'vt-rimg')}<div class="vt-rb"><div class="vt-it">${h(i.title)}</div><div class="meta">${d['t_'+i.kind]}${i.price?' · '+money(i.price):''}${i.feat?' · ★ '+d.featured:''}</div></div>
-  <div class="vt-rbtn"><button class="g" data-vfeat="${i.id}" title="${d.featured}">${i.feat?'★':'☆'}</button><button class="g" data-vedit="${i.id}">${d.edit}</button><button class="g" data-vdel="${i.id}">${d.del}</button></div></div>`).join(''):`<div class="meta">${d.none}</div>`}
-  <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="g" data-vreset="1">${d.reset}</button></div>`;
- }else if(vaTab=='shop'){
-  body=`<label>${d.about}</label><textarea id="va_ab" rows="3">${h(v.about)}</textarea>
-  <label>${d.phone}</label><input id="va_ph" inputmode="tel" placeholder="+213…" value="${h(v.phone)}">
-  <label>${d.addr}</label><input id="va_ad" value="${h(v.addr)}">
-  <label>${d.hours}</label><input id="va_hr" placeholder="Sam–Jeu 9h–18h" value="${h(v.hours)}">
-  <div class="row" style="justify-content:flex-end;margin-top:12px"><span id="va_ok" class="meta"></span><button class="p" data-vsaveshop="1">${d.save}</button></div>`;
- }else{
-  const e=vaEdit?v.items.find(i=>i.id==vaEdit):null,k=e?e.kind:'promo';
+  <div class="vt-sec">${d.items} (${all.length})</div>
+  ${all.length?all.map(i=>`<div class="vt-row">${pic(i,'vt-rimg')}<div class="vt-rb"><div class="vt-it">${h(i.title)}</div><div class="meta">${d['t_'+i.kind]}${i.price?' · '+money(i.price):''}${i.feat?' · ★ '+d.featured:''}</div><div>${stBadge(i)}${i.status=='rejected'&&i.note?` <span class="meta">${d.why} : ${h(i.note)}</span>`:''}</div></div>
+  <div class="vt-rbtn"><button class="g" data-vfeat="${h(i.id)}" title="${d.featured}">${i.feat?'★':'☆'}</button><button class="g" data-vedit="${h(i.id)}">${d.edit}</button><button class="g" data-vdel="${h(i.id)}">${d.del}</button></div></div>`).join(''):`<div class="meta">${d.none}</div>`}`;
+ }else if(vaTab=='shop'&&p){
+  const src=p.pending||p;
+  body=`${p.pending?`<div class="vt-demo">${d.infoWait}</div>`:''}${p.info_note?`<div class="vt-demo">${d.infoRef} : ${h(p.info_note)}</div>`:''}
+  <label>${d.about}</label><textarea id="va_ab" rows="3" maxlength="600">${h(src.about||'')}</textarea>
+  <label>${d.phone}</label><input id="va_ph" inputmode="tel" placeholder="+213…" value="${h(src.phone||'')}">
+  <label>${d.addr}</label><input id="va_ad" maxlength="160" value="${h(src.addr||'')}">
+  <label>${d.hours}</label><input id="va_hr" maxlength="80" placeholder="Sam–Jeu 9h–18h" value="${h(src.hours||'')}">
+  <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="p" data-vsaveshop="1">${d.save}</button></div>`;
+ }else if(vaTab=='pub'&&p){
+  const e=vaEdit?IT.map(V).find(i=>i.id==vaEdit):null,k=e?e.kind:'promo';
   const shown=vaImg!==null?vaImg:(e&&e.img)||'';
   body=`<label>${d.type}</label><div class="vt-seg" id="va_ty">${['promo','prod','news'].map(x=>`<button class="${k==x?'on':''}" data-vty="${x}">${d['t_'+x]}</button>`).join('')}</div>
-  <label>${d.title}</label><input id="va_t" maxlength="60" value="${h(e?e.title:'')}">
+  <label>${d.title}</label><input id="va_t" maxlength="80" value="${h(e?e.title:'')}">
   <div class="vt-2"><div><label>${d.price}</label><input id="va_p" inputmode="numeric" value="${h(e&&e.price?e.price:'')}"></div><div class="vt-old"><label>${d.old}</label><input id="va_o" inputmode="numeric" value="${h(e&&e.old?e.old:'')}"></div></div>
   <label>${d.photo}</label><div class="vt-pick">${shown?`<img src="${h(shown)}" alt="">`:''}<input id="va_img" type="file" accept="image/*"></div>
-  <label>${d.desc}</label><textarea id="va_d" rows="3" maxlength="300">${h(e?e.desc||'':'')}</textarea>
+  <label>${d.desc}</label><textarea id="va_d" rows="3" maxlength="400">${h(e?e.desc||'':'')}</textarea>
   <div class="vt-end"><label>${d.end}</label><input id="va_e" type="date" value="${h(e&&e.until?e.until:day(14))}"></div>
   <label class="vt-chk"><input id="va_f" type="checkbox" ${!e||e.feat?'checked':''}> ${d.feat}</label>
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px">${e?`<button class="g" data-vcancel="1">${d.cancel}</button>`:''}<button class="p" data-vpub="1">${e?d.update:d.publish}</button></div>`;
+ }else if(vaTab=='mod'){
+  const pi=IT.filter(i=>i.status=='pending').map(V),pinfo=(SP||[]).filter(x=>x.pending);
+  body=(!pi.length&&!pinfo.length)?`<div class="empty">${d.nothing}</div>`:
+   pinfo.map(x=>`<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(x.name)} · ${d.newInfo}</div>${['about','phone','addr','hours'].map(f=>(x.pending[f]||'')!==(x[f]||'')?`<div class="meta"><b>${d[f=='about'?'about':f=='phone'?'phone':f=='addr'?'addr':'hours']}</b> : <s>${h(x[f]||'—')}</s> → ${h(x.pending[f]||'—')}</div>`:'').join('')}
+   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vinfo="${h(x.id)}|0">${d.reject}</button><button class="p" data-vinfo="${h(x.id)}|1">${d.approve}</button></div></div>`).join('')+
+   pi.map(i=>{const pp=pById(i.partner_id)||{name:i.partner_id};return `<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(pp.name)} · ${d['t_'+i.kind]}</div><div class="vt-row" style="border:0">${pic(i,'vt-rimg')}<div class="vt-rb"><div class="vt-it" style="white-space:normal">${h(i.title)}</div>${i.price?`<div class="meta">${money(i.price)}${i.old?' (<s>'+money(i.old)+'</s>)':''}</div>`:''}${i.desc?`<div class="meta">${h(i.desc)}</div>`:''}${i.kind=='promo'&&i.until?`<div class="meta">⏳ ${d.until} ${fdate(i.until)}</div>`:''}</div></div>
+   ${i.img?`<img src="${h(i.img)}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px">`:''}
+   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vdec="${h(i.id)}|0">${d.reject}</button><button class="p" data-vdec="${h(i.id)}|1">${d.approve}</button></div></div>`}).join('');
+ }else if(vaTab=='acc'){
+  accList();const L2=vaAcc||[];
+  body=(vaAcc===null||(!L2.length&&!srvOk))?'<div class="meta">…</div>':L2.map(x=>`<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(x.name)} · ${h(x.city||'')}</div>
+   <div class="meta">${d.manager} : <b>${x.owner_name?h(x.owner_name):d.nomgr}</b>${x.pending_items?` · ⏳ ${x.pending_items}`:''}</div>
+   <div class="meta">${d.code} : <b style="font-size:20px;letter-spacing:3px">${h(x.invite_code)}</b></div>
+   ${x.active?'':`<div class="meta" style="color:#ff6b6b">⏸ ${d.suspended}</div>`}
+   <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="p" data-vcode="${h(x.id)}">${d.sendCode}</button><button class="g" data-vrcode="${h(x.id)}">${d.newCode}</button><button class="g" data-vact="${h(x.id)}|${x.active?0:1}">${x.active?d.suspend:d.activate}</button><button class="g" data-va2="${h(x.id)}">⚙ ${d.manage}</button></div></div>`).join('')+
+   `<div class="row" style="justify-content:flex-start;margin-top:10px"><button class="g" data-vaddp="1">${d.addP}</button></div>`;
  }
- vaD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">⚙ ${d.manage}</div><h2>${h(p.name)}</h2></div></div>
- <div class="vt-b"><div class="vt-demo">${d.demo}</div><div class="vt-seg vt-tabs">${tabs}</div>${body}</div>
- <div class="vt-f"><button class="g" data-vprev="1">👁 ${d.preview}</button><button class="g" data-vclose="vaD">${d.close}</button></div>`;
- if(vaTab=='pub')setKind(vaD.querySelector('#va_ty .on').dataset.vty);
+ vaD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">⚙ ${d.manage}</div><h2>${p?h(p.name):'MotoRoute'}</h2></div></div>
+ <div class="vt-b"><div class="vt-demo">${ADM?d.adminMode:d.partnerMode}</div>${vaMsg?`<div class="vt-demo" style="border-color:#3fb950;background:rgba(63,185,80,.12)">${vaMsg}</div>`:''}<div class="vt-seg vt-tabs">${tabs}</div>${body}</div>
+ <div class="vt-f">${p?`<button class="g" data-vprev="1">👁 ${d.preview}</button>`:''}<button class="g" data-vclose="vaD">${d.close}</button></div>`;
+ if(vaTab=='pub'&&p)setKind(vaD.querySelector('#va_ty .on').dataset.vty);
 }
 function setKind(k){
  vaD.querySelectorAll('[data-vty]').forEach(b=>b.classList.toggle('on',b.dataset.vty==k));
@@ -1749,42 +1812,77 @@ function setKind(k){
  if(o)o.style.display=k=='news'?'none':'';if(e)e.style.display=k=='promo'?'':'none';
  const pr=vaD.querySelector('#va_p');if(pr)pr.closest('div').style.display=k=='news'?'none':'';
 }
-function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.78))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+async function upload(pid,dataUrl){
+ const c=sbc(),b=await (await fetch(dataUrl)).blob(),path=pid+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
+ const r=await c.storage.from('partner-photos').upload(path,b,{contentType:'image/jpeg',upsert:false});if(r.error)throw r.error;
+ return c.storage.from('partner-photos').getPublicUrl(path).data.publicUrl;
+}
+function rmPhoto(url){try{const m=String(url||'').split('/partner-photos/')[1];if(m)sbc().storage.from('partner-photos').remove([decodeURIComponent(m)]).then(()=>{},()=>{})}catch(e){}}
 const refresh=()=>{try{if(tab==2)render()}catch(e){}};
 
 document.addEventListener('change',async ev=>{
  if(ev.target.id!=='va_img'||!ev.target.files[0])return;
  try{vaImg=await shrink(ev.target.files[0]);const box=vaD.querySelector('.vt-pick');let im=box.querySelector('img');if(!im){im=document.createElement('img');box.prepend(im)}im.src=vaImg}catch(e){console.error('vt img',e)}
 });
-document.addEventListener('click',ev=>{
- const el=ev.target.closest('[data-vt],[data-va],[data-vs],[data-vnp],[data-vclose],[data-vtab],[data-vty],[data-vpub],[data-vcancel],[data-vedit],[data-vdel],[data-vfeat],[data-vsaveshop],[data-vprev],[data-vreset]');
- if(!el)return;const ds=el.dataset,d=D();
- if(ds.vs){const[ix,k]=ds.vs.split('|'),p=pAt(ix);if(p){get(p).stats[k]++;save()}return}
+document.addEventListener('click',async ev=>{
+ const el=ev.target.closest('[data-vt],[data-va],[data-va2],[data-vs],[data-vnp],[data-vclose],[data-vtab],[data-vty],[data-vpub],[data-vcancel],[data-vedit],[data-vdel],[data-vfeat],[data-vsaveshop],[data-vprev],[data-vmod],[data-vclaim],[data-vdec],[data-vinfo],[data-vcode],[data-vrcode],[data-vact],[data-vaddp]');
+ if(!el)return;const ds=el.dataset,d=DD(),c=sbc();
+ if(ds.vs){const[id,k,it]=ds.vs.split('|');evt(id,k,it);return}
  ev.preventDefault();
  if(ds.vt!==undefined){openShop(ds.vt);return}
  if(ds.va!==undefined){openAdmin(ds.va);return}
+ if(ds.va2!==undefined){openAdmin(ds.va2,'dash');return}
+ if(ds.vmod){openAdmin(null,'mod');return}
  if(ds.vnp){alert(d.nophone);return}
  if(ds.vclose){document.getElementById(ds.vclose).close();refresh();return}
  if(ds.vprev){openShop(curP,false);return}
- const p=pAt(curP);if(!p)return;const v=get(p);
- if(ds.vtab){vaTab=ds.vtab;vaEdit=null;vaImg=null;drawAdmin();return}
+ if(ds.vclaim){
+  if(!me()||!c){alert(d.claimLogin);return}
+  const code=(prompt(d.claimQ)||'').replace(/\s+/g,'').toUpperCase();if(!code)return;
+  try{const r=await c.rpc('mr_partner_claim',{p_code:code});if(r.error)throw r.error;alert(d.claimOk.replace('{n}',r.data.name));await load(true);openAdmin(r.data.id,'pub')}
+  catch(x){const m=String(x&&x.message||x);alert(/code-inconnu/.test(m)?d.claimBad:/deja-pris/.test(m)?d.claimTaken:/non-connecte/.test(m)?d.claimLogin:d.err)}
+  return}
+ if(ds.vtab){vaTab=ds.vtab;vaEdit=null;vaImg=null;vaMsg='';if(vaTab=='acc')vaAcc=null;drawAdmin();return}
  if(ds.vty){setKind(ds.vty);return}
  if(ds.vcancel){vaEdit=null;vaImg=null;drawAdmin();return}
- if(ds.vedit){vaEdit=ds.vedit;vaImg=null;vaTab='pub';drawAdmin();return}
- if(ds.vfeat){const i=v.items.find(x=>x.id==ds.vfeat);if(i){i.feat=!i.feat;save();drawAdmin()}return}
- if(ds.vdel){if(confirm(d.confirmDel)){v.items=v.items.filter(x=>x.id!=ds.vdel);save();drawAdmin()}return}
- if(ds.vreset){if(confirm(d.resetQ)){delete DB[p.name];save();get(p);save();drawAdmin()}return}
- if(ds.vsaveshop){v.about=vaD.querySelector('#va_ab').value.trim();v.phone=vaD.querySelector('#va_ph').value.trim();v.addr=vaD.querySelector('#va_ad').value.trim();v.hours=vaD.querySelector('#va_hr').value.trim();if(save())vaD.querySelector('#va_ok').textContent=d.saved;return}
+ if(!c||busy)return;
+ if(ds.vdec){const[id,ok]=ds.vdec.split('|'),i=IT.find(x=>x.id==id);if(!i)return;let note='';if(ok!='1'){note=prompt(d.rejQ);if(note===null)return}
+  busy=true;try{const r=await c.from('partner_items').update({status:ok=='1'?'approved':'rejected',note:(note||'').slice(0,200)}).eq('id',id);if(r.error)throw r.error;notify({pid:i.partner_id,event:'decided',ok:ok=='1',title:i.title,note})}catch(x){alert(d.err)}busy=false;await load(true);return}
+ if(ds.vinfo){const[pid,ok]=ds.vinfo.split('|');let note='';if(ok!='1'){note=prompt(d.rejQ);if(note===null)return}
+  busy=true;try{const r=await c.rpc('mr_partner_info_decide',{pid,ok:ok=='1',p_note:note||''});if(r.error)throw r.error;notify({pid,event:'decided',ok:ok=='1',title:d.shop,note})}catch(x){alert(d.err)}busy=false;await load(true);return}
+ if(ds.vcode){const x=(vaAcc||[]).find(y=>y.id==ds.vcode);if(!x)return;const txt=d.shareTxt.replace('{n}',x.name).replace('{c}',x.invite_code);
+  try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Share){await Capacitor.Plugins.Share.share({text:txt});return}}catch(e){}
+  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
+  const pp=pById(x.id),ph=pp&&(pp.phone||'').replace(/\D/g,'');location.href='https://wa.me/'+(ph||'')+'?text='+encodeURIComponent(txt);return}
+ if(ds.vrcode){if(!confirm(d.newCodeQ))return;busy=true;try{const r=await c.rpc('mr_partner_reset_code',{pid:ds.vrcode});if(r.error)throw r.error}catch(x){alert(d.err)}busy=false;vaAcc=null;await load(true);drawAdmin();return}
+ if(ds.vact){const[pid,a]=ds.vact.split('|');busy=true;try{const r=await c.from('partners').update({active:a=='1'}).eq('id',pid);if(r.error)throw r.error}catch(x){alert(d.err)}busy=false;vaAcc=null;await load(true);drawAdmin();return}
+ if(ds.vaddp){const name=(prompt(d.addName)||'').trim();if(!name)return;const city=(prompt(d.addCity)||'').trim();
+  const id=name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||('p'+Date.now().toString(36));
+  busy=true;try{const r=await c.from('partners').insert({id,name:name.slice(0,60),city:city.slice(0,40),sort:(SP||[]).length+1});if(r.error)throw r.error}catch(x){alert(d.err)}busy=false;vaAcc=null;await load(true);drawAdmin();return}
+ const p=pById(curP);if(!p)return;
+ if(ds.vedit){vaEdit=ds.vedit;vaImg=null;vaTab='pub';vaMsg='';drawAdmin();return}
+ if(ds.vfeat){const i=IT.find(x=>x.id==ds.vfeat);if(!i)return;busy=true;try{const r=await c.from('partner_items').update({feat:!i.feat}).eq('id',i.id);if(r.error)throw r.error;i.feat=!i.feat}catch(x){alert(d.err)}busy=false;drawAdmin();load(true);return}
+ if(ds.vdel){if(!confirm(d.confirmDel))return;const i=IT.find(x=>x.id==ds.vdel);busy=true;try{const r=await c.from('partner_items').delete().eq('id',ds.vdel);if(r.error)throw r.error;if(i&&i.img)rmPhoto(i.img)}catch(x){alert(d.err)}busy=false;await load(true);return}
+ if(ds.vsaveshop){const q=s=>vaD.querySelector(s).value.trim();const info={about:q('#va_ab'),phone:q('#va_ph'),addr:q('#va_ad'),hours:q('#va_hr')};
+  busy=true;try{const r=await c.rpc('mr_partner_submit_info',{pid:p.id,info});if(r.error)throw r.error;vaMsg=ADM?d.saved:d.sentInfo;if(!ADM)notify({pid:p.id,event:'pending',title:d.shop})}catch(x){alert(d.err)}busy=false;await load(true);drawAdmin();return}
  if(ds.vpub){
-  const q=id=>vaD.querySelector(id),title=q('#va_t').value.trim();if(!title){alert(d.needTitle);return}
+  const q=s=>vaD.querySelector(s),title=q('#va_t').value.trim();if(!title){alert(d.needTitle);return}
   const kind=q('#va_ty .on').dataset.vty,num=x=>+(String(x).replace(/\D/g,''))||0;
-  const it={id:vaEdit||uid(),kind,title,desc:q('#va_d').value.trim(),feat:q('#va_f').checked,
-   price:kind=='news'?0:num(q('#va_p').value),old:kind=='news'?0:num(q('#va_o').value),until:kind=='promo'?q('#va_e').value:''};
-  const prev=vaEdit?v.items.find(x=>x.id==vaEdit):null;it.img=vaImg!==null?vaImg:(prev&&prev.img)||'';
-  const before=JSON.stringify(v.items);
-  v.items=prev?v.items.map(x=>x.id==vaEdit?it:x):[it].concat(v.items);
-  if(!save()){v.items=JSON.parse(before);return}
-  vaEdit=null;vaImg=null;vaTab='dash';drawAdmin();return;
+  const prev=vaEdit?IT.find(x=>x.id==vaEdit):null;
+  const row={partner_id:p.id,kind,title:title.slice(0,80),descr:q('#va_d').value.trim().slice(0,400),feat:q('#va_f').checked,
+   price:kind=='news'?0:num(q('#va_p').value),old_price:kind=='news'?0:num(q('#va_o').value),until:kind=='promo'?(q('#va_e').value||null):null};
+  busy=true;el.textContent=d.busy;
+  try{
+   let img=prev?prev.img:'';
+   if(vaImg!==null){try{img=await upload(p.id,vaImg);if(prev&&prev.img)rmPhoto(prev.img)}catch(x){alert(d.photoErr);busy=false;drawAdmin();return}}
+   row.img=img;
+   const r=prev?await c.from('partner_items').update(row).eq('id',prev.id):await c.from('partner_items').insert(row);
+   if(r.error)throw r.error;
+   if(!ADM)notify({pid:p.id,event:'pending',title:row.title});
+   vaEdit=null;vaImg=null;vaTab='dash';vaMsg=ADM?d.saved:d.sent;vaStats=null;
+  }catch(x){alert(d.err)}
+  busy=false;await load(true);drawAdmin();return;
  }
 });
 
@@ -1855,6 +1953,12 @@ nav button::before{width:23px;height:23px}
 .vt-pick img{width:64px;height:64px;border-radius:10px;object-fit:cover}
 .vt-chk{display:flex;align-items:center;gap:8px;margin-top:12px}
 .vt-chk input{width:auto}
+.vt-st{display:inline-block;font:700 11px Barlow,sans-serif;border-radius:999px;padding:2px 8px;margin-top:3px}
+.vt-st.ok{background:rgba(63,185,80,.18);color:#3fb950}.vt-st.wt{background:rgba(242,155,5,.18);color:#e8a317}.vt-st.ko{background:rgba(229,83,75,.18);color:#e5534b}
+.vt-modbtn{display:block;width:100%;margin:0 0 10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;border-radius:12px;padding:10px 12px;font:600 14px Barlow,sans-serif;text-align:start}
+.vt-modbtn.hot{border-color:#e8a317;background:rgba(232,163,23,.25)}
+.vt-modc{border:1px solid rgba(127,127,127,.22);border-radius:14px;padding:12px;margin-bottom:10px}
+.vt-stats{grid-template-columns:1fr 1fr 1fr}
 body.mr-ad .vt-dlg{max-height:calc(100dvh - 210px);margin-top:16px}
 `;
 document.head.insertAdjacentHTML('beforeend','<style>'+css+'</style>');
