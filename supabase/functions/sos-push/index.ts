@@ -1,4 +1,4 @@
-// MotoRoute – sos-push (20/10/2026)
+// MotoRoute – sos-push (20/10/2026, sirène app fermée le 22/10 : test-47)
 // Envoie une notification d'urgence (sirène + lecture vocale à l'ouverture) aux anges gardiens
 // du motard et aux membres actifs de ses groupes, via Firebase Cloud Messaging (gratuit).
 // Secret requis : FCM_SERVICE_ACCOUNT = contenu complet du fichier JSON « clé de compte de service » Firebase.
@@ -13,9 +13,12 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const T = {
-  fr: { t: "🚨 MotoRoute : chute de {n}", tt: "🧪 TEST MotoRoute : {n}" },
-  ar: { t: "🚨 موتوروت: سقوط {n}", tt: "🧪 تجربة موتوروت: {n}" },
-  en: { t: "🚨 MotoRoute: {n} has crashed", tt: "🧪 MotoRoute TEST: {n}" },
+  fr: { t: "🚨 MotoRoute : chute de {n}", tt: "🧪 TEST MotoRoute : {n}", b: "Touche pour voir sa position.",
+        s: "Alerte MotoRoute. {n} a fait une chute à moto et ne répond plus. Ouvre MotoRoute pour voir sa position." },
+  ar: { t: "🚨 موتوروت: سقوط {n}", tt: "🧪 تجربة موتوروت: {n}", b: "المس لرؤية موقعه.",
+        s: "تنبيه موتوروت. {n} سقط بالدراجة النارية ولا يرد. افتح موتوروت لرؤية موقعه." },
+  en: { t: "🚨 MotoRoute: {n} has crashed", tt: "🧪 MotoRoute TEST: {n}", b: "Tap to see the location.",
+        s: "MotoRoute alert. {n} has crashed on a motorcycle and is not answering. Open MotoRoute to see the location." },
 };
 
 // ---- Jeton d'accès Google à partir de la clé de compte de service ----
@@ -108,26 +111,23 @@ Deno.serve(async (req) => {
     const dead: string[] = [];
     const errs: string[] = [];
     await Promise.all((toks || []).map(async (t) => {
-      const L = (T as Record<string, { t: string; tt: string }>)[t.lang] || T.fr;
+      const lg = ["fr", "ar", "en"].includes(t.lang) ? t.lang : "fr";
+      const L = (T as Record<string, { t: string; tt: string; b: string; s: string }>)[lg];
       const title = (test ? L.tt : L.t).replace("{n}", name);
-      const body = msg || (lat ? `GPS ${lat},${lng}` : "");
+      const body = msg || L.b;
+      const speak = say || L.s.replace("{n}", name);
       const r = await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: "Bearer " + access, "Content-Type": "application/json" },
         body: JSON.stringify({
           message: {
             token: t.token,
-            notification: { title, body },
+            // 22/10 (test-47) : message « données seules » prioritaire. Avant, la partie « notification » était affichée
+            // par Android lui-même quand l'app était fermée → simple notification, sans sirène. Maintenant le service
+            // MrSosService de l'app le reçoit même app fermée et joue la sirène sur le canal alarme.
             // "from" est un mot réservé par Firebase (refus « Invalid data payload key: from ») → "who"
-            data: { type: "sos", uid: me, who: name, msg, lat, lng, test: test ? "1" : "0", say, at: String(Date.now()) },
-            android: {
-              priority: "HIGH",
-              ttl: "3600s",
-              notification: {
-                channel_id: "sos_alarm", sound: "sos_alarm", tag: "mr-sos-" + me.slice(0, 8),
-                notification_priority: "PRIORITY_MAX", visibility: "PUBLIC", default_vibrate_timings: true,
-              },
-            },
+            data: { type: "sos", uid: me, who: name, msg, lat, lng, test: test ? "1" : "0", say: speak, title, body, lang: lg, at: String(Date.now()) },
+            android: { priority: "HIGH", ttl: "3600s" },
           },
         }),
       });

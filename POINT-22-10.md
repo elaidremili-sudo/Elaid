@@ -2,6 +2,12 @@
 
 Dernière version publiée : **test-46** (aucune version au-delà dans le dépôt ; Elaid pensait être à test-53 → à éclaircir).
 
+## 🔧 Soir du 22/10 (18 h 30) – version test-47
+- **Sirène app fermée** : le serveur envoie maintenant un message « données seules » prioritaire ; le service Android MrSosService le reçoit même app fermée et MrSirenService joue la sirène sur le canal ALARME (sonne aussi en silencieux), 24 s, puis lit le message 2 fois. Bouton « Arrêter la sirène », toucher l'alerte ouvre la position. ⚠️ Les DEUX téléphones doivent avoir test-47 (test-46 n'affiche plus rien app fermée).
+- **« Je ne reçois pas les alertes »** : côté serveur, Google a accepté les 4 envois d'Ali vers Elaid (8 h 26-8 h 28) → le blocage était sur le téléphone. Carte « anges gardiens » : nouvel état « Ce téléphone peut recevoir la sirène » + boutons Autoriser / batterie « Sans restriction ».
+- **Inclinaison** : le GPS décide s'il y a virage (cap du GPS, mesure sur 2 s, médianes), le gyroscope affine ; formule corrigée (atan au lieu de asin, qui exagérait : 41° au lieu de 33°) ; message « Le téléphone bouge » si tenu en main. Simulation : autoroute 127 km/h téléphone en main 47° max → 12° max (moyenne 1°), virages justes (16° et 33° attendus → 16-17° et 33°).
+- **Présentation** : clé « déjà vue » versionnée (se remontre une fois), sauvegarde Android coupée, Sentry prévenu si elle ne s'affiche pas.
+
 ## ✅ Nouveau
 - **Compte Google Play Console VALIDÉ** (justificatif d'adresse accepté, numéro de téléphone vérifié). Plus rien ne bloque côté compte.
 

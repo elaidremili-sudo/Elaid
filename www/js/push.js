@@ -22,16 +22,28 @@
       `تنبيه موتوروت. ${n} سقط بالدراجة النارية ولا يرد. افتح موتوروت لرؤية موقعه.`,
       `MotoRoute alert. ${n} has crashed on a motorcycle and is not answering. Open MotoRoute to see the location.`);
   }
-  window.mrSpeakStop = function () { try { MR() && MR().stopSpeak(); } catch (e) {} };
+  window.mrSpeakStop = function () { try { MR() && MR().stopSpeak(); } catch (e) {} try { MR() && MR().stopSiren && MR().stopSiren(); } catch (e) {} };
 
-  function handle(d) {
+  /* test-47 : la sirène et la lecture vocale sont jouées par le service Android (même app fermée).
+     Ici : afficher l'alerte ; si on vient de toucher l'alerte (tapped), couper la sirène et lire le message une fois. */
+  function handle(d, tapped) {
     if (!d || d.type !== 'sos') return;
     const lat = d.lat !== '' && d.lat != null ? +d.lat : null, lng = d.lng !== '' && d.lng != null ? +d.lng : null;
     const a = { user_id: d.uid || ('push-' + (d.who || d.from || '')), first_name: d.who || d.from, kind: 'chute', msg: d.msg || '', lat, lng,
       created_at: new Date(+d.at || Date.now()).toISOString(), voice: true };
     try { window.mrSosReceive && window.mrSosReceive(a); } catch (e) {}
-    try { MR() && MR().speak({ say: sayText(d), lang: L(), repeat: 3 }); } catch (e) {}
+    if (tapped) {
+      try { MR() && MR().stopSiren && MR().stopSiren(); } catch (e) {}
+      try { MR() && MR().speak({ say: sayText(d), lang: L(), repeat: 1 }); } catch (e) {}
+    }
   }
+  /* alerte touchée dans la barre de notifications (app fermée ou en arrière-plan) */
+  async function takeSos() {
+    const P = MR(); if (!P || !P.takeSos) return;
+    try { const r = await P.takeSos(); if (r && r.data) handle(JSON.parse(r.data), true); } catch (e) {}
+  }
+  setTimeout(takeSos, 1500); setInterval(takeSos, 2500);
+  try { const A = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App; if (A) A.addListener('resume', () => setTimeout(takeSos, 300)); } catch (e) {}
 
   /* ---------- Enregistrement du téléphone ---------- */
   let regUser = null, regAt = 0, listening = false;
@@ -52,7 +64,7 @@
         });
         P.addListener('registrationError', e => { try { window.Sentry && Sentry.captureMessage('Notifications : enregistrement refusé'); } catch (x) {} });
         P.addListener('pushNotificationReceived', n => handle(n && n.data));
-        P.addListener('pushNotificationActionPerformed', a => handle(a && a.notification && a.notification.data));
+        P.addListener('pushNotificationActionPerformed', a => handle(a && a.notification && a.notification.data, true));
       }
       let p = await P.checkPermissions();
       if (p.receive === 'prompt' || p.receive === 'prompt-with-rationale') p = await P.requestPermissions();
@@ -126,14 +138,33 @@
       `<div class="meta" style="margin-top:8px">👁️ <b>${W('Veiller sur un motard', 'حراسة دراج', 'Watch over a rider')}</b></div>` +
       `<div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><input id="mr_gcode" maxlength="6" placeholder="${W('Code à 6 lettres', 'رمز من 6 أحرف', '6-letter code')}" style="text-transform:uppercase;max-width:150px"><button class="g" data-gjoin="1">${W('Valider', 'تأكيد', 'Confirm')}</button></div>` +
       (rs.length ? `<div class="meta">${W('Je veille sur', 'أحرس', 'I watch over')} : ${rs.map(chip).join('')}</div>` : '') +
+      (native() && window.MR_FCM ? `<div class="meta" id="mr_gstate"></div>` : '') +
       (native() && !window.MR_FCM ? `<div class="meta" style="color:#ff6b6b">${W('Cette version ne reçoit pas encore les alertes : installe la prochaine version.', 'هذه النسخة لا تستقبل التنبيهات بعد.', 'This version cannot receive alerts yet.')}</div>` : '') +
       (!native() ? `<div class="meta">${W('Sur iPhone / navigateur, les alertes arrivent seulement quand MotoRoute est ouvert.', 'على آيفون أو المتصفح تصل التنبيهات فقط والتطبيق مفتوح.', 'On iPhone / browser, alerts only arrive while MotoRoute is open.')}</div>` : '');
+    fillState();
     const inp = document.getElementById('mr_gcode');
     if (inp && gVal) { inp.value = gVal; }
     if (inp && gFocus) { try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {} }
   }
+  /* test-47 : ce téléphone peut-il recevoir la sirène ? (notifications, canal sirène, économie de batterie) */
+  let stAt = 0, stHtml = '';
+  async function fillState() {
+    const el = document.getElementById('mr_gstate'), P = MR(); if (!el || !P || !P.alertState) return;
+    if (Date.now() - stAt > 15000) {
+      stAt = Date.now();
+      try {
+        const r = await P.alertState(), ok = r.notif && r.channel;
+        stHtml = `📲 <b>${W('Ce téléphone', 'هذا الهاتف', 'This phone')}</b> : ` +
+          (ok ? '✅ ' + W('peut recevoir la sirène', 'يمكنه استقبال الصفارة', 'can receive the siren') : '❌ ' + W('notifications MotoRoute bloquées : la sirène ne peut pas sonner ici', 'إشعارات MotoRoute محظورة: لن ترن الصفارة هنا', 'MotoRoute notifications blocked: the siren cannot ring here') + ` <button class="g" data-gset="1">${W('Autoriser', 'السماح', 'Allow')}</button>`) +
+          (r.battery ? '' : `<br>🔋 ${W('Économie de batterie active : Android peut bloquer la sirène quand MotoRoute est fermée.', 'توفير البطارية مفعّل: قد يمنع أندرويد الصفارة والتطبيق مغلق.', 'Battery saver is on: Android may block the siren while MotoRoute is closed.')} <button class="g" data-gbatt="1">${W('Mettre « Sans restriction »', 'اجعلها «بدون قيود»', 'Set to “Unrestricted”')}</button>`);
+      } catch (e) { stHtml = ''; }
+    }
+    const e2 = document.getElementById('mr_gstate'); if (e2) e2.innerHTML = stHtml;
+  }
   document.addEventListener('click', async e => {
     const t = e.target;
+    if (t.closest && t.closest('[data-gbatt]')) { try { await MR().openBattery(); } catch (x) {} stAt = 0; return; }
+    if (t.closest && t.closest('[data-gset]')) { try { await MR().openSettings(); } catch (x) {} stAt = 0; return; }
     if (t.closest && t.closest('[data-gtest]')) {
       if (!confirm(W('Le téléphone de tes anges gardiens va sonner avec une alerte marquée TEST. Continuer ?', 'سيرن هاتف ملائكتك الحارسة بتنبيه مكتوب عليه تجربة. متابعة؟', 'Your guardian angels’ phones will ring with an alert marked TEST. Continue?'))) return;
       const o = document.getElementById('mr_gtst'); if (o) o.textContent = '…';

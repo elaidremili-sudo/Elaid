@@ -416,3 +416,397 @@ let man3 = fs.readFileSync(path, 'utf8');
 if (!man3.includes('android.permission.POST_NOTIFICATIONS')) man3 = man3.replace('</manifest>', '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>');
 if (!man3.includes('default_notification_channel_id')) man3 = man3.replace('</application>', '        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="sos_alarm" />\n    </application>');
 fs.writeFileSync(path, man3);
+
+// ---------------------------------------------------------------------------------------------
+// test-47 (22/10) : sirène ange gardien même application fermée.
+// Avant : le serveur envoyait une notification « classique » ; app fermée, c'est Android qui l'affichait,
+// avec le canal « sos_alarm » tel qu'il avait été créé la première fois (un canal Android ne change plus
+// jamais de son ensuite) → simple notification, pas de sirène. Désormais le serveur envoie un message
+// « données seules » prioritaire : notre propre service le reçoit même app fermée, affiche l'alerte et
+// joue lui-même la sirène sur le canal ALARME (sonne même en mode silencieux / vibreur), puis lit le
+// message à voix haute. Toucher l'alerte ouvre MotoRoute sur la position ; bouton « Arrêter la sirène ».
+// ---------------------------------------------------------------------------------------------
+fs.writeFileSync(javaDir + '/MrSosService.java', `package com.motoroute.app;
+
+import androidx.annotation.NonNull;
+import com.google.firebase.messaging.RemoteMessage;
+import java.util.Map;
+
+// Remplace le service de Capacitor : transmet tout à l'app (comme avant), et déclenche la sirène pour un SOS
+public class MrSosService extends com.capacitorjs.plugins.pushnotifications.MessagingService {
+    @Override
+    public void onMessageReceived(@NonNull RemoteMessage m) {
+        super.onMessageReceived(m);
+        Map<String, String> d = m.getData();
+        if (d != null && "sos".equals(d.get("type"))) MrSirenService.start(getApplicationContext(), d);
+    }
+}
+`);
+
+fs.writeFileSync(javaDir + '/MrSirenService.java', `package com.motoroute.app;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ServiceInfo;
+import android.content.res.AssetFileDescriptor;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import java.util.Locale;
+import java.util.Map;
+import org.json.JSONObject;
+
+public class MrSirenService extends Service {
+    public static final String CH = "mr_sos_siren_v2";      // alerte, sans son (la sirène est jouée par le service)
+    public static final String CH_SOUND = "mr_sos_sound_v2"; // secours : alerte avec le son de sirène du canal
+    public static volatile String pending = null;            // alerte touchée, en attente d'être affichée par l'app
+    private static MrSirenService current = null;
+
+    private MediaPlayer mp;
+    private TextToSpeech tts;
+    private final Handler h = new Handler(Looper.getMainLooper());
+    private AudioManager am;
+    private int savedVol = -1;
+    private int nid = 7000;
+    private boolean done = false;
+
+    private static AudioAttributes alarmAttr(int content) {
+        return new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(content).build();
+    }
+
+    public static void channels(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        if (nm.getNotificationChannel(CH) == null) {
+            NotificationChannel ch = new NotificationChannel(CH, "Alertes SOS (sirène)", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("Alerte quand un proche ou un membre de ton groupe chute. La sirène est jouée par MotoRoute.");
+            ch.setSound(null, null);
+            ch.enableVibration(true);
+            ch.setVibrationPattern(new long[] { 0, 900, 400, 900, 400, 900, 400, 900 });
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            ch.setBypassDnd(true);
+            nm.createNotificationChannel(ch);
+        }
+        if (nm.getNotificationChannel(CH_SOUND) == null) {
+            NotificationChannel ch = new NotificationChannel(CH_SOUND, "Alertes SOS (secours)", NotificationManager.IMPORTANCE_HIGH);
+            ch.setSound(Uri.parse("android.resource://" + c.getPackageName() + "/" + R.raw.sos_alarm), alarmAttr(AudioAttributes.CONTENT_TYPE_SONIFICATION));
+            ch.enableVibration(true);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            ch.setBypassDnd(true);
+            nm.createNotificationChannel(ch);
+        }
+    }
+
+    public static void start(Context c, Map<String, String> d) {
+        String data = new JSONObject(d).toString();
+        Intent i = new Intent(c, MrSirenService.class).putExtra("data", data);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+        } catch (Exception e) {
+            fallback(c, data);
+        }
+    }
+
+    // Si Android refuse de lancer le service : notification avec le son de sirène du canal
+    static void fallback(Context c, String data) {
+        try {
+            channels(c);
+            JSONObject j = new JSONObject(data);
+            NotificationManagerCompat.from(c).notify(idOf(j), build(c, j, CH_SOUND, false));
+        } catch (Exception e) {}
+    }
+
+    static int idOf(JSONObject j) { return 7000 + (j.optString("uid", "x").hashCode() & 0xfff); }
+
+    static PendingIntent openIntent(Context c, String data, int code) {
+        Intent o = new Intent(c, MainActivity.class).putExtra("mr_sos", data)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        return PendingIntent.getActivity(c, code, o, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    static Notification build(Context c, JSONObject j, String channel, boolean stopBtn) {
+        String title = j.optString("title", "🚨 MotoRoute : alerte SOS");
+        String body = j.optString("body", "");
+        if (body.isEmpty()) body = j.optString("msg", "");
+        if (body.isEmpty()) body = "Touche pour voir sa position.";
+        int id = idOf(j);
+        NotificationCompat.Builder b = new NotificationCompat.Builder(c, channel)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(0xFFFF3B30)
+            .setAutoCancel(true)
+            .setContentIntent(openIntent(c, j.toString(), id))
+            .addAction(0, "Voir la position", openIntent(c, j.toString(), id + 1));
+        if (stopBtn) {
+            PendingIntent stop = PendingIntent.getService(c, id + 2, new Intent(c, MrSirenService.class).setAction("stop"),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            b.addAction(0, "Arrêter la sirène", stop);
+        }
+        return b.build();
+    }
+
+    public static void stopAll() {
+        final MrSirenService s = current;
+        if (s != null) new Handler(Looper.getMainLooper()).post(new Runnable() { public void run() { s.finish(); } });
+    }
+
+    @Override
+    public IBinder onBind(Intent i) { return null; }
+
+    @Override
+    public int onStartCommand(Intent i, int flags, int startId) {
+        if (i != null && "stop".equals(i.getAction())) {
+            if (current != null) current.finish(); else stopSelf();
+            return START_NOT_STICKY;
+        }
+        String data = i == null ? null : i.getStringExtra("data");
+        JSONObject j;
+        try { j = new JSONObject(data == null ? "{}" : data); } catch (Exception e) { j = new JSONObject(); }
+        channels(this);
+        if (current != null && current != this) current.finish();
+        nid = idOf(j);
+        Notification n = build(this, j, CH, true);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) startForeground(nid, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
+            else startForeground(nid, n);
+        } catch (Exception e) {
+            fallback(this, j.toString());
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        current = this;
+        done = false;
+        siren(j);
+        return START_NOT_STICKY;
+    }
+
+    // Android 15 : un service court doit s'arrêter au bout de 3 minutes
+    public void onTimeout(int startId) { finish(); }
+    public void onTimeout(int startId, int type) { finish(); }
+
+    private void siren(final JSONObject j) {
+        am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        try {
+            if (am != null) {
+                savedVol = am.getStreamVolume(AudioManager.STREAM_ALARM);
+                int max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                am.setStreamVolume(AudioManager.STREAM_ALARM, Math.max(savedVol, (int) Math.ceil(max * 0.9)), 0);
+            }
+        } catch (Exception e) {}
+        try {
+            mp = new MediaPlayer();
+            mp.setAudioAttributes(alarmAttr(AudioAttributes.CONTENT_TYPE_SONIFICATION));
+            AssetFileDescriptor afd = getResources().openRawResourceFd(R.raw.sos_alarm);
+            mp.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            afd.close();
+            mp.setLooping(true);
+            mp.prepare();
+            mp.start();
+        } catch (Exception e) {
+            // pas de lecteur : on montre au moins l'alerte avec le son du canal de secours
+            fallback(this, j.toString());
+        }
+        // 24 s de sirène, puis le message lu à voix haute (2 fois)
+        h.postDelayed(new Runnable() { public void run() { stopPlayer(); speak(j); } }, 24000);
+        h.postDelayed(new Runnable() { public void run() { finish(); } }, 90000);
+    }
+
+    private void speak(JSONObject j) {
+        final String say = j.optString("say", "");
+        if (say.isEmpty() || done) { finish(); return; }
+        String lg = j.optString("lang", "fr");
+        final String lang = "ar".equals(lg) ? "ar" : "en".equals(lg) ? "en" : "fr";
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            public void onInit(int st) {
+                if (st != TextToSpeech.SUCCESS || tts == null || done) { finish(); return; }
+                try {
+                    int r = tts.setLanguage(Locale.forLanguageTag(lang));
+                    if (r < 0) tts.setLanguage(Locale.FRENCH);
+                    tts.setSpeechRate(0.9f);
+                    tts.setAudioAttributes(alarmAttr(AudioAttributes.CONTENT_TYPE_SPEECH));
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                        public void onStart(String id) {}
+                        public void onDone(String id) { if ("mr-fin".equals(id)) h.post(new Runnable() { public void run() { finish(); } }); }
+                        public void onError(String id) { h.post(new Runnable() { public void run() { finish(); } }); }
+                    });
+                    tts.speak(say, TextToSpeech.QUEUE_FLUSH, null, "mr-1");
+                    tts.playSilentUtterance(1500, TextToSpeech.QUEUE_ADD, "mr-pause");
+                    tts.speak(say, TextToSpeech.QUEUE_ADD, null, "mr-fin");
+                } catch (Exception e) { finish(); }
+            }
+        });
+    }
+
+    private void stopPlayer() {
+        try { if (mp != null) { mp.stop(); mp.release(); } } catch (Exception e) {}
+        mp = null;
+    }
+
+    void finish() {
+        if (done) return;
+        done = true;
+        h.removeCallbacksAndMessages(null);
+        stopPlayer();
+        try { if (tts != null) { tts.stop(); tts.shutdown(); } } catch (Exception e) {}
+        tts = null;
+        try { if (am != null && savedVol >= 0) am.setStreamVolume(AudioManager.STREAM_ALARM, savedVol, 0); } catch (Exception e) {}
+        // l'alerte reste affichée (on enlève seulement le bouton « Arrêter la sirène » en la reposant)
+        try {
+            if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false);
+        } catch (Exception e) {}
+        if (current == this) current = null;
+        stopSelf();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (!done) finish();
+        super.onDestroy();
+    }
+}
+`);
+
+// MainActivity : garde l'alerte touchée pour l'app, et coupe la sirène quand on ouvre l'alerte
+fs.writeFileSync(mainPath, `package com.motoroute.app;
+
+import android.content.Intent;
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(MrSmsPlugin.class);
+        super.onCreate(savedInstanceState);
+        keepSos(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        keepSos(intent);
+    }
+
+    private void keepSos(Intent i) {
+        if (i == null) return;
+        String d = i.getStringExtra("mr_sos");
+        if (d != null) {
+            MrSirenService.pending = d;
+            MrSirenService.stopAll();
+            i.removeExtra("mr_sos");
+        }
+    }
+}
+`);
+
+// Module MrSms : l'app récupère l'alerte touchée (takeSos) et peut couper la sirène (stopSiren)
+{
+  const pp = javaDir + '/MrSmsPlugin.java';
+  let src = fs.readFileSync(pp, 'utf8');
+  const anchor = '    @PluginMethod\n    public void stopSpeak(PluginCall call) { stopVoice(); call.resolve(); }';
+  if (!src.includes(anchor)) throw new Error('patch-android : ancre stopSpeak introuvable');
+  src = src.replace(anchor, `    @PluginMethod
+    public void stopSpeak(PluginCall call) { stopVoice(); MrSirenService.stopAll(); call.resolve(); }
+
+    @PluginMethod
+    public void stopSiren(PluginCall call) { MrSirenService.stopAll(); call.resolve(); }
+
+    @PluginMethod
+    public void takeSos(PluginCall call) {
+        String d = MrSirenService.pending;
+        MrSirenService.pending = null;
+        JSObject r = new JSObject();
+        r.put("data", d);
+        call.resolve(r);
+    }
+
+    // État des alertes sur ce téléphone (notifications autorisées, canal sirène actif, économie de batterie)
+    @PluginMethod
+    public void alertState(PluginCall call) {
+        Context c = getContext();
+        MrSirenService.channels(c);
+        JSObject r = new JSObject();
+        r.put("notif", androidx.core.app.NotificationManagerCompat.from(c).areNotificationsEnabled());
+        boolean chOk = true;
+        if (Build.VERSION.SDK_INT >= 26) {
+            android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            android.app.NotificationChannel ch = nm == null ? null : nm.getNotificationChannel(MrSirenService.CH);
+            chOk = ch != null && ch.getImportance() != android.app.NotificationManager.IMPORTANCE_NONE;
+        }
+        r.put("channel", chOk);
+        boolean batt = true;
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(Context.POWER_SERVICE);
+            if (pm != null && Build.VERSION.SDK_INT >= 23) batt = pm.isIgnoringBatteryOptimizations(c.getPackageName());
+        } catch (Exception e) {}
+        r.put("battery", batt);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void openBattery(PluginCall call) {
+        try {
+            Intent i = new Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(i);
+            } catch (Exception x) {}
+        }
+        call.resolve();
+    }`);
+  fs.writeFileSync(pp, src);
+}
+
+// Manifeste : notre service remplace celui de Capacitor ; service de sirène ; pas de sauvegarde Android
+{
+  let m = fs.readFileSync(path, 'utf8');
+  if (!m.includes('xmlns:tools=')) m = m.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ');
+  for (const p of ['android.permission.FOREGROUND_SERVICE', 'android.permission.WAKE_LOCK']) {
+    if (!m.includes(`"${p}"`)) m = m.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
+  }
+  if (!m.includes('MrSosService')) m = m.replace('</application>', `        <service android:name="com.capacitorjs.plugins.pushnotifications.MessagingService" tools:node="remove" />
+        <service android:name=".MrSosService" android:exported="false">
+            <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
+        </service>
+        <service android:name=".MrSirenService" android:exported="false" android:foregroundServiceType="shortService" />
+    </application>`);
+  // test-47 : la sauvegarde Android restaurait d'anciens réglages (dont « présentation déjà vue ») à la réinstallation
+  m = m.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
+  if (!m.includes('android:allowBackup')) m = m.replace(/<application /, '<application android:allowBackup="false" ');
+  m = m.replace('android:value="sos_alarm" />', 'android:value="mr_sos_sound_v2" />');
+  fs.writeFileSync(path, m);
+  console.log('Sirène : service natif MrSosService + MrSirenService (alarme même app fermée)');
+}
+
+// MrSosService a besoin de Firebase Messaging à la compilation (le module Capacitor ne l'expose pas à l'app)
+{
+  let gr = fs.readFileSync(gradlePath, 'utf8');
+  if (!gr.includes('firebase-messaging')) {
+    gr = gr.replace(/dependencies\s*\{/, 'dependencies {\n    implementation "com.google.firebase:firebase-messaging:24.1.0"');
+    fs.writeFileSync(gradlePath, gr);
+  }
+}
