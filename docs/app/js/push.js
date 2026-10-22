@@ -94,20 +94,26 @@
     setTimeout(fillGuard, 30);
     return `<div class="meta" id="mr_guard" style="margin:8px 0;padding:10px;border-radius:10px;border:1px solid var(--line,#444)">🛡️ <b>${W('Mes anges gardiens', 'ملائكتي الحارسة', 'My guardian angels')}</b><div class="meta">${W('Chargement…', 'جارٍ التحميل…', 'Loading…')}</div></div>`;
   };
-  let code = null;
-  async function fillGuard() {
+  let code = null, gList = null, gAt = 0, gVal = '', gFocus = false;
+  /* test-44 : l'écran se redessine souvent (GPS…) : la carte était refaite à chaque fois et le code tapé était effacé
+     avant d'appuyer sur « Valider » (mr_guard_join n'était jamais appelé). On garde ce qui est tapé et on recharge la liste au plus toutes les 20 s. */
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'mr_gcode') gVal = e.target.value; });
+  document.addEventListener('focusin', e => { if (e.target && e.target.id === 'mr_gcode') gFocus = true; });
+  document.addEventListener('focusout', e => { if (e.target && e.target.id === 'mr_gcode') gFocus = false; });
+  async function fillGuard(force) {
     const el = document.getElementById('mr_guard'); if (!el) return;
     const c = sb(), u = me();
     const head = `🛡️ <b>${W('Mes anges gardiens', 'ملائكتي الحارسة', 'My guardian angels')}</b>`;
     if (!c || !u) { el.innerHTML = head + `<div class="meta">${W('Connecte-toi pour que tes proches reçoivent une sirène si tu chutes.', 'سجّل الدخول ليصل تنبيه صوتي لمقربيك عند السقوط.', 'Sign in so your close ones get a siren if you crash.')}</div>`; return; }
-    let list = [];
+    let list = gList || [];
     try {
       if (!code) { const r = await c.rpc('mr_my_guard_code'); if (!r.error) code = r.data; }
-      const l = await c.rpc('mr_guard_list'); if (!l.error) list = l.data || [];
+      if (force || !gList || Date.now() - gAt > 20000) { const l = await c.rpc('mr_guard_list'); if (!l.error) { list = gList = l.data || []; gAt = Date.now(); } }
     } catch (e) {}
+    const elNow = document.getElementById('mr_guard'); if (!elNow) return;
     const gs = list.filter(x => x.kind === 'g'), rs = list.filter(x => x.kind === 'r');
     const chip = x => `<span style="display:inline-block;margin:3px 4px 0 0;padding:3px 8px;border-radius:999px;border:1px solid var(--line,#555)">${ESC(x.first_name)} <a href="#" data-gdel="${ESC(x.kind)}:${ESC(x.other_id)}" style="text-decoration:none">✕</a></span>`;
-    el.innerHTML = head +
+    elNow.innerHTML = head +
       `<div class="meta">${W('Ils reçoivent une <b>sirène + lecture vocale</b> sur leur téléphone si tu chutes (gratuit, il faut internet). Ils doivent avoir MotoRoute Android et un compte.', 'يصلهم <b>صفارة وقراءة صوتية</b> عند سقوطك (مجاني، يحتاج إنترنت). يجب أن يكون لديهم MotoRoute أندرويد وحساب.', 'They get a <b>siren + spoken alert</b> on their phone if you crash (free, needs internet). They need MotoRoute Android and an account.')}</div>` +
       (code ? `<div style="margin:6px 0;font-size:22px;font-weight:800;letter-spacing:3px">${ESC(code)}</div><div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="p" data-gshare="1">📤 ${W('Envoyer mon code', 'إرسال رمزي', 'Send my code')}</button></div>` : `<div class="meta">${W('Code indisponible (serveur pas encore prêt).', 'الرمز غير متوفر.', 'Code unavailable.')}</div>`) +
       `<div class="meta" style="margin-top:6px">${W('Veillent sur moi', 'يحرسونني', 'Watching over me')} : ${gs.length ? gs.map(chip).join('') : '<b style="color:#ff6b6b">' + W('personne pour l’instant : en cas de chute, aucune sirène ne sonnera chez un proche.', 'لا أحد بعد: عند السقوط لن ترن الصفارة عند أي قريب.', 'nobody yet: after a crash, no siren will ring for anyone.') + '</b>'}</div>` +
@@ -117,6 +123,9 @@
       (rs.length ? `<div class="meta">${W('Je veille sur', 'أحرس', 'I watch over')} : ${rs.map(chip).join('')}</div>` : '') +
       (native() && !window.MR_FCM ? `<div class="meta" style="color:#ff6b6b">${W('Cette version ne reçoit pas encore les alertes : installe la prochaine version.', 'هذه النسخة لا تستقبل التنبيهات بعد.', 'This version cannot receive alerts yet.')}</div>` : '') +
       (!native() ? `<div class="meta">${W('Sur iPhone / navigateur, les alertes arrivent seulement quand MotoRoute est ouvert.', 'على آيفون أو المتصفح تصل التنبيهات فقط والتطبيق مفتوح.', 'On iPhone / browser, alerts only arrive while MotoRoute is open.')}</div>` : '');
+    const inp = document.getElementById('mr_gcode');
+    if (inp && gVal) { inp.value = gVal; }
+    if (inp && gFocus) { try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {} }
   }
   document.addEventListener('click', async e => {
     const t = e.target;
@@ -139,13 +148,13 @@
       return;
     }
     if (t.closest && t.closest('[data-gjoin]')) {
-      const v = ((document.getElementById('mr_gcode') || {}).value || '').trim().toUpperCase();
+      const v = (((document.getElementById('mr_gcode') || {}).value || gVal || '')).replace(/\s+/g, '').toUpperCase();
       if (!/^[A-Z2-9]{6}$/.test(v)) { alert(W('Le code fait 6 lettres ou chiffres.', 'الرمز من 6 أحرف أو أرقام.', 'The code has 6 letters or digits.')); return; }
       try {
         const r = await sb().rpc('mr_guard_join', { p_code: v });
         if (r.error) throw r.error;
         alert(W(`✅ Tu veilles maintenant sur ${r.data}. Si ${r.data} chute, ton téléphone sonnera.`, `✅ أنت الآن تحرس ${r.data}.`, `✅ You now watch over ${r.data}.`));
-        setup(); fillGuard();
+        gVal = ''; setup(); fillGuard(true);
       } catch (x) {
         const m = String(x && x.message || x);
         alert(/code-inconnu/.test(m) ? W('Code inconnu.', 'رمز غير معروف.', 'Unknown code.') : /propre/.test(m) ? W('C’est ton propre code 🙂', 'هذا رمزك 🙂', 'That is your own code 🙂') : W('Impossible pour l’instant (internet ?).', 'غير ممكن الآن.', 'Not possible right now.'));
@@ -160,7 +169,7 @@
         const q = sb().from('guardians').delete();
         await (k === 'g' ? q.eq('rider_id', u.id).eq('guardian_id', id) : q.eq('guardian_id', u.id).eq('rider_id', id));
       } catch (x) {}
-      fillGuard();
+      fillGuard(true);
     }
   });
 })();
