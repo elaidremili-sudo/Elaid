@@ -28,6 +28,7 @@
      Ici : afficher l'alerte ; si on vient de toucher l'alerte (tapped), couper la sirène et lire le message une fois. */
   function handle(d, tapped) {
     if (!d || d.type !== 'sos') return;
+    if (d.self === '1') { selfOk = Date.now(); const o = document.getElementById('mr_gself'); if (o) o.innerHTML = '✅ ' + W('<b>Reçu !</b> Ce téléphone reçoit bien les alertes de MotoRoute.', '<b>وصل!</b> هذا الهاتف يستقبل تنبيهات MotoRoute.', '<b>Received!</b> This phone gets MotoRoute alerts.'); if (!tapped) return; }
     const lat = d.lat !== '' && d.lat != null ? +d.lat : null, lng = d.lng !== '' && d.lng != null ? +d.lng : null;
     const a = { user_id: d.uid || ('push-' + (d.who || d.from || '')), first_name: d.who || d.from, kind: 'chute', msg: d.msg || '', lat, lng,
       created_at: new Date(+d.at || Date.now()).toISOString(), voice: true };
@@ -46,7 +47,7 @@
   try { const A = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App; if (A) A.addListener('resume', () => setTimeout(takeSos, 300)); } catch (e) {}
 
   /* ---------- Enregistrement du téléphone ---------- */
-  let regUser = null, regAt = 0, listening = false;
+  let regUser = null, regAt = 0, listening = false, selfOk = 0;
   async function setup() {
     const P = PN(), c = sb(), u = me();
     if (!P || !c || !u || (regUser === u.id && Date.now() - regAt < 30 * 60 * 1000)) return;
@@ -159,10 +160,27 @@
           (r.battery ? '' : `<br>🔋 ${W('Économie de batterie active : Android peut bloquer la sirène quand MotoRoute est fermée.', 'توفير البطارية مفعّل: قد يمنع أندرويد الصفارة والتطبيق مغلق.', 'Battery saver is on: Android may block the siren while MotoRoute is closed.')} <button class="g" data-gbatt="1">${W('Mettre « Sans restriction »', 'اجعلها «بدون قيود»', 'Set to “Unrestricted”')}</button>`);
       } catch (e) { stHtml = ''; }
     }
-    const e2 = document.getElementById('mr_gstate'); if (e2) e2.innerHTML = stHtml;
+    const e2 = document.getElementById('mr_gstate'); if (e2 && !e2.dataset.busy) e2.innerHTML = stHtml + `<div class="row" style="justify-content:flex-start"><button class="g" data-gself="1">📡 ${W('Tester la réception sur ce téléphone', 'تجربة الاستقبال على هذا الهاتف', 'Test reception on this phone')}</button></div><div class="meta" id="mr_gself"></div>`;
   }
   document.addEventListener('click', async e => {
     const t = e.target;
+    if (t.closest && t.closest('[data-gself]')) {
+      const box = document.getElementById('mr_gstate'); if (box) box.dataset.busy = '1';
+      const out = () => document.getElementById('mr_gself');
+      const t0 = Date.now(); selfOk = 0;
+      if (out()) out().textContent = W('⏳ Envoi par Google vers ce téléphone… (30 s max)', '⏳ إرسال عبر غوغل إلى هذا الهاتف…', '⏳ Sending through Google to this phone…');
+      const r = await window.mrPushSos({ test: true, self: true, msg: W('Test de réception', 'تجربة الاستقبال', 'Reception test'),
+        say: W('Test MotoRoute réussi. Ce téléphone reçoit bien la sirène.', 'نجحت تجربة موتوروت. هذا الهاتف يستقبل الصفارة.', 'MotoRoute test passed. This phone receives the siren.') });
+      if (!r || !r.ok || !r.sent) { if (out()) out().innerHTML = window.mrPushStatus(r || {}); if (box) delete box.dataset.busy; return; }
+      const wait = setInterval(() => {
+        if (selfOk >= t0) { clearInterval(wait); if (box) delete box.dataset.busy; return; }
+        if (Date.now() - t0 > 30000) {
+          clearInterval(wait); if (box) delete box.dataset.busy;
+          if (out()) out().innerHTML = '<span style="color:#ff6b6b">❌ ' + W('<b>Google a accepté l’alerte mais ce téléphone ne l’a pas reçue.</b> Le blocage est dans les réglages du téléphone (batterie, démarrage automatique, données en arrière-plan ou services Google).', '<b>قبلت غوغل التنبيه لكن الهاتف لم يستلمه.</b> المشكل في إعدادات الهاتف.', '<b>Google accepted the alert but this phone did not get it.</b> Something in the phone settings blocks it.') + '</span>';
+        }
+      }, 1000);
+      return;
+    }
     if (t.closest && t.closest('[data-gbatt]')) { try { await MR().openBattery(); } catch (x) {} stAt = 0; return; }
     if (t.closest && t.closest('[data-gset]')) { try { await MR().openSettings(); } catch (x) {} stAt = 0; return; }
     if (t.closest && t.closest('[data-gtest]')) {

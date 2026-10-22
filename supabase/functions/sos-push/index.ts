@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
 
     const b = await req.json().catch(() => ({}));
     const test = b.test === true;
+    // 22/10 (test-48) : test de réception sur son propre téléphone (diagnostic, n'alerte personne d'autre)
+    const self = b.self === true;
     const msg = String(b.msg || "").slice(0, 400);
     const lat = Number.isFinite(+b.lat) ? String(+b.lat) : "";
     const lng = Number.isFinite(+b.lng) ? String(+b.lng) : "";
@@ -98,6 +100,7 @@ Deno.serve(async (req) => {
       for (const m of mem || []) if ((m.status || "active") === "active") ids.add(m.user_id);
     }
     ids.delete(me);
+    if (self) { ids.clear(); ids.add(me); }
     const list = [...ids].slice(0, 300);
     if (!list.length) {
       await admin.from("sos_push_log").insert({ user_id: me, sent: 0 });
@@ -126,7 +129,7 @@ Deno.serve(async (req) => {
             // par Android lui-même quand l'app était fermée → simple notification, sans sirène. Maintenant le service
             // MrSosService de l'app le reçoit même app fermée et joue la sirène sur le canal alarme.
             // "from" est un mot réservé par Firebase (refus « Invalid data payload key: from ») → "who"
-            data: { type: "sos", uid: me, who: name, msg, lat, lng, test: test ? "1" : "0", say: speak, title, body, lang: lg, at: String(Date.now()) },
+            data: { type: "sos", uid: me, self: self ? "1" : "0", who: name, msg, lat, lng, test: test ? "1" : "0", say: speak, title, body, lang: lg, at: String(Date.now()) },
             android: { priority: "HIGH", ttl: "3600s" },
           },
         }),
