@@ -100,6 +100,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.telephony.SmsManager;
+import android.telephony.SmsMessage;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import androidx.core.content.ContextCompat;
@@ -148,6 +149,19 @@ public class MrSmsPlugin extends Plugin {
         return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     }
 
+    // test-41 : nom de la SIM utilisée (opérateur + emplacement) pour l'afficher au motard
+    private String simLabel(int sub) {
+        try {
+            if (sub == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return "";
+            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_PHONE_STATE) != android.content.pm.PackageManager.PERMISSION_GRANTED) return "";
+            SubscriptionManager sm = (SubscriptionManager) getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            SubscriptionInfo i = sm == null ? null : sm.getActiveSubscriptionInfo(sub);
+            if (i == null) return "";
+            CharSequence c = i.getCarrierName();
+            return "SIM " + (i.getSimSlotIndex() + 1) + (c != null && c.length() > 0 ? " (" + c + ")" : "");
+        } catch (Exception e) { return ""; }
+    }
+
     private SmsManager managerFor(int sub) {
         SmsManager base = Build.VERSION.SDK_INT >= 31 ? getContext().getSystemService(SmsManager.class) : SmsManager.getDefault();
         if (sub == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return base;
@@ -178,9 +192,26 @@ public class MrSmsPlugin extends Plugin {
             @Override public void onReceive(Context c, Intent i) {
                 JSObject d = new JSObject();
                 d.put("to", to);
-                d.put("ok", getResultCode() == Activity.RESULT_OK);
+                // test-41 : le vrai statut est dans le rapport de l'opérateur (PDU), pas dans getResultCode()
+                int st = -1;
+                try {
+                    byte[] pdu = i.getByteArrayExtra("pdu");
+                    String fmt = i.getStringExtra("format");
+                    if (pdu != null) {
+                        SmsMessage m = Build.VERSION.SDK_INT >= 23 ? SmsMessage.createFromPdu(pdu, fmt) : SmsMessage.createFromPdu(pdu);
+                        if (m != null) st = m.getStatus();
+                    }
+                } catch (Exception e) {}
+                boolean gsm = !"3gpp2".equals(i.getStringExtra("format"));
+                String state;
+                if (st < 0) state = "inconnu";
+                else if (gsm) state = st == 0 ? "recu" : (st >= 64 ? "echec" : "en-attente");
+                else state = (st >> 16) == 0 ? "recu" : ((st >> 16) == 2 || (st >> 16) == 3 ? "echec" : "en-attente");
+                d.put("ok", "recu".equals(state));
+                d.put("state", state);
+                d.put("status", st);
                 notifyListeners("smsDelivered", d);
-                try { ctx.unregisterReceiver(this); } catch (Exception e) {}
+                if (!"en-attente".equals(state)) { try { ctx.unregisterReceiver(this); } catch (Exception e) {} }
             }
         };
         final BroadcastReceiver sent = new BroadcastReceiver() {
@@ -192,14 +223,14 @@ public class MrSmsPlugin extends Plugin {
                     done[0] = true;
                     try { ctx.unregisterReceiver(this); } catch (Exception e) {}
                     if (firstErr[0] == Activity.RESULT_OK) {
-                        JSObject r = new JSObject(); r.put("parts", n); r.put("sim", sub); call.resolve(r);
-                    } else call.reject(why(firstErr[0]));
+                        JSObject r = new JSObject(); r.put("parts", n); r.put("sim", sub); r.put("simName", simLabel(sub)); call.resolve(r);
+                    } else { String sl = simLabel(sub); call.reject(why(firstErr[0]) + (sl.isEmpty() ? "" : " · " + sl)); }
                 }
             }
         };
         ContextCompat.registerReceiver(ctx, sent, new IntentFilter(aSent), ContextCompat.RECEIVER_NOT_EXPORTED);
         ContextCompat.registerReceiver(ctx, deliv, new IntentFilter(aDeliv), ContextCompat.RECEIVER_NOT_EXPORTED);
-        int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+        int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0); // test-41 : MUTABLE obligatoire pour recevoir le rapport de remise (intent explicite vers notre app)
         ArrayList<PendingIntent> sIs = new ArrayList<>(), dIs = new ArrayList<>();
         for (int k = 0; k < n; k++) {
             sIs.add(PendingIntent.getBroadcast(ctx, k, new Intent(aSent).setPackage(ctx.getPackageName()), fl));

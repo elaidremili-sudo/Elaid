@@ -77,7 +77,8 @@
   };
   window.mrPushStatus = function (r) {
     if (r && r.ok) {
-      if (!r.recipients) return '🔔 ' + W('Aucun ange gardien ni membre de groupe à prévenir par notification.', 'لا يوجد من يُنبَّه بالإشعار.', 'Nobody to alert by notification.');
+      if (!r.recipients) return '<span style="color:#ff6b6b">' + W('🔕 <b>Personne n’a reçu la sirène</b> : aucun ange gardien relié et aucun membre dans tes groupes. Sur le téléphone de ton proche : Route → Détection de chute → « Veiller sur un motard » → entre ton code.', '🔕 <b>لم يتلقَّ أحد الصفارة</b>: لا يوجد ملاك حارس مرتبط ولا أعضاء في مجموعاتك. في هاتف قريبك: الطريق ← كشف السقوط ← «حراسة دراج» ← أدخل رمزك.', '🔕 <b>Nobody got the siren</b>: no guardian angel linked and nobody in your groups. On your close one’s phone: Route → Crash detection → “Watch over a rider” → enter your code.') + '</span>';
+      if (!r.sent) return '<span style="color:#ff6b6b">' + W(`🔕 ${r.recipients} personne(s) à prévenir, mais aucune n’a MotoRoute Android à jour et connecté : la sirène n’a sonné nulle part.`, `🔕 ${r.recipients} شخص للتنبيه لكن لا أحد لديه التطبيق المحدث: لم ترن الصفارة.`, `🔕 ${r.recipients} to alert, but none has an up-to-date signed-in MotoRoute Android: the siren rang nowhere.`) + '</span>';
       return '🔔 ' + W(`Alerte sonore envoyée à ${r.sent} téléphone${r.sent > 1 ? 's' : ''}`, `أُرسل تنبيه صوتي إلى ${r.sent} هاتف`, `Siren alert sent to ${r.sent} phone${r.sent > 1 ? 's' : ''}`) +
         (r.recipients > r.sent ? W(` (${r.recipients - r.sent} sans l'app Android à jour)`, ` (${r.recipients - r.sent} بدون التطبيق)`, ` (${r.recipients - r.sent} without the Android app)`) : '');
     }
@@ -109,7 +110,8 @@
     el.innerHTML = head +
       `<div class="meta">${W('Ils reçoivent une <b>sirène + lecture vocale</b> sur leur téléphone si tu chutes (gratuit, il faut internet). Ils doivent avoir MotoRoute Android et un compte.', 'يصلهم <b>صفارة وقراءة صوتية</b> عند سقوطك (مجاني، يحتاج إنترنت). يجب أن يكون لديهم MotoRoute أندرويد وحساب.', 'They get a <b>siren + spoken alert</b> on their phone if you crash (free, needs internet). They need MotoRoute Android and an account.')}</div>` +
       (code ? `<div style="margin:6px 0;font-size:22px;font-weight:800;letter-spacing:3px">${ESC(code)}</div><div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="p" data-gshare="1">📤 ${W('Envoyer mon code', 'إرسال رمزي', 'Send my code')}</button></div>` : `<div class="meta">${W('Code indisponible (serveur pas encore prêt).', 'الرمز غير متوفر.', 'Code unavailable.')}</div>`) +
-      `<div class="meta" style="margin-top:6px">${W('Veillent sur moi', 'يحرسونني', 'Watching over me')} : ${gs.length ? gs.map(chip).join('') : W('personne pour l’instant', 'لا أحد بعد', 'nobody yet')}</div>` +
+      `<div class="meta" style="margin-top:6px">${W('Veillent sur moi', 'يحرسونني', 'Watching over me')} : ${gs.length ? gs.map(chip).join('') : '<b style="color:#ff6b6b">' + W('personne pour l’instant : en cas de chute, aucune sirène ne sonnera chez un proche.', 'لا أحد بعد: عند السقوط لن ترن الصفارة عند أي قريب.', 'nobody yet: after a crash, no siren will ring for anyone.') + '</b>'}</div>` +
+      (gs.length ? `<div class="row" style="justify-content:flex-start"><button class="g" data-gtest="1">🔔 ${W('Tester la sirène chez eux', 'تجربة الصفارة عندهم', 'Test the siren on their phones')}</button></div><div class="meta" id="mr_gtst"></div>` : '') +
       `<div class="meta" style="margin-top:8px">👁️ <b>${W('Veiller sur un motard', 'حراسة دراج', 'Watch over a rider')}</b></div>` +
       `<div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><input id="mr_gcode" maxlength="6" placeholder="${W('Code à 6 lettres', 'رمز من 6 أحرف', '6-letter code')}" style="text-transform:uppercase;max-width:150px"><button class="g" data-gjoin="1">${W('Valider', 'تأكيد', 'Confirm')}</button></div>` +
       (rs.length ? `<div class="meta">${W('Je veille sur', 'أحرس', 'I watch over')} : ${rs.map(chip).join('')}</div>` : '') +
@@ -118,6 +120,15 @@
   }
   document.addEventListener('click', async e => {
     const t = e.target;
+    if (t.closest && t.closest('[data-gtest]')) {
+      if (!confirm(W('Le téléphone de tes anges gardiens va sonner avec une alerte marquée TEST. Continuer ?', 'سيرن هاتف ملائكتك الحارسة بتنبيه مكتوب عليه تجربة. متابعة؟', 'Your guardian angels’ phones will ring with an alert marked TEST. Continue?'))) return;
+      const o = document.getElementById('mr_gtst'); if (o) o.textContent = '…';
+      const nm = (typeof S !== 'undefined' && S.me && S.me.name) || '';
+      const r = await window.mrPushSos({ test: true, msg: W('TEST – ce n’est pas un vrai accident.', 'تجربة – ليست حادثًا حقيقيًا.', 'TEST – not a real accident.'), lat: null, lng: null,
+        say: W(`Ceci est un test MotoRoute. ${nm} vérifie que la sirène marche. Ce n'est pas un vrai accident.`, `هذه تجربة من موتوروت. ${nm} يتحقق من عمل الصفارة. ليست حادثًا حقيقيًا.`, `This is a MotoRoute test. ${nm} is checking that the siren works. This is not a real accident.`) });
+      if (o) o.innerHTML = window.mrPushStatus(r);
+      return;
+    }
     if (t.closest && t.closest('[data-gshare]')) {
       const txt = W(`Veille sur moi à moto avec MotoRoute 🛡️ : si je chute, ton téléphone sonne avec ma position. Dans MotoRoute (onglet Route → Détection de chute → « Veiller sur un motard »), entre mon code : ${code}`,
         `احرسني في رحلاتي مع MotoRoute 🛡️: إذا سقطت يرن هاتفك مع موقعي. في MotoRoute (الطريق ← كشف السقوط ← «حراسة دراج») أدخل رمزي: ${code}`,

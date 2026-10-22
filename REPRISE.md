@@ -1,6 +1,30 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 20 octobre 2026, 18 h 10 — test-40 en fabrication (alertes sonores Firebase + anges gardiens), branche `alertes-sonores` fusionnée dans main.**
+**Point de reprise : 22 octobre 2026 — test-41 (inclinaison fiabilisée, SOS : vrais rapports SMS, boutons de test, sirène vérifiée côté serveur).**
+
+## ✅ test-41 (22/10) — retours d'Elaid sur test-40
+**Constats d'Elaid** : en voiture sur autoroute, inclinaison jusqu'à 71° sans pencher le téléphone ; SOS testé avec le 2ᵉ téléphone : l'appel part mais le contact n'entend pas la voix, le SMS n'arrive jamais, la sirène ne sonne pas.
+
+**Diagnostic serveur (Claude, via les connecteurs Supabase)** :
+- Clé Firebase OK, jeton Google OK, jetons des 2 téléphones (Elaid, Ali) **valides** (contrôle FCM « validate_only », aucune notification envoyée).
+- La sirène n'a pas sonné car **personne n'était relié** : 0 ange gardien, et les comptes Elaid/Ali ne sont dans aucun groupe commun → la fonction `sos-push` a répondu « 0 destinataire » (journal du 20/10, 21 h 11).
+- Fonction temporaire `fcm-check` désactivée (renvoie 410) → **à supprimer** dans Supabase → Edge Functions (le connecteur ne sait pas supprimer).
+
+**Inclinaison** : 71° = plafond du calcul (asin 0,95). Causes : axe de calibrage resté celui du support moto alors que le téléphone était posé autrement dans la voiture, vibrations amplifiées par la vitesse. Corrections : axe vertical suivi en continu (plus besoin de recalibrer), gyroscope lissé et limité à 50°/s, contrôle par le virage mesuré au GPS (≤ angle GPS + 10° sauf virage franc et régulier au gyroscope), dérive du gyroscope apprise en ligne droite, plafond 62°, zone morte < 4°.
+Simulation (avant → après) : voiture tout droit 120 km/h avec vibrations 44° → 4,5° max (0° affiché) ; courbe d'autoroute r = 800 m : 40° → 8° (angle physique 8°) ; moto virage 25,3° → 25,2° ; virage 34,3° → 34,3° ; entrée de virage : 25° atteint en ≈ 2 s comme avant.
+
+**SOS** :
+- Voix pendant l'appel GSM : impossible (Android). Textes corrigés : l'appel fait sonner le contact, la voix arrive chez lui par la **sirène ange gardien**.
+- SMS : l'ancien « 📬 reçu » était faux (il ne lisait pas le rapport de l'opérateur, et Android 12+ retirait ce rapport à cause de FLAG_IMMUTABLE). Maintenant : vrai statut (remis / échec / en attente / pas de rapport → vérifier Spam ou Messages bloqués) et **nom de la SIM utilisée** (ex. « SIM 2 (Mobilis) »).
+- Nouveau bouton **📩 Tester le SMS** (SMS simple sans GPS) et **🔔 Tester la sirène chez eux** (carte Anges gardiens).
+- Écran SOS : message rouge clair quand personne n'a reçu la sirène.
+
+**À tester par Elaid (2 téléphones)** :
+1. Installer test-41 sur les deux.
+2. Sur le 2ᵉ téléphone (compte Ali) : Route → Détection de chute → « Veiller sur un motard » → entrer le code d'Elaid.
+3. Sur le téléphone d'Elaid : « 🔔 Tester la sirène chez eux » → le 2ᵉ téléphone doit sonner et lire le message.
+4. « 📩 Tester le SMS » : noter la SIM affichée et le rapport de l'opérateur ; regarder aussi Spam / Bloqués sur le 2ᵉ téléphone.
+5. Trajet en voiture puis à moto : inclinaison proche de 0° en ligne droite.
 
 ## 🚧 En cours (20/10, 17 h 55) — Alertes sonores gratuites + « anges gardiens »
 Constats : SMS remis (accusé de réception) mais pas vu par le contact → filtré chez lui (Spam / Bloqués / Expéditeurs inconnus) ; voix pendant l'appel GSM impossible (Android interdit d'injecter du son, l'anti-écho efface le haut-parleur). Aucun service d'appel gratuit durable (essai Twilio : 30 jours, 5 numéros).
