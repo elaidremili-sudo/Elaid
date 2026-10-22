@@ -1638,21 +1638,21 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
    Ses publications et changements d'informations restent « en attente » jusqu'à la validation d'un administrateur.
    Les administrateurs (comptes d'Elaid) ont l'onglet « Validation » et « Accès partenaires ». */
 const T2={
-fr:{claim:'🔑 J’ai un code partenaire',claimQ:'Code partenaire reçu de MotoRoute (6 caractères) :',claimOk:'✅ Tu gères maintenant la vitrine « {n} ». Tes publications seront visibles après validation par MotoRoute.',claimBad:'Code inconnu.',claimTaken:'Cette vitrine a déjà un gestionnaire. Demande un nouveau code à MotoRoute.',claimLogin:'Connecte-toi d’abord à ton compte MotoRoute.',
+fr:{sDash:'Stats',sShop:'Vitrine',sMod:'Valider',sAcc:'Accès',claim:'🔑 J’ai un code partenaire',claimQ:'Code partenaire reçu de MotoRoute (6 caractères) :',claimOk:'✅ Tu gères maintenant la vitrine « {n} ». Tes publications seront visibles après validation par MotoRoute.',claimBad:'Code inconnu.',claimTaken:'Cette vitrine a déjà un gestionnaire. Demande un nouveau code à MotoRoute.',claimLogin:'Connecte-toi d’abord à ton compte MotoRoute.',
  mod:'Validation',acc:'Accès partenaires',modT:'Publications à valider',pending:'⏳ En attente de validation',online:'✅ En ligne',refused:'❌ Refusée',why:'Motif',
  sent:'✅ Envoyé ! Ce sera visible par les membres après validation par MotoRoute.',sentInfo:'✅ Informations envoyées : elles remplaceront les anciennes après validation.',infoWait:'⏳ Nouvelles informations en attente de validation.',infoRef:'❌ Dernières informations refusées',
  approve:'✅ Accepter',reject:'❌ Refuser',rejQ:'Motif du refus (le partenaire le verra) :',nothing:'Rien à valider pour l’instant 👍',newInfo:'Nouvelles informations proposées',
  code:'Code d’accès',sendCode:'📤 Envoyer le code',newCode:'🔄 Nouveau code',newCodeQ:'Créer un nouveau code ? L’ancien ne marchera plus et le gestionnaire actuel perdra l’accès.',manager:'Gestionnaire',nomgr:'aucun pour l’instant',suspend:'Suspendre la vitrine',activate:'Réactiver la vitrine',suspended:'Vitrine suspendue (invisible pour les membres)',addP:'+ Ajouter un partenaire',addName:'Nom du nouveau partenaire ?',addCity:'Ville ?',
  shareTxt:'Bonjour {n} ! Votre vitrine MotoRoute est prête. 1) Installez MotoRoute et créez votre compte. 2) Onglet Annonces → « J’ai un code partenaire » → entrez ce code : {c}. Vous pourrez ensuite publier vos promotions, nouveautés et produits (validés par MotoRoute avant parution).',
  people:'Membres différents',intC:'« Je suis intéressé »',views30:'Vues (30 derniers jours)',offline:'Pas de connexion au serveur : vitrines affichées depuis la dernière visite.',busy:'Envoi…',err:'Impossible pour l’instant (internet ?).',photoErr:'La photo n’a pas pu être envoyée.',onlyPend:'{n} publication(s) en attente : invisibles pour les membres tant qu’elles ne sont pas validées.',partnerMode:'Les membres voient seulement ce qui est validé par MotoRoute.',adminMode:'Mode administrateur : ce que tu publies ici est en ligne tout de suite.'},
-ar:{claim:'🔑 لدي رمز شريك',claimQ:'رمز الشريك الذي أرسلته MotoRoute (6 أحرف):',claimOk:'✅ أنت الآن تدير متجر «{n}». تظهر منشوراتك بعد موافقة MotoRoute.',claimBad:'رمز غير معروف.',claimTaken:'لهذا المتجر مسيّر بالفعل. اطلب رمزًا جديدًا من MotoRoute.',claimLogin:'سجّل الدخول إلى حسابك أولًا.',
+ar:{sDash:'إحصاءات',sShop:'المتجر',sMod:'مراجعة',sAcc:'الوصول',claim:'🔑 لدي رمز شريك',claimQ:'رمز الشريك الذي أرسلته MotoRoute (6 أحرف):',claimOk:'✅ أنت الآن تدير متجر «{n}». تظهر منشوراتك بعد موافقة MotoRoute.',claimBad:'رمز غير معروف.',claimTaken:'لهذا المتجر مسيّر بالفعل. اطلب رمزًا جديدًا من MotoRoute.',claimLogin:'سجّل الدخول إلى حسابك أولًا.',
  mod:'المراجعة',acc:'وصول الشركاء',modT:'منشورات للمراجعة',pending:'⏳ في انتظار الموافقة',online:'✅ منشور',refused:'❌ مرفوض',why:'السبب',
  sent:'✅ أُرسل! سيظهر للأعضاء بعد موافقة MotoRoute.',sentInfo:'✅ أُرسلت المعلومات: تحل محل القديمة بعد الموافقة.',infoWait:'⏳ معلومات جديدة في انتظار الموافقة.',infoRef:'❌ رُفضت آخر المعلومات',
  approve:'✅ قبول',reject:'❌ رفض',rejQ:'سبب الرفض (سيراه الشريك):',nothing:'لا شيء للمراجعة حاليًا 👍',newInfo:'معلومات جديدة مقترحة',
  code:'رمز الدخول',sendCode:'📤 إرسال الرمز',newCode:'🔄 رمز جديد',newCodeQ:'إنشاء رمز جديد؟ لن يعمل القديم وسيفقد المسيّر الحالي الوصول.',manager:'المسيّر',nomgr:'لا أحد بعد',suspend:'تعليق المتجر',activate:'إعادة تفعيل المتجر',suspended:'المتجر معلّق (غير ظاهر للأعضاء)',addP:'+ إضافة شريك',addName:'اسم الشريك الجديد؟',addCity:'المدينة؟',
  shareTxt:'مرحبًا {n}! متجركم على MotoRoute جاهز. 1) ثبّتوا MotoRoute وأنشئوا حسابكم. 2) تبويب الإعلانات ← «لدي رمز شريك» ← أدخلوا هذا الرمز: {c}. بعدها يمكنكم نشر العروض والجديد والمنتجات (بعد موافقة MotoRoute).',
  people:'أعضاء مختلفون',intC:'«أنا مهتم»',views30:'المشاهدات (30 يومًا)',offline:'لا اتصال بالخادم: المتاجر من آخر زيارة.',busy:'جارٍ الإرسال…',err:'غير ممكن الآن (الإنترنت؟).',photoErr:'تعذر إرسال الصورة.',onlyPend:'{n} منشور في الانتظار: غير ظاهر للأعضاء حتى الموافقة.',partnerMode:'يرى الأعضاء فقط ما وافقت عليه MotoRoute.',adminMode:'وضع المسؤول: ما تنشره هنا يظهر فورًا.'},
-en:{claim:'🔑 I have a partner code',claimQ:'Partner code received from MotoRoute (6 characters):',claimOk:'✅ You now manage the “{n}” shop. Your posts will appear after MotoRoute approves them.',claimBad:'Unknown code.',claimTaken:'This shop already has a manager. Ask MotoRoute for a new code.',claimLogin:'Sign in to your MotoRoute account first.',
+en:{sDash:'Stats',sShop:'Shop',sMod:'Approve',sAcc:'Access',claim:'🔑 I have a partner code',claimQ:'Partner code received from MotoRoute (6 characters):',claimOk:'✅ You now manage the “{n}” shop. Your posts will appear after MotoRoute approves them.',claimBad:'Unknown code.',claimTaken:'This shop already has a manager. Ask MotoRoute for a new code.',claimLogin:'Sign in to your MotoRoute account first.',
  mod:'Approval',acc:'Partner access',modT:'Posts to approve',pending:'⏳ Waiting for approval',online:'✅ Live',refused:'❌ Rejected',why:'Reason',
  sent:'✅ Sent! Members will see it once MotoRoute approves it.',sentInfo:'✅ Details sent: they will replace the old ones once approved.',infoWait:'⏳ New details waiting for approval.',infoRef:'❌ Latest details rejected',
  approve:'✅ Approve',reject:'❌ Reject',rejQ:'Reason for rejecting (the partner will see it):',nothing:'Nothing to approve right now 👍',newInfo:'Proposed new details',
@@ -1754,7 +1754,8 @@ function accList(){const c=sbc();if(!c||vaAcc)return;vaAcc=[];c.rpc('mr_partner_
 function drawAdmin(){
  const d=DD(),p=curP?pById(curP):null;
  const keys=(p?['dash','shop','pub']:[]).concat(ADM?['mod','acc']:[]);if(!keys.includes(vaTab))vaTab=keys[0]||'mod';
- const lab={dash:d.dash,shop:d.shop,pub:d.pub,mod:d.mod+(pendN()?' ('+pendN()+')':''),acc:d.acc};
+ /* test-52 : 5 onglets (administrateur dans une vitrine) → libellés courts, sinon « Accès partenaires » sortait de l'écran */
+ const sh=keys.length>3,lab={dash:sh?d.sDash:d.dash,shop:sh?d.sShop:d.shop,pub:d.pub,mod:(sh?d.sMod:d.mod)+(pendN()?' ('+pendN()+')':''),acc:sh?d.sAcc:d.acc};
  const tabs=keys.map(k=>`<button class="${vaTab==k?'on':''}" data-vtab="${k}">${lab[k]}</button>`).join('');
  let body='';
  if(vaTab=='dash'&&p){
@@ -1937,7 +1938,7 @@ nav button::before{width:23px;height:23px}
 .vt-seg{display:flex;gap:4px;background:rgba(127,127,127,.15);border-radius:12px;padding:4px;margin:6px 0 4px}
 .vt-seg button{flex:1;border:0;background:none;color:inherit;font:600 14px Barlow,sans-serif;padding:9px 4px;border-radius:9px}
 .vt-seg button.on{background:var(--acc);color:var(--on-acc,#1b1f24)}
-.vt-tabs{margin-bottom:12px}
+.vt-tabs{margin-bottom:12px;flex-wrap:wrap}.vt-tabs button{min-width:0;padding:9px 2px;font-size:13.5px;white-space:nowrap}
 .vt-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .vt-stat{border:1px solid rgba(127,127,127,.22);border-radius:12px;padding:12px}
 .vt-stat b{display:block;font:700 28px Barlow,sans-serif;line-height:1}
