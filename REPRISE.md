@@ -1,6 +1,6 @@
 # MotoRoute – Point de reprise
 
-**Point de reprise : 22 octobre 2026 — test-42 : « Revoir mon trajet en 3D » et la simulation dessinée de l'Inclinaison colorée RETIRÉES (Elaid : pas de dessin animé dans l'app ; ne les remettre que sous forme de vraies vidéos réalistes, avec son accord). Avant : test-41 (inclinaison fiabilisée, SOS : vrais rapports SMS, boutons de test, sirène vérifiée côté serveur).**
+**Point de reprise : 22 octobre 2026 — test-43 : présentation d'entrée qui ne marchait pas sur le 2ᵉ téléphone → les 9 vidéos étaient chargées d'un coup (trop pour les décodeurs d'un téléphone modeste) ; maintenant 2-3 à la fois, photo réaliste d'attente (video/sceneN.jpg), plus jamais de décor 3D ; vidéo illisible signalée à Sentry. Avant : test-42 : « Revoir mon trajet en 3D » et la simulation dessinée de l'Inclinaison colorée RETIRÉES (Elaid : pas de dessin animé dans l'app ; ne les remettre que sous forme de vraies vidéos réalistes, avec son accord). Avant : test-41 (inclinaison fiabilisée, SOS : vrais rapports SMS, boutons de test, sirène vérifiée côté serveur).**
 
 ## ✅ test-41 (22/10) — retours d'Elaid sur test-40
 **Constats d'Elaid** : en voiture sur autoroute, inclinaison jusqu'à 71° sans pencher le téléphone ; SOS testé avec le 2ᵉ téléphone : l'appel part mais le contact n'entend pas la voix, le SMS n'arrive jamais, la sirène ne sonne pas.

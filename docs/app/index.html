@@ -2126,6 +2126,8 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
 </script>
 <script>
 /* Présentation animée au premier lancement (www/presentation.html), revoir depuis l'aide « ? » */
+/* test-43 : une vidéo de la présentation qui ne se lit pas est signalée à Sentry (modèle du téléphone inclus) */
+addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-error'){try{window.Sentry&&Sentry.captureMessage('Présentation : vidéo scène '+d.scene+' illisible (code '+(d.code||'?')+')')}catch(x){}}});
 (function(){
   const KEY = 'mr_onb_seen';
   const L = () => (typeof lang !== 'undefined' ? lang : 'fr');

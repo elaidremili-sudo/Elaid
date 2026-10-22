@@ -221,7 +221,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     <g class="layer" id="Lnear"></g>
   </svg>
   <canvas id="gl" hidden></canvas>
-  <div id="vbg" aria-hidden="true"><video muted playsinline loop preload="auto" src="video/scene1.mp4"></video><video muted playsinline loop preload="auto" src="video/scene2.mp4"></video><video muted playsinline loop preload="auto" src="video/scene3.mp4"></video><video muted playsinline loop preload="auto" src="video/scene4.mp4"></video><video muted playsinline loop preload="auto" src="video/scene5.mp4"></video><video muted playsinline loop preload="auto" src="video/scene6.mp4"></video><video muted playsinline loop preload="auto" src="video/scene7.mp4"></video><video muted playsinline loop preload="auto" src="video/scene8.mp4"></video><video muted playsinline loop preload="auto" src="video/scene9.mp4"></video></div>
+  <div id="vbg" aria-hidden="true"><video muted playsinline loop preload="auto" poster="video/scene1.jpg" src="video/scene1.mp4"></video><video muted playsinline loop preload="none" poster="video/scene2.jpg" data-src="video/scene2.mp4"></video><video muted playsinline loop preload="none" poster="video/scene3.jpg" data-src="video/scene3.mp4"></video><video muted playsinline loop preload="none" poster="video/scene4.jpg" data-src="video/scene4.mp4"></video><video muted playsinline loop preload="none" poster="video/scene5.jpg" data-src="video/scene5.mp4"></video><video muted playsinline loop preload="none" poster="video/scene6.jpg" data-src="video/scene6.mp4"></video><video muted playsinline loop preload="none" poster="video/scene7.jpg" data-src="video/scene7.mp4"></video><video muted playsinline loop preload="none" poster="video/scene8.jpg" data-src="video/scene8.mp4"></video><video muted playsinline loop preload="none" poster="video/scene9.jpg" data-src="video/scene9.mp4"></video></div>
   <div class="veil"></div>
   <div class="grain"></div>
 
@@ -1305,17 +1305,32 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   const VIDS = [...document.querySelectorAll('#vbg video')];
   const vOk = VIDS.map(v => v.readyState >= 2);
   VIDS.forEach((v,j) => {
-    v.addEventListener('loadeddata', () => { vOk[j] = true; if (j === cur) playVid(cur); }, {once:true});
-    v.addEventListener('error', () => { vOk[j] = false; }, {once:true});
+    v.addEventListener('loadeddata', () => { if (!v.getAttribute('src')) return; vOk[j] = true; if (j === cur) playVid(cur); });
+    v.addEventListener('error', () => { if (!v.getAttribute('src')) return; vOk[j] = false; if (vFail.indexOf(j + 1) < 0) { vFail.push(j + 1); try { window.parent.postMessage({ type: 'motoroute-video-error', scene: j + 1, code: v.error && v.error.code }, '*'); } catch(e) {} } });
   });
-  function playVid(i){
+  /* test-43 (22/10) : sur les téléphones modestes, charger les 9 vidéos d'un coup épuisait les décodeurs vidéo
+     → écran noir ou décor 3D « dessin animé ». Maintenant : seulement la scène affichée + la suivante sont chargées,
+     les autres sont libérées ; tant qu'une vidéo n'est pas prête, sa photo réaliste est affichée (plus jamais de 3D). */
+  const vFail = [];
+  function prep(i){
     VIDS.forEach((v,j) => {
-      if (j === i && vOk[j]) { if (!v.classList.contains('on')) { try { v.currentTime = 0; } catch(e) {} } v.classList.add('on'); const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
+      const near = j === i || j === i + 1;
+      if (near && !v.getAttribute('src') && v.dataset.src) { v.preload = 'auto'; v.src = v.dataset.src; try { v.load(); } catch(e) {} }
+      else if (!near && j !== i - 1 && v.getAttribute('src') && !v.classList.contains('on')) {
+        try { v.pause(); } catch(e) {} if (!v.dataset.src) v.dataset.src = v.getAttribute('src');
+        v.removeAttribute('src'); try { v.load(); } catch(e) {} vOk[j] = false;
+      }
+    });
+  }
+  function playVid(i){
+    prep(i);
+    VIDS.forEach((v,j) => {
+      if (j === i) { if (!v.classList.contains('on')) { try { v.currentTime = 0; } catch(e) {} } v.classList.add('on'); if (vOk[j]) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } }
       else { v.classList.remove('on'); setTimeout(() => { if (!v.classList.contains('on')) v.pause(); }, 750); }
     });
-    window.MRV_ON = !!vOk[i];
+    window.MRV_ON = true; // la photo ou la vidéo couvre toujours le fond : le décor 3D n'est plus dessiné
   }
-  setInterval(() => { VIDS.forEach((v,j) => { if (!vOk[j] && v.readyState >= 2) { vOk[j] = true; if (j === cur) playVid(cur); } }); }, 400);
+  setInterval(() => { VIDS.forEach((v,j) => { if (!vOk[j] && v.getAttribute('src') && v.readyState >= 2) { vOk[j] = true; if (j === cur) playVid(cur); } }); }, 400);
   const showV = show;
   show = function(i){ showV(i); playVid(cur); };
 
