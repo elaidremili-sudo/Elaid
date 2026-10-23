@@ -1,4 +1,6 @@
-// MotoRoute – sos-push (20/10/2026, sirène app fermée le 22/10 : test-47)
+// MotoRoute – sos-push (20/10/2026, sirène app fermée le 22/10 : test-47, sécurité 23/10)
+// 23/10 : le texte affiché et lu à voix haute est rédigé ICI par le serveur (avant, le téléphone pouvait
+// envoyer n'importe quel texte → risque de fausses alertes). Limite : 5 alertes par heure vers les autres.
 // Envoie une notification d'urgence (sirène + lecture vocale à l'ouverture) aux anges gardiens
 // du motard et aux membres actifs de ses groupes, via Firebase Cloud Messaging (gratuit).
 // Secret requis : FCM_SERVICE_ACCOUNT = contenu complet du fichier JSON « clé de compte de service » Firebase.
@@ -14,12 +16,34 @@ const json = (b: unknown, s = 200) =>
 
 const T = {
   fr: { t: "🚨 MotoRoute : chute de {n}", tt: "🧪 TEST MotoRoute : {n}", b: "Touche pour voir sa position.",
+        tp: "TEST (pas un vrai accident) : ", m: "🚨 {n} a fait une chute à moto et ne répond plus. Position :",
         s: "Alerte MotoRoute. {n} a fait une chute à moto et ne répond plus. Ouvre MotoRoute pour voir sa position." },
   ar: { t: "🚨 موتوروت: سقوط {n}", tt: "🧪 تجربة موتوروت: {n}", b: "المس لرؤية موقعه.",
+        tp: "تجربة (ليست حادثًا حقيقيًا): ", m: "🚨 {n} سقط بالدراجة النارية ولا يرد. الموقع:",
         s: "تنبيه موتوروت. {n} سقط بالدراجة النارية ولا يرد. افتح موتوروت لرؤية موقعه." },
   en: { t: "🚨 MotoRoute: {n} has crashed", tt: "🧪 MotoRoute TEST: {n}", b: "Tap to see the location.",
+        tp: "TEST (not a real accident): ", m: "🚨 {n} has crashed on a motorcycle and is not answering. Location:",
         s: "MotoRoute alert. {n} has crashed on a motorcycle and is not answering. Open MotoRoute to see the location." },
 };
+
+// 23/10 : texte lu à voix haute, rédigé par le serveur dans la langue de celui qui reçoit
+// (même contenu que voiceTxt() dans l'app : nom de la fiche d'urgence, moto, coordonnées chiffre par chiffre)
+function voice(lg: string, test: boolean, nm: string, mo: string, lat: string, lng: string) {
+  const dig = (v: string) => {
+    const [a, b] = Math.abs(+v).toFixed(4).split(".");
+    return a + (lg === "ar" ? " فاصلة " : lg === "en" ? " point " : " virgule ") + b.split("").join(", ");
+  };
+  const ll = lat !== "" && lng !== "";
+  if (lg === "ar") return (test ? "هذه تجربة، ليست حادثًا حقيقيًا. " : "") + "تنبيه من موتوروت. رسالة آلية. " + nm +
+    (mo ? " على دراجة " + mo : "") + " سقط بالدراجة النارية ولا يرد منذ دقيقتين. يحتاج إلى مساعدة. " +
+    (ll ? "الإحداثيات: " + dig(lat) + (+lat < 0 ? " جنوبًا، " : " شمالًا، ") + dig(lng) + (+lng < 0 ? " غربًا. " : " شرقًا. ") : "") + "أكرر. ";
+  if (lg === "en") return (test ? "This is a test, not a real accident. " : "") + "MotoRoute alert. Automatic message. " + nm +
+    (mo ? ", riding a " + mo + "," : "") + " has crashed on a motorcycle and has not answered for two minutes. Help is needed. " +
+    (ll ? "GPS coordinates: " + dig(lat) + (+lat < 0 ? " south, " : " north, ") + dig(lng) + (+lng < 0 ? " west. " : " east. ") : "") + "I repeat. ";
+  return (test ? "Ceci est un test, ce n’est pas un vrai accident. " : "") + "Alerte MotoRoute. Message automatique. " + nm +
+    (mo ? ", sur sa moto " + mo + "," : "") + " a fait une chute à moto et ne répond plus depuis deux minutes. Il a besoin d’aide. " +
+    (ll ? "Coordonnées GPS : " + dig(lat) + (+lat < 0 ? " sud, " : " nord, ") + dig(lng) + (+lng < 0 ? " ouest. " : " est. ") : "") + "Je répète. ";
+}
 
 // ---- Jeton d'accès Google à partir de la clé de compte de service ----
 let cached: { tok: string; exp: number } | null = null;
@@ -75,18 +99,25 @@ Deno.serve(async (req) => {
     const test = b.test === true;
     // 22/10 (test-48) : test de réception sur son propre téléphone (diagnostic, n'alerte personne d'autre)
     const self = b.self === true;
-    const msg = String(b.msg || "").slice(0, 400);
-    const lat = Number.isFinite(+b.lat) ? String(+b.lat) : "";
-    const lng = Number.isFinite(+b.lng) ? String(+b.lng) : "";
-    const say = String(b.say || "").slice(0, 900);
+    // 23/10 : on ignore b.msg et b.say (texte libre). Seules la position (nombres) et les cases test/self comptent.
+    const okLat = typeof b.lat === "number" && Number.isFinite(b.lat) && Math.abs(b.lat) <= 90;
+    const okLng = typeof b.lng === "number" && Number.isFinite(b.lng) && Math.abs(b.lng) <= 180;
+    const lat = okLat && okLng ? (+b.lat).toFixed(5) : "";
+    const lng = okLat && okLng ? (+b.lng).toFixed(5) : "";
+    const kind = self ? "self" : test ? "test" : "real";
 
-    // Anti-abus : 6 alertes maximum par tranche de 10 minutes
-    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { count } = await admin.from("sos_push_log").select("*", { count: "exact", head: true }).eq("user_id", me).gte("at", since);
-    if ((count || 0) >= 6) return json({ ok: false, why: "trop" });
+    // Anti-abus : essai sur son propre téléphone = 6 par 10 min ; alertes vers les autres = 5 par heure
+    const since = new Date(Date.now() - (self ? 10 : 60) * 60 * 1000).toISOString();
+    let q = admin.from("sos_push_log").select("*", { count: "exact", head: true }).eq("user_id", me).gte("at", since);
+    q = self ? q.eq("kind", "self") : q.neq("kind", "self");
+    const { count } = await q;
+    if ((count || 0) >= (self ? 6 : 5)) return json({ ok: false, why: "trop" });
 
-    const { data: prof } = await admin.from("profiles").select("first_name").eq("id", me).maybeSingle();
-    const name = String(prof?.first_name || "Motard").slice(0, 40);
+    const { data: prof } = await admin.from("profiles").select("first_name,moto").eq("id", me).maybeSingle();
+    const { data: ice } = await admin.from("emergency_cards").select("full_name").eq("user_id", me).maybeSingle();
+    const name = String(prof?.first_name || "").trim().slice(0, 40) || "Motard";
+    const fullName = String(ice?.full_name || "").trim().slice(0, 60) || name;
+    const moto = String(prof?.moto || "").trim().slice(0, 40);
 
     // Destinataires : anges gardiens + membres actifs de mes groupes actifs
     const ids = new Set<string>();
@@ -103,7 +134,7 @@ Deno.serve(async (req) => {
     if (self) { ids.clear(); ids.add(me); }
     const list = [...ids].slice(0, 300);
     if (!list.length) {
-      await admin.from("sos_push_log").insert({ user_id: me, sent: 0 });
+      await admin.from("sos_push_log").insert({ user_id: me, sent: 0, kind });
       return json({ ok: true, recipients: 0, sent: 0, guardians: nGuard });
     }
     const { data: toks } = await admin.from("push_tokens").select("user_id,token,lang").in("user_id", list);
@@ -115,10 +146,12 @@ Deno.serve(async (req) => {
     const errs: string[] = [];
     await Promise.all((toks || []).map(async (t) => {
       const lg = ["fr", "ar", "en"].includes(t.lang) ? t.lang : "fr";
-      const L = (T as Record<string, { t: string; tt: string; b: string; s: string }>)[lg];
+      const L = (T as Record<string, { t: string; tt: string; b: string; s: string; tp: string; m: string }>)[lg];
       const title = (test ? L.tt : L.t).replace("{n}", name);
-      const body = msg || L.b;
-      const speak = say || L.s.replace("{n}", name);
+      const map = lat ? "https://maps.google.com/?q=" + lat + "," + lng : "";
+      const msg = ((test ? L.tp : "") + L.m.replace("{n}", fullName) + (map ? " " + map : "")).trim();
+      const body = test ? L.tp + L.b : L.b;
+      const speak = voice(lg, test, fullName, moto, lat, lng);
       const r = await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: "Bearer " + access, "Content-Type": "application/json" },
@@ -148,7 +181,7 @@ Deno.serve(async (req) => {
       }
     }));
     if (dead.length) await admin.from("push_tokens").delete().in("user_id", dead);
-    await admin.from("sos_push_log").insert({ user_id: me, sent });
+    await admin.from("sos_push_log").insert({ user_id: me, sent, kind });
     return json({ ok: true, recipients: list.length, withApp: (toks || []).length, sent, guardians: nGuard, errors: errs.slice(0, 3), dead: dead.length });
   } catch (e) {
     return json({ ok: false, why: "erreur", detail: String((e as Error)?.message || e).slice(0, 200) }, 500);
