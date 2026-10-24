@@ -164,6 +164,7 @@
       sub = 'm'; fMine = false; fT = 'all'; fC = 'all'; fFav = false; q = '';
       await load(true);
       alert(W('✅ Annonce publiée : tous les membres la voient maintenant.', '✅ نُشر الإعلان: يراه جميع الأعضاء الآن.', '✅ Ad posted: all members can see it now.'));
+      try { window.mrAdBreak && window.mrAdBreak(); } catch (e) {}
     } catch (e) { rmPhotos(urls); console.error('annonce', e); alert(urls.length < photos.length ? W('La photo n’a pas pu être envoyée.', 'تعذر إرسال الصورة.', 'The photo could not be sent.') + '\n' + errTxt(e) : errTxt(e)); }
     busy = false; btn.textContent = old; btn.disabled = false;
   };

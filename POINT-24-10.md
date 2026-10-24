@@ -129,3 +129,13 @@ mécaniciens, points de vue… avec **position GPS** (celle du téléphone, sur 
   (A9:BF:18:6E:…:B5:11:11:4A). Sirène testée après : OK.
 - ⚠️ Le jour de la publication Google Play : ajouter sur cette clé l'empreinte SHA-1 « signature d'application »
   donnée par la Play Console.
+
+## 🆕 test-62 (24/10, 23 h) : publicité plein écran (interstitiel), rare et sans danger
+Choix retenu : **la bannière reste** (Annonces, liste des groupes, Carnet) + **un plein écran occasionnel** aux moments calmes.
+- Quand : juste après **« Annonce publiée »**, ou toutes les **6 navigations** entre Annonces / Groupes / Carnet.
+- Jamais : pendant un trajet enregistré, sur Route / Conduite / SOS / Bonnes adresses, quand une fenêtre est ouverte, en paysage,
+  au **premier lancement**, dans les **3 premières minutes**, moins de **6 min** après la précédente, plus de **3 par jour**.
+- Simulé (9 scénarios) : 1er lancement 0 · trajet 0 · Route/Conduite 0 · après une annonce 1 · journée de 3 h = 3 maximum.
+- Code : bloc « Publicités AdMob » de `www/index.html` (`INTER_ID`, `window.mrAdBreak`), `window.mrRiding` (Conduite), appel dans `www/js/annonces.js`.
+- **À faire par Elaid** : dans AdMob → app Motoroute → Blocs d'annonces → **Interstitiel** nommé « Plein écran » → envoyer l'identifiant
+  (`ca-app-pub-9115324413258436/…`) ; il remplacera l'identifiant de test dans `INTER_ID`. Pubs de test tant que `TESTING=true`.

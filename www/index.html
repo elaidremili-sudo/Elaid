@@ -722,6 +722,7 @@ function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return 
 function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
 routeView=function(t){return musicHtml()+_rv3(t)};
+window.mrRiding=()=>!!on; /* test-62 : la pub plein écran ne s'affiche jamais pendant un trajet */
 window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtml();if(ch){gpOff();return ch}} /* test-29 : la carte GPS n'est pas affichée → on coupe son suivi (sinon l'écran se redessine à chaque position) */const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
  const body=on?`<div style="text-align:center"><div style="font-size:56px;font-weight:800;line-height:1" id="rd_v">0</div><div class="meta">${k.kmh}</div><div style="position:relative;height:64px;margin:6px auto;width:120px;border-bottom:3px solid var(--line)"><div id="rd_b" style="position:absolute;left:56px;bottom:0;width:8px;height:60px;border-radius:4px;background:var(--acc);transform-origin:50% 100%"></div></div><div style="font-size:28px;font-weight:800" id="rd_l">—</div><div class="meta">${k.lean}</div></div><div class="meta" id="rd_s"></div><div class="row"><button class="p" data-rdstop="1">${k.stop}</button></div>`
  :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${msg?`<div class="meta">${msg}</div>`:''}<div class="meta" id="rd_dbg"></div><div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
@@ -1481,6 +1482,39 @@ try{A().addListener('bannerAdSizeChanged',i=>{adH=(i&&i.height)||0;document.docu
 addEventListener('resize',()=>setTimeout(sync,350));
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
+/* ===== test-62 : publicité plein écran (interstitiel), rare et seulement aux moments calmes =====
+   Moments : juste après avoir publié une annonce, ou toutes les 6 navigations dans les rubriques calmes
+   (Annonces, Groupes, Carnet). JAMAIS : pendant un trajet, sur Route / Conduite / SOS, fenêtre ouverte, en paysage,
+   au premier lancement, dans les 3 premières minutes, moins de 6 min après la précédente, plus de 3 par jour. */
+const INTER_ID='ca-app-pub-3940256099942544/1033173712'; // test Google — remplacer par l'identifiant du bloc « Plein écran » créé dans AdMob
+const IK='mr_inter',ld=()=>{try{return JSON.parse(localStorage.getItem(IK)||'{}')}catch(e){return{}}},sv=o=>{try{localStorage.setItem(IK,JSON.stringify(o))}catch(e){}};
+const T0=Date.now(),day=()=>new Date().toISOString().slice(0,10);
+{const o=ld();o.runs=(o.runs||0)+1;sv(o)}
+let iReady=false,iLoading=false,iShowing=false,nav=0,lastTab=tab;
+async function iLoad(){if(iReady||iLoading||(!TESTING&&/3940256099942544/.test(INTER_ID)))return;iLoading=true;try{await A().prepareInterstitial({adId:INTER_ID,isTesting:TESTING});iReady=true}catch(e){console.error('inter load',e)}finally{iLoading=false}}
+function calm(){
+ if(!ready||!iReady||iShowing)return false;
+ if(innerHeight<=innerWidth)return false;
+ if(!(tab==2||tab==3||tab==5))return false;
+ if(window.mrRiding&&window.mrRiding())return false;
+ if(document.querySelector('dialog[open]'))return false;
+ const o=ld(),n=Date.now();
+ if((o.runs||0)<2||n-T0<180e3)return false;
+ if(o.last&&n-o.last<360e3)return false;
+ if(o.day==day()&&(o.n||0)>=3)return false;
+ return true;
+}
+async function iShow(){
+ if(!calm())return;iShowing=true;iReady=false;
+ try{await A().showInterstitial();const o=ld();if(o.day!=day()){o.day=day();o.n=0}o.n=(o.n||0)+1;o.last=Date.now();sv(o)}
+ catch(e){console.error('inter show',e)}finally{iShowing=false;setTimeout(iLoad,4000)}
+}
+window.mrAdBreak=function(){setTimeout(iShow,700)}; // appelé après une publication réussie
+try{A().addListener('interstitialAdDismissed',()=>{iShowing=false;setTimeout(iLoad,4000)})}catch(e){}
+const _r2=render;render=function(){const r=_r2.apply(this,arguments);
+ if(tab!==lastTab){lastTab=tab;if(tab==2||tab==3||tab==5){if(++nav>=6&&calm()){nav=0;setTimeout(iShow,600)}}}
+ return r};
+setTimeout(()=>{if(ready)iLoad();else{const w=setInterval(()=>{if(ready){clearInterval(w);iLoad()}},3000)}},60e3);
 document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab,:root[data-ui=futur] body.mr-ad .fab{bottom:calc(var(--ad-b,150px) + 12px)!important}</style>');
 })();
 </script>
