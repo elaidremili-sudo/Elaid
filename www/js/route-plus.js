@@ -31,8 +31,9 @@
     return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="MotoRoute" xmlns="http://www.topografix.com/GPX/1/1">\n' +
       '<metadata><name>' + esc(nm) + '</name></metadata>\n<trk><name>' + esc(nm) + '</name><trkseg>\n' + pts + '\n</trkseg></trk>\n</gpx>\n';
   }
-  async function shareGpx(r) {
-    var txt = gpxText(r), name = 'motoroute-' + r.d + '-' + r.id + '.gpx';
+  async function shareGpx(r) { return shareTxt(gpxText(r), 'motoroute-' + r.d + '-' + r.id + '.gpx'); }
+  window.mrShareGpxText = function (txt, name) { return shareTxt(txt, name); };
+  async function shareTxt(txt, name) {
     var P = window.Capacitor && Capacitor.Plugins;
     if (P && P.Filesystem && P.Share) {
       try {

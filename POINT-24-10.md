@@ -1,5 +1,18 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-55 (24/10, 16 h) : « 🌀 Proposer un itinéraire » (idée d'Elaid)
+En haut de l'onglet **Route**. Le motard choisit son temps (1 h, 2 h, 3 h, ½ journée) → « 📍 Chercher autour de moi ».
+- L'app prend la position GPS, prépare **8 boucles** qui reviennent au départ (8 directions, taille = temps × 45 km/h)
+  avec le calculateur d'itinéraires gratuit **OSRM** (router.project-osrm.org, sans clé, 1 requête/s → ~10 s de recherche).
+- Elle **compte les virages** de chaque boucle (cap qui tourne d'au moins 35° sur 200 m ; les impasses/demi-tours sont écartés)
+  et garde les **3 plus sinueuses** : tracé, km, durée estimée (sans pauses), nombre de virages, niveau 🌀 / 🌀🌀 / 🌀🌀🌀.
+- Boutons : 🧭 Partir (Google Maps, 3 points de passage), ⬇ GPX (tracé exact), 💬 WhatsApp,
+  📣 **Proposer à mon groupe** = message dans la discussion du groupe (les liens y sont maintenant cliquables).
+- Nom de la ville de départ : Nominatim (OpenStreetMap), gratuit.
+- Code : `www/js/itineraire.js` (+ `mrShareGpxText` dans route-plus.js, liens cliquables dans la discussion). Copie dans `docs/app`.
+- Limite : OSRM « démo » est gratuit mais sans garantie ; si un jour il sature, passer à openrouteservice (clé gratuite, 2000/jour).
+- À tester sur téléphone : vraie recherche autour de chez soi, la qualité des boucles proposées, le message dans un groupe.
+
 > 📄 **Comparatif à montrer aux membres** (MotoRoute vs Cardo Ride/ex-Riser, Calimoto, REVER, Liberty Rider, Kurviger) : `docs-membres/comparatif-applis-moto.md` — version en ligne : https://claude.ai/artifact/Sre1aNBdaCvUYkrSJxAmNa
 
 ## 🆕 test-54 (24/10, après-midi) : ce qui manquait face aux concurrents

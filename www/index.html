@@ -1242,7 +1242,7 @@ const dc=$id('mpChat');let chG=null,chName='',chOwner=false,chMsgs=[],chCh=null,
 function chDraw(keep){
  const box=$id('mpChBox'),txt=$id('mpChIn')?$id('mpChIn').value:'';
  const u=me();
- const body=!sbc()||!u?`<div class="mp-err">${LOGIN()}</div>`:(chErr?`<div class="mp-err">${E(chErr)}</div>`:'')+(chMsgs.length?chMsgs.map(m=>{const mine=u&&m.user_id==u.id;return `<div class="mp-msg${mine?' me':''}"><div class="mp-who"><span>${mine?W('Moi','أنا','Me'):E(m.first_name||'Motard')} · ${hm(m.created_at)}</span>${mine||chOwner?`<button class="mp-x" data-mpmdel="${E(m.id)}" aria-label="${W('Supprimer','حذف','Delete')}">✕</button>`:''}</div>${E(m.body)}</div>`}).join(''):(chErr?'':`<div class="mp-note" style="text-align:center;padding:30px 0">${chBusy?'…':W('Aucun message. Lance la discussion du groupe !','لا توجد رسائل. ابدأ النقاش!','No messages yet. Start the conversation!')}</div>`));
+ const body=!sbc()||!u?`<div class="mp-err">${LOGIN()}</div>`:(chErr?`<div class="mp-err">${E(chErr)}</div>`:'')+(chMsgs.length?chMsgs.map(m=>{const mine=u&&m.user_id==u.id;return `<div class="mp-msg${mine?' me':''}"><div class="mp-who"><span>${mine?W('Moi','أنا','Me'):E(m.first_name||'Motard')} · ${hm(m.created_at)}</span>${mine||chOwner?`<button class="mp-x" data-mpmdel="${E(m.id)}" aria-label="${W('Supprimer','حذف','Delete')}">✕</button>`:''}</div>${E(m.body).replace(/https:\/\/[^\s<"']+/g,u=>`<a class="lnk" target="_blank" rel="noopener" href="${u}">🔗 ${/google\.[a-z.]+\/maps/.test(u)?W('Ouvrir l’itinéraire','افتح المسار','Open route'):W('Ouvrir le lien','افتح الرابط','Open link')}</a>`).replace(/\n/g,'<br>')}</div>`}).join(''):(chErr?'':`<div class="mp-note" style="text-align:center;padding:30px 0">${chBusy?'…':W('Aucun message. Lance la discussion du groupe !','لا توجد رسائل. ابدأ النقاش!','No messages yet. Start the conversation!')}</div>`));
  if(keep&&box){box.innerHTML=body;box.scrollTop=box.scrollHeight;return}
  dc.innerHTML=`<div class="mp-hd"><h2>💬 ${E(chName)}</h2><button class="g" data-mpchx="1">${W('Fermer','إغلاق','Close')}</button></div><div class="mp-bd" id="mpChBox">${body}</div><form class="mp-ft" id="mpChF"><input id="mpChIn" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="${W('Écris un message…','اكتب رسالة…','Write a message…')}" value="${E(txt)}" ${!sbc()||!u?'disabled':''}><button class="p" type="submit" ${!sbc()||!u?'disabled':''}>${W('Envoyer','إرسال','Send')}</button></form>`;
  dc.setAttribute('dir',lang=='ar'?'rtl':'ltr');
@@ -2542,7 +2542,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 .fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
 </style>
 <script src="js/places.js"></script><script src="js/sos.js"></script>
-<script src="js/push.js"></script><script src="js/route-plus.js"></script>
+<script src="js/push.js"></script><script src="js/route-plus.js"></script><script src="js/itineraire.js"></script>
 <!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 
 <style>
