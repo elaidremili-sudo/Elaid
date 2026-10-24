@@ -342,7 +342,7 @@ function render(){
   m.innerHTML=l.length?l.map(s=>`<div class="card"><h3>${esc(s.t)}${dayBadge(s)}</h3>${s.g&&gname(s.g)?`<div><span class="tag">${esc(gname(s.g))}</span></div>`:''}
   <div class="meta">${fd(s.d)}${s.dest?` · <a class="lnk" target="_blank" rel="noopener" href="${esc(wxUrl(s.dest,s.d))}">🌤 ${t.wx_now.replace('{p}',esc(s.dest))}</a>`:''}</div>
   <div class="meta">${esc(s.dep)} → ${esc(s.dest)} · ${esc(s.km)} km</div>
-  ${s.dep?`<div class="row" style="justify-content:flex-start;margin-top:8px"><a class="lnk" target="_blank" rel="noopener" href="${esc(mapUrl(s))}">${t.openmap}</a></div>`:''}
+  ${s.dep?`<div class="row" style="justify-content:flex-start;margin-top:8px;gap:8px;flex-wrap:wrap"><a class="lnk" target="_blank" rel="noopener" href="${esc(mapUrl(s))}">${t.openmap}</a>${window.mrNavLinks?window.mrNavLinks(s):''}</div>`:''}
   <div class="row" style="justify-content:flex-start;gap:14px;margin-top:8px"><button class="g" data-sd="${s.id}">${t.sd_btn}</button><a class="lnk" target="_blank" rel="noopener" href="${esc(waShare(s,t))}">💬 ${t.wa}</a>${s.rt?`<span class="tag">${t['rt_'+s.rt]}</span>`:''}</div>
   <div class="row"><span><span class="tag">${t[s.n]||esc(s.n)}</span><span class="meta">${participantsLine(s,t)}</span></span>
   <button class="p ${s.joined?'done':''}" data-j="${s.id}">${s.joined?t.joined:t.join}</button></div></div>`).join(''):`<div class="empty">${window.mrShowPast?(lang=='ar'?'لا توجد رحلات سابقة.':lang=='en'?'No past rides.':'Aucune sortie passée.'):t.empty1}</div>`;
@@ -721,22 +721,22 @@ async function rstart(){if(on)return;if(!U){alert(kk().nocal);return}if(!navigat
  on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;segS=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];gH.length=0;wB.length=0;bH.length=0;oH.length=0;rH.length=0;lastB=null;looseT=0;looseS=0;leanU=0;lss=0;lssP=0;rr=0;lTs=0;wBi=0;
  try{wg=navigator.geolocation.watchPosition(gps,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}catch(e){}
  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>{wl=l}).catch(()=>{})}catch(e){}
- ti=setInterval(tick,200);try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
+ ti=setInterval(tick,200);try{window.mrBatStart&&window.mrBatStart()}catch(e){}try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
 function rstop(){if(!on)return;on=false;clearInterval(ti);try{if(wg!=null)navigator.geolocation.clearWatch(wg)}catch(e){}wg=null;try{wl&&wl.release()}catch(e){}wl=null;
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}try{localStorage.removeItem(RK)}catch(e){}
  try{if(fAx&&fN>300&&Math.abs(fCor)>20)S.rollAx={a:fAx.map(v=>Math.round(v*1e4)/1e4),c:fCor>0?1:-1}}catch(e){}
- const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk},Date.now());keepR(x);sumR=x;render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
+ const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk},Date.now());keepR(x);sumR=x;try{window.mrBatEnd&&window.mrBatEnd(x.r,()=>{save();render()})}catch(e){}render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
 function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="meta">${k.none}</div>`;
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));
- return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}${window.mrCmpBtn?window.mrCmpBtn(r):''}</div>`).join('')}
-function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div><div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.ok&&window.mrCmpBtn?'<div class="row">'+window.mrCmpBtn(r,1)+'</div>':''}${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
+ return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}${r.bat?` · 🔋 −${r.bat.d}%`:''}${window.mrCmpBtn?window.mrCmpBtn(r):''}${r.tk&&r.tk.length>1?` <button class="g" data-gpxx="${r.id}">⬇ GPX</button>`:''}</div>`).join('')}
+function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div>${r.bat?`<div class="meta">🔋 ${ar?'البطارية':lang=='en'?'Battery':'Batterie'} : <b>−${r.bat.d} %</b>${r.bat.h!=null?` (${r.bat.h} %/h)`:''}</div>`:''}<div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.ok&&window.mrCmpBtn?'<div class="row">'+window.mrCmpBtn(r,1)+'</div>':''}${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
 function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
 routeView=function(t){return musicHtml()+_rv3(t)};
 window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtml();if(ch){gpOff();return ch}} /* test-29 : la carte GPS n'est pas affichée → on coupe son suivi (sinon l'écran se redessine à chaque position) */const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
  const body=on?`<div style="text-align:center"><div style="font-size:56px;font-weight:800;line-height:1" id="rd_v">0</div><div class="meta">${k.kmh}</div><div style="position:relative;height:64px;margin:6px auto;width:120px;border-bottom:3px solid var(--line)"><div id="rd_b" style="position:absolute;left:56px;bottom:0;width:8px;height:60px;border-radius:4px;background:var(--acc);transform-origin:50% 100%"></div></div><div style="font-size:28px;font-weight:800" id="rd_l">—</div><div class="meta">${k.lean}</div></div><div class="meta" id="rd_s"></div><div class="row"><button class="p" data-rdstop="1">${k.stop}</button></div>`
  :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${msg?`<div class="meta">${msg}</div>`:''}<div class="meta" id="rd_dbg"></div><div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
- return `<div class="card"><h3>📊 ${k.t}</h3><div class="meta">${k.note}</div>${body}<div class="meta">${k.est}</div><div class="meta">${k.fallnote}</div></div>`+(!on&&window.mrCmpIntro?window.mrCmpIntro():'')+gpsHtml()};
+ return `<div class="card"><h3>📊 ${k.t}</h3><div class="meta">${k.note}</div>${body}<div class="meta">${k.est}</div><div class="meta">${k.fallnote}</div></div>`+(!on&&window.mrCmpIntro?window.mrCmpIntro():'')+(on?(gpOff(),`<div class="meta" style="text-align:center">🔋 ${lang=='ar'?'وضع توفير البطارية: الخريطة متوقفة أثناء التسجيل.':lang=='en'?'Battery saver: the map is paused while recording.':'Économie de batterie : la carte est en pause pendant l’enregistrement.'}</div>`):gpsHtml())};
 $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;if(D.rdcal!==undefined)calib();else if(D.rdstart!==undefined)rstart();else if(D.rdstop!==undefined)rstop();else if(D.rdsumx!==undefined){sumR=null;render()}});
 let gpP=null,gpW=null,gpU=0,gpE=0;
 const gpUrl=p=>'https://www.openstreetmap.org/export/embed.html?bbox='+[p[1]-.006,p[0]-.004,p[1]+.006,p[0]+.004].map(x=>x.toFixed(5)).join('%2C')+'&layer=mapnik&marker='+p[0].toFixed(5)+'%2C'+p[1].toFixed(5);
@@ -1295,14 +1295,21 @@ async function shStop(silent){
  const was=sh.ride;if(sh.watch!=null)try{navigator.geolocation.clearWatch(sh.watch)}catch(e){}
  try{sh.wake&&sh.wake.release()}catch(e){}
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}
- sh={...sh,on:false,watch:null,wake:null,ride:null};pill();
+ sh={...sh,on:false,watch:null,wake:null,ride:null};farN=0;farMsg='';pill();if(!dl.open)lvLeave();
  const c=sbc(),u=me();if(c&&u&&was){try{await c.from('ride_positions').delete().eq('ride_id',was).eq('user_id',u.id)}catch(e){}delete lvPos[u.id]}
  if(!silent&&dl.open)lvDraw();
 }
+/* test-54 : alerte « motard décroché » (comme PackRide) — quand je partage ma position, si un participant est à plus de 2 km de moi */
+const FAR=2000,far={};let farN=0,farMsg='';
+function farBeep(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=new A(),o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(a.destination);o.start();o.frequency.setValueAtTime(660,a.currentTime+.25);o.stop(a.currentTime+.6);setTimeout(()=>{try{a.close()}catch(e){}},1000)}catch(e){}}
+function chkFar(){const u=me(),n=Date.now(),L=[];
+ if(sh.on&&sh.me&&sh.ride==lvR)Object.values(lvPos).forEach(r=>{if(u&&r.user_id==u.id)return;if(n-new Date(r.updated_at)>10*60e3)return;const d=dist(sh.me,[r.lat,r.lng]);
+  if(d>=FAR){L.push([r,d]);if(!far[r.user_id]||n-far[r.user_id]>10*60e3){far[r.user_id]=n;try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}farBeep()}}else delete far[r.user_id]});
+ farN=L.length;farMsg=L.map(([r,d])=>'⚠️ <b>'+E(r.first_name||'?')+'</b> '+W('est à','على بعد','is')+' '+fmtD(d)+W(' de toi : il a peut-être décroché.',' منك: ربما تأخر عن المجموعة.',' away from you: they may have fallen behind.')).join('<br>');pill()}
 function pill(){let b=$id('mpPill');
  if(!sh.on){if(b)b.remove();return}
  if(!b){b=document.createElement('button');b.id='mpPill';b.className='mp-pill';document.body.appendChild(b);b.onclick=()=>lvOpen(sh.ride,sh.title)}
- b.textContent='📡 '+W('Position partagée','الموقع مُشارك','Location shared')+' · '+sh.title.slice(0,18);
+ b.textContent=(farN?'⚠️ '+farN+' '+W('décroché','متأخر','behind')+' · ':'📡 ')+W('Position partagée','الموقع مُشارك','Location shared')+' · '+sh.title.slice(0,18);b.style.background=farN?'#d7263d':'';
 }
 function radar(){
  const ids=Object.keys(lvPos),u=me();const fresh=ids.map(i=>lvPos[i]).filter(r=>Date.now()-new Date(r.updated_at)<15*60e3);
@@ -1325,7 +1332,7 @@ function lvDraw(keep){
   `<label class="mp-sw"><input type="checkbox" data-mpshare="1" ${on?'checked':''} ${!sbc()||!u?'disabled':''}> ${W('Partager ma position avec les participants','مشاركة موقعي مع المشاركين','Share my position with participants')}</label>`+
   `<div class="mp-note">🔒 ${W('Visible uniquement par les participants de cette sortie. Le partage s’arrête quand tu le désactives, ou au bout de 8 h. Garde l’écran allumé : le navigateur coupe le GPS quand l’écran s’éteint.','مرئي فقط لمشاركي هذه الخرجة. تتوقف المشاركة عند إلغائها أو بعد 8 ساعات. أبقِ الشاشة مشتعلة: المتصفح يوقف GPS عند انطفائها.','Visible only to this ride’s participants. Sharing stops when you turn it off, or after 8 h. Keep the screen on: the browser stops GPS when the screen turns off.')}</div>`+
   (on&&sh.acc?`<div class="mp-note">📶 ${W('Précision GPS','دقة GPS','GPS accuracy')} : ±${Math.round(sh.acc)} m</div>`:'')+
-  (lvErr?`<div class="mp-err">${E(lvErr)}</div>`:'')+radar()+`<div style="margin-top:6px">${list}</div>`;
+  (lvErr?`<div class="mp-err">${E(lvErr)}</div>`:'')+(farMsg?`<div class="mp-err">${farMsg}</div>`:'')+(on?`<div class="mp-note">🔔 ${W('Alerte si un motard est à plus de 2 km de toi (vibration + bip).','تنبيه إذا ابتعد دراج أكثر من 2 كم عنك (اهتزاز + صفير).','Alert if a rider is more than 2 km from you (vibration + beep).')}</div>`:'')+radar()+`<div style="margin-top:6px">${list}</div>`;
  const box=$id('mpLvBox');
  if(keep&&box){box.innerHTML=inner;return}
  dl.innerHTML=`<div class="mp-hd"><h2>📡 ${E(lvT)}</h2><button class="g" data-mplvx="1">${W('Fermer','إغلاق','Close')}</button></div><div class="mp-bd" id="mpLvBox">${inner}</div>`;
@@ -1335,18 +1342,18 @@ async function lvLoad(){
  const c=sbc();if(!c||!me()||!lvR)return;
  try{const r=await c.from('ride_positions').select('*').eq('ride_id',lvR);if(r.error)throw r.error;
   const n={};(r.data||[]).forEach(x=>{if(Date.now()-new Date(x.updated_at)<6*3600e3)n[x.user_id]=x});lvPos=n;if(!lvErr.includes('GPS'))lvErr=''}catch(e){lvErr=errTxt(e)}
- if(dl.open)lvDraw(true);
+ chkFar();if(dl.open)lvDraw(true);
 }
 function lvOpen(rideUid,title){
  if(lvR!=rideUid){lvLeave();lvPos={};lvErr=''}
  lvR=rideUid;lvT=title;lvDraw();if(!dl.open)dl.showModal();
  const c=sbc();if(!c||!me())return;
  lvLoad();
- if(!lvCh){try{lvCh=c.channel('rp-'+lvR).on('postgres_changes',{event:'*',schema:'public',table:'ride_positions',filter:'ride_id=eq.'+lvR},p=>{if(p.eventType=='DELETE'){const o=p.old||{};if(o.user_id)delete lvPos[o.user_id]}else if(p.new)lvPos[p.new.user_id]=p.new;if(dl.open)lvDraw(true)}).subscribe()}catch(e){}}
- clearInterval(lvPoll);lvPoll=setInterval(()=>{if(dl.open)lvLoad();else lvDraw(true)},20000);
+ if(!lvCh){try{lvCh=c.channel('rp-'+lvR).on('postgres_changes',{event:'*',schema:'public',table:'ride_positions',filter:'ride_id=eq.'+lvR},p=>{if(p.eventType=='DELETE'){const o=p.old||{};if(o.user_id)delete lvPos[o.user_id]}else if(p.new)lvPos[p.new.user_id]=p.new;chkFar();if(dl.open)lvDraw(true)}).subscribe()}catch(e){}}
+ clearInterval(lvPoll);lvPoll=setInterval(()=>{if(dl.open||(sh.on&&sh.ride==lvR))lvLoad();else lvDraw(true)},20000);
 }
 function lvLeave(){try{if(lvCh&&sbc())sbc().removeChannel(lvCh)}catch(e){}lvCh=null;clearInterval(lvPoll);lvPoll=null}
-dl.addEventListener('close',lvLeave);
+dl.addEventListener('close',()=>{if(!(sh.on&&sh.ride==lvR))lvLeave()});
 dl.addEventListener('change',e=>{if(!e.target.matches('[data-mpshare]'))return;if(e.target.checked)shStart(lvR,lvT);else shStop()});
 
 /* =================== branchement sur l'app =================== */
@@ -2535,7 +2542,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 .fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
 </style>
 <script src="js/places.js"></script><script src="js/sos.js"></script>
-<script src="js/push.js"></script>
+<script src="js/push.js"></script><script src="js/route-plus.js"></script>
 <!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 
 <style>

@@ -1,5 +1,19 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-54 (24/10, après-midi) : ce qui manquait face aux concurrents
+Suite à l'analyse « MotoRoute — Analyse des applis concurrentes » (Calimoto, REVER, Cardo Ride, Liberty Rider…).
+- **Sortie → 🧭 Itinéraire Google Maps / 🚙 Waze** : navigation départ → arrivée en un geste (le guidage virage par virage
+  est confié à Google Maps/Waze plutôt que refait dans l'app).
+- **Conduite → ⬇ GPX** sur chaque trajet enregistré (les 5 derniers gardent le tracé) : envoi du fichier .gpx
+  (partage Android via Filesystem + Share) pour Calimoto, Kurviger, OsmAnd, Google My Maps…
+- **Batterie** : % consommé pendant le trajet (et %/h) dans le résumé et l'historique.
+  **Économie de batterie** : la carte GPS de l'onglet Conduite est coupée pendant l'enregistrement (avant : 2 GPS + carte rechargée toutes les 6 s).
+- **Alerte « motard décroché »** (comme PackRide de Cardo Ride) : pendant le suivi en direct d'une sortie, si un participant est
+  à plus de 2 km de moi → vibration + bip + bandeau rouge, même panneau fermé (le suivi reste branché tant que je partage).
+- **💬 Contacter MotoRoute** (WhatsApp) en bas de l'onglet Route : s'affiche dès que `window.MR_SUPPORT_WA` (js/route-plus.js) contient le numéro d'Elaid — numéro pas encore donné.
+- Code : `www/js/route-plus.js` + quelques lignes dans `www/index.html` ; copie identique dans `docs/app` (iPhone).
+- À tester sur téléphone : ⬇ GPX (fenêtre de partage), batterie dans le résumé, alerte décrochage avec les 2 téléphones (s'éloigner de plus de 2 km).
+
 ## 📍 Nouveau : « Bonnes adresses sur la route » (test-53)
 Décision d'Elaid : **tout membre connecté** ajoute hébergements / motards hôtes, restos-cafés, stations,
 mécaniciens, points de vue… avec **position GPS** (celle du téléphone, sur place) et **jusqu'à 4 photos**.
