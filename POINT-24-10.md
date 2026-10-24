@@ -1,5 +1,24 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## ⏸ Point de reprise 24/10, 23 h 45 (demandé par Elaid) — dernière version : **test-65**
+**Fait ce soir (publicité AdMob)**
+- Bannière du bas (Annonces, liste des groupes, Carnet) : bloc `…/4667030903`. Cachée sur Route, Conduite, Sorties, en paysage,
+  et maintenant aussi quand une fenêtre est ouverte (discussion, formulaire) — test-65.
+- Pub plein écran (interstitiel) : bloc `…/5213825810` créé par Elaid. Après « Annonce publiée » ou toutes les 6 navigations calmes ;
+  jamais en trajet / Route / Conduite / SOS. **Confirmée sur son téléphone** (test-64).
+- Mode test (`TESTING=true`) : pubs « Test Ad », règles allégées pour essayer (1er lancement, 20 s, 1 min d'écart, message 🧪 si refus).
+- Production (`TESTING=false`) : 2ᵉ lancement, 3 min d'attente, 6 min d'écart, 3 par jour maximum (simulé, inchangé).
+- Groupe « now » : créé par le compte Ali → seul Ali peut le supprimer (Groupes → le groupe → tout en bas « Supprimer le groupe »).
+
+**Reste à faire**
+1. Installer test-65 : vérifier que la bannière disparaît bien quand la discussion d'un groupe est ouverte.
+2. Le jour de la mise en production Google Play : passer `TESTING=false` dans `www/index.html` (pubs réelles + règles complètes).
+   Ne jamais cliquer sur ses propres vraies pubs.
+3. Google Play : 12 testeurs Gmail pendant 14 jours (test fermé), fiche Play Console (confidentialité, sécurité des données,
+   déclaration SMS, compte de test, classification), envoi de la version AAB signée.
+4. Petit ménage : supprimer `fcm-check` (Supabase → Edge Functions), fermer l'alerte GitHub, régénérer la clé du compte de service Firebase.
+5. Donner aux partenaires (Simou Cycle, Planète Moto, Iyade Moto) leurs nouveaux codes à 10 caractères.
+
 ## 🆕 test-61 (24/10, 23 h) : compte AdMob créé et branché
 - Compte AdMob d'Elaid créé (profil de paiement AdSense Algérie, ELAID REMILI, seuil 70 €). Approbation du compte :
   se fera après la publication sur Google Play et l'examen de l'app (rien à faire dans « Validation » pour l'instant).
