@@ -144,3 +144,4 @@ Choix retenu : **la bannière reste** (Annonces, liste des groupes, Carnet) + **
   annonce, un message 🧪 dit pourquoi (et Sentry reçoit « Pub plein écran : … »). Règles complètes inchangées en production (simulées).
 - Supprimer un groupe : Groupes → ouvrir le groupe → tout en bas « Supprimer le groupe » (seulement le créateur, pour un groupe du serveur).
 
+- 24/10, 23 h 33 : Elaid confirme sur son téléphone que la pub plein écran marche avec test-64 (« pour la pub réglé »).
