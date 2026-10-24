@@ -2577,6 +2577,10 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-err
 body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 :root[data-ui=futur] nav{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px))}
 .fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
+/* test-58 : le bas de la dernière carte ne doit jamais rester caché sous le bouton ＋, la pub et la barre du bas */
+:root main,:root[data-ui=futur] main{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px))!important}
+:root body.mr-ad main,:root[data-ui=futur] body.mr-ad main{padding-bottom:calc(var(--ad-b,150px) + 110px + env(safe-area-inset-bottom,0px))!important}
+:root body.mu-on main,:root[data-ui=futur] body.mu-on main{padding-bottom:max(calc(320px + env(safe-area-inset-bottom,0px)),calc(var(--ad-b,90px) + var(--mu-h,0px) + 110px))!important}
 </style>
 <script src="js/photos.js"></script><script src="js/annonces.js"></script><script src="js/places.js"></script><script src="js/sos.js"></script>
 <script src="js/push.js"></script><script src="js/route-plus.js"></script><script src="js/itineraire.js"></script>
