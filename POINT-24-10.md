@@ -1,5 +1,34 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-57 (24/10, 20 h) : système d'annonces refait (bugs signalés par Elaid)
+**Bug 1 – annonce d'Ali (GSX-R) invisible sur le téléphone d'Elaid** : les annonces des membres étaient gardées
+seulement dans la mémoire du téléphone qui publiait. Maintenant elles sont sur Supabase (table `annonces`).
+- Onglet Annonces en 2 parties : **🏍 Annonces des membres** / **🏪 Vitrines des pros**.
+- « ＋ Publier une annonce » : vendre/acheter, moto / pièce / **équipement**, prix, ville, **téléphone/WhatsApp**,
+  **jusqu'à 4 photos**, année/km/papiers pour une moto. Visible tout de suite par tous (pas de validation).
+- Sur chaque annonce : **💬 WhatsApp** (message prérempli) et **📞 Appeler** le vendeur, ♡ favori, 🚩 Signaler
+  (3 membres = masquée). Pour l'auteur : ✅ Vendu, 🔄 Prolonger (expiration 60 jours), 🗑 Supprimer.
+  Administrateur : supprimer n'importe quelle annonce, 👁 réafficher. Filtre « 👤 Mes annonces ».
+- Code : `www/js/annonces.js`. Serveur : **`supabase/annonces.sql` à exécuter par Elaid dans le SQL Editor**
+  (l'installation lancée par Claude a été annulée depuis le téléphone).
+- Les anciennes annonces de démonstration (MT-07, casque, pot CB500F) ne s'affichent plus.
+
+**Bug 2 – « Parcourir » ouvrait Drive / Récents au lieu des photos du téléphone** : nouveau module `www/js/photos.js`
++ module Capacitor `@capacitor/camera` (package.json). Boutons **🖼 Galerie** (vrai sélecteur de photos Android :
+Photos + Albums) et **📷 Prendre une photo**. Branché aussi sur les Bonnes adresses et la photo des vitrines.
+Sur iPhone / navigateur : champ fichier classique.
+
+**Point 3 – partenaires : on ne savait pas comment entrer** : en haut de « Vitrines des pros », carte
+**« Vous êtes un magasin, un garage ou un vendeur moto ? »** avec les 3 étapes, **📝 Demander ma vitrine** (formulaire :
+nom, activité, ville, téléphone, message) et **🔑 J'ai un code** (codes à 10 caractères, texte corrigé).
+- La demande arrive chez l'administrateur dans **🛡 Publications à valider** → ✅ Accepter : la vitrine est créée,
+  le demandeur la gère tout de suite depuis son compte (plus besoin de code), et l'app propose de le prévenir sur WhatsApp.
+- Le partenaire voit ensuite **« 🏪 Mon espace pro → ⚙ Gérer ma vitrine »** en haut.
+- Serveur : table `partner_requests`, fonctions `mr_partner_request` et `mr_partner_request_decide` (même script annonces.sql).
+
+À tester : exécuter annonces.sql → installer test-57 → annonce avec photos sur le compte d'Ali → visible sur le compte d'Elaid ;
+Galerie ; demande de vitrine depuis le 2e téléphone puis Accepter sur le compte administrateur.
+
 ## 🆕 test-56 (24/10, 16 h 30) : itinéraire déplacé et enrichi (demande d'Elaid)
 - « 🌀 Proposer un itinéraire » est maintenant **en tête de l'onglet Sorties** (repliable, « Ouvrir ▾ »), plus dans Route.
 - Choix : 1) **genre de route** 🌀 sinueuse / 🛣️ dégagée (autoroute, nationale, lignes droites : on garde les variantes avec

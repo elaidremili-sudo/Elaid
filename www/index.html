@@ -154,12 +154,13 @@ nav button.on::after{background:var(--acc2)}
 
 <dialog id="d2"><h2 class="dt" data-i="d2_title"></h2>
 <label data-i="want"></label><select id="a_ty"><option value="sell" data-i="sell"></option><option value="buy" data-i="buy"></option></select>
-<label data-i="cat"></label><select id="a_cat"><option value="moto" data-i="moto"></option><option value="part" data-i="part"></option></select>
+<label data-i="cat"></label><select id="a_cat"><option value="moto" data-i="moto"></option><option value="part" data-i="part"></option><option value="gear" data-i="gear"></option></select>
 <label data-i="title"></label><input id="a_t" data-ph="ph_ad">
 <label data-i="price"></label><input id="a_p" type="number" inputmode="numeric">
-<label data-i="city"></label><input id="a_v">
+<label data-i="city"></label><input id="a_v" maxlength="60">
+<label data-i="a_tel"></label><input id="a_tel" type="tel" inputmode="tel" maxlength="25" placeholder="05.. / 06.. / 07..">
 <label data-i="desc"></label><textarea id="a_de" rows="3"></textarea>
-<label data-i="photo"></label><input id="a_ph" type="file" accept="image/*"><img id="a_prev" class="prev" alt="" hidden>
+<label><span data-i="photos"></span> <span id="a_phn" class="meta">0 / 4</span></label><div id="a_phs" class="a-phs"></div><div id="a_phb" class="row" style="justify-content:flex-start;gap:8px"><button type="button" class="g" data-adgal="1" data-i="gal"></button><button type="button" class="g" data-adcam="1" data-i="cam"></button></div>
 <div id="motoF"><label data-i="year"></label><input id="a_y" type="number" inputmode="numeric" placeholder="2019">
 <label data-i="kms"></label><input id="a_k" type="number" inputmode="numeric">
 <label data-i="papers"></label><select id="a_pp"><option value="clean" data-i="pp_clean"></option><option value="issue" data-i="pp_issue"></option><option value="none" data-i="pp_none"></option></select>
@@ -348,18 +349,12 @@ function render(){
   <button class="p ${s.joined?'done':''}" data-j="${s.id}">${s.joined?t.joined:t.join}</button></div></div>`).join(''):`<div class="empty">${window.mrShowPast?(lang=='ar'?'لا توجد رحلات سابقة.':lang=='en'?'No past rides.':'Aucune sortie passée.'):t.empty1}</div>`;
   if(nPast||window.mrShowPast)m.innerHTML+=`<div class="row" style="justify-content:center;margin:6px 0 10px"><button class="g" data-past="1">${window.mrShowPast?(lang=='ar'?'→ الرحلات القادمة':lang=='en'?'← Upcoming rides':'← Sorties à venir'):'🕓 '+(lang=='ar'?'الرحلات السابقة':lang=='en'?'Past rides':'Sorties passées')+' ('+nPast+')'}</button></div>`;
  }else if(tab==3){m.innerHTML=groupsView(t)}else if(tab==4){m.innerHTML=routeView(t)}else if(tab==6){m.innerHTML=window.mrRideView?window.mrRideView(t):''}else if(tab==5){m.innerHTML=logView(t)}else{
-  const fl=(cur,key,list,lab)=>list.map(x=>`<button class="g ${cur==x?'on':''}" data-${key}="${x}">${t[lab[x]]}</button>`).join('');
-  const l=S.annonces.filter(a=>(fT=='all'||a.ty==fT)&&(fC=='all'||a.cat==fC)&&!S.rep.includes(a.id)&&(!fF||S.fav.includes(a.id))&&(!q||(a.t+' '+a.de+' '+a.v).toLowerCase().includes(q)));
-  m.innerHTML=partnersHtml(t)+`<div class="card"><h3>${t.tips_t}</h3><div class="meta">${t.tips}</div></div><input id="q" type="search" class="srch" placeholder="${t.search}" value="${esc(q)}"><div class="filters">${fl(fT,'ft',['all','sell','buy'],{all:'all',sell:'forsale',buy:'wanted'})}${fl(fC,'fc',['all','moto','part'],{all:'all',moto:'moto',part:'part'})}<button class="g ${fF?'on':''}" data-ff="1">♥ ${t.fav}</button></div>`+
-  (l.length?l.map(a=>`<div class="card">${a.img?`<img class="ph" src="${esc(a.img)}" alt="">`:''}<span class="tag ${a.ty=='sell'?'v':'a'}">${a.ty=='sell'?t.forsale:t.wanted}</span><span class="tag">${t[a.cat]}</span>
-  <h3 style="margin-top:8px">${esc(a.t)}</h3><div class="meta">${esc(a.de)}</div>${a.cat=='moto'?motoInfo(a,t):''}
-  <div class="row"><span class="price">${a.p?(Number(a.p)||0).toLocaleString(t.loc)+' '+t.cur:t.nego}</span><span class="meta">${esc(a.v)}</span></div>
-  <div class="row ad-act"><button class="g" data-c="${a.id}">${t.contact}</button><button class="g" data-fv="${a.id}">${S.fav.includes(a.id)?'♥':'♡'}</button><button class="g" data-rt="${a.id}">★ ${ratingAvg(a.id)?ratingAvg(a.id).toFixed(1):t.rate}</button><button class="g" data-rp="${a.id}">${t.rep}</button><button class="g" data-r="${a.id}">${t.del}</button></div></div>`).join(''):`<div class="empty">${t.empty2}</div>`);
+  m.innerHTML=window.mrAdsTab?window.mrAdsTab(t):'';
  }
 }
 $('lang').onclick=()=>{lang=lang=='fr'?'ar':'fr';try{localStorage.setItem(LK,lang)}catch(e){}statics();render()};
 $('t1').onclick=()=>{tab=1;render()};$('t2').onclick=()=>{tab=2;render()};
-$('fab').onclick=()=>{if(tab==1){fillG();$('d1').showModal()}else if(tab==2)$('d2').showModal();else if(tab==5){$('lg_d').value=new Date().toISOString().slice(0,10);$('d6').showModal()}else $(gid?'d4':'d3').showModal()};
+$('fab').onclick=()=>{if(tab==1){fillG();$('d1').showModal()}else if(tab==2){if(window.mrAdsOpenForm)window.mrAdsOpenForm();else $('d2').showModal()}else if(tab==5){$('lg_d').value=new Date().toISOString().slice(0,10);$('d6').showModal()}else $(gid?'d4':'d3').showModal()};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 $('main').onclick=e=>{
  const b=e.target.closest('button');if(!b)return;
@@ -377,13 +372,7 @@ $('s_ok').onclick=()=>{
  S.sorties.push({id:Date.now(),map:mp,t:$('s_t').value,d:$('s_d').value,dep:$('s_dep').value||T().tbd,dest:$('s_dest').value||T().tbd,km:$('s_km').value||'?',n:$('s_n').value,g:$('s_g').value,p:1,joined:false,names:[]});
  save();$('d1').close();render();
 };
-$('a_ok').onclick=()=>{
- if(!$('a_t').value.trim()){alert(T().err2);return}
- const mo=$('a_cat').value=='moto';
- S.annonces.unshift({id:Date.now(),ty:$('a_ty').value,cat:$('a_cat').value,t:$('a_t').value,p:$('a_p').value,v:$('a_v').value||T().nocity,de:$('a_de').value,img:pic,y:mo?$('a_y').value:'',k:mo?$('a_k').value:'',pp:mo?$('a_pp').value:'',pn:mo?$('a_pn').value.trim():''});
- pic='';$('a_ph').value='';$('a_prev').hidden=true;
- save();$('d2').close();render();
-};
+$('a_ok').onclick=()=>{if(window.mrAdsSubmit)window.mrAdsSubmit()};
 $('t3').onclick=()=>{tab=3;gid=null;render()};
 $('t4').onclick=()=>{tab=4;render()};$('t6').onclick=()=>{tab=6;render()};$('t5').onclick=()=>{tab=5;render()};
 $('lg_ok').onclick=()=>{const km=Number($('lg_km').value);if(!(km>0)||!$('lg_d').value)return;S.log.push({id:Date.now(),d:$('lg_d').value,km,dep:$('lg_dep').value.trim(),dest:$('lg_dest').value.trim()});$('lg_km').value=$('lg_dep').value=$('lg_dest').value='';save();$('d6').close();render()};
@@ -437,7 +426,7 @@ $('m_f').onchange=e=>{const f=e.target.files[0];mpic='';mvid='';$('m_prev').hidd
 $('g_ok').onclick=()=>{if(!$('g_n').value.trim()){alert(T().err3);return}const w=$('g_w').value.trim();if(w&&!waOk(w)){alert(T().err6);return}S.groups.push({id:Date.now(),name:$('g_n').value.trim(),city:$('g_c').value.trim(),wa:w,mem:0,me:true});$('g_n').value=$('g_c').value=$('g_w').value='';save();$('d3').close();render()};
 $('m_ok').onclick=()=>{if(!mpic&&!mvid){alert(T().err4);return}const id=Date.now();if(mvid)vids[id]=mvid;S.mems.unshift({id,g:gid,place:$('m_p').value.trim()||'—',cap:$('m_c').value.trim(),img:mpic,vid:!!mvid});$('m_p').value=$('m_c').value='';$('m_f').value='';mpic=mvid='';$('m_prev').hidden=true;save();$('d4').close();render()};
 let pic='';
-$('a_ph').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);pic=c.toDataURL('image/jpeg',.7);$('a_prev').src=pic;$('a_prev').hidden=false};im.src=r.result};r.readAsDataURL(f)};
+/* test-57 : photos des annonces → js/photos.js + js/annonces.js (Galerie / Photo) */
 const tog=()=>{$('motoF').hidden=$('a_cat').value!='moto'};$('a_cat').onchange=tog;tog();
 (function(){
 const X={fr:{ed:'Éditeur photo/vidéo',gal:'Galerie',cam:'Caméra',flt:'Filtres',lum:'Luminosité',con:'Contraste',txt:'Texte sur l’image',rot:'Pivoter',wm:'Logo MotoRoute',pub:'Publier dans un groupe',dl:'Télécharger',rec:'Export vidéo en cours… ne quittez pas la page',noG:'Créez d’abord un groupe.',x:'Fermer',nf:'Export vidéo impossible sur ce navigateur.',fl:['Normal','Vif','Noir & blanc','Sépia','Vintage','Cinéma','Froid','Chaud'],fall:'Détection de chute',fon:'Activer la détection automatique',ftest:'Simuler une chute',fnote:'Fixez le téléphone sur vous ou sur la moto. Après un choc suivi d’immobilité, le SOS part automatiquement au bout de 2 minutes sans réponse.',fperm:'Autorisez l’accès aux capteurs de mouvement.',fns:'Capteurs de mouvement indisponibles sur cet appareil.',fh:'Chute détectée !',fsub:'Un SOS sera envoyé au groupe et à votre contact d’urgence dans',fok:'Je vais bien — annuler',fsent:'🚨 SOS déclenché',fgrp:'Envoi de l’alerte à tes groupes…',fcall:'Appeler le contact',fwa:'Envoyer par WhatsApp',fnoice:'Renseignez la fiche d’urgence ou le numéro SOS dans l’onglet Route.',fsim:'Les membres la reçoivent si MotoRoute est ouvert sur leur téléphone. Appelle aussi ton contact d’urgence.',fmsg:'🚨 CHUTE DÉTECTÉE — {n} ({m}), groupe sanguin {b}. Position :',col:'Couleurs',cph:'Photo',cvd:'Vidéo',ai:'Retouche IA',auto:'✨ Améliorer',fc:'🙂 Flouter les visages',zn:'✋ Flouter une zone',zon:'✋ Touchez la photo…',clr:'↺ Retirer les flous',ld:'Analyse IA en cours…',f0:'Aucun visage trouvé. Touchez « Flouter une zone » puis la photo pour flouter à la main.',fN:'{n} visage(s) flouté(s). Pour une plaque : « Flouter une zone » puis touchez-la.',zh:'Touchez la photo là où il faut flouter (plaque, visage). Touchez un flou pour le retirer.',aer:'Analyse IA impossible sur cet appareil. Utilisez « Flouter une zone ».',ain:'L’IA tourne dans le téléphone : rien n’est envoyé sur internet.',vfr:'Vidéo : les flous restent à la même place pendant toute la vidéo.',aok:'Photo améliorée automatiquement.',nos:'Choisissez d’abord une photo ou une vidéo.'},
@@ -1645,32 +1634,32 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
    Ses publications et changements d'informations restent « en attente » jusqu'à la validation d'un administrateur.
    Les administrateurs (comptes d'Elaid) ont l'onglet « Validation » et « Accès partenaires ». */
 const T2={
-fr:{sDash:'Stats',sShop:'Vitrine',sMod:'Valider',sAcc:'Accès',claim:'🔑 J’ai un code partenaire',claimQ:'Code partenaire reçu de MotoRoute (6 caractères) :',claimOk:'✅ Tu gères maintenant la vitrine « {n} ». Tes publications seront visibles après validation par MotoRoute.',claimBad:'Code inconnu.',claimTaken:'Cette vitrine a déjà un gestionnaire. Demande un nouveau code à MotoRoute.',claimLogin:'Connecte-toi d’abord à ton compte MotoRoute.',
+fr:{sDash:'Stats',sShop:'Vitrine',sMod:'Valider',sAcc:'Accès',claim:'🔑 J’ai un code partenaire',claimQ:'Code partenaire reçu de MotoRoute (10 caractères) :',claimOk:'✅ Tu gères maintenant la vitrine « {n} ». Tes publications seront visibles après validation par MotoRoute.',claimBad:'Code inconnu.',claimTaken:'Cette vitrine a déjà un gestionnaire. Demande un nouveau code à MotoRoute.',claimLogin:'Connecte-toi d’abord à ton compte MotoRoute.',
  mod:'Validation',acc:'Accès partenaires',modT:'Publications à valider',pending:'⏳ En attente de validation',online:'✅ En ligne',refused:'❌ Refusée',why:'Motif',
  sent:'✅ Envoyé ! Ce sera visible par les membres après validation par MotoRoute.',sentInfo:'✅ Informations envoyées : elles remplaceront les anciennes après validation.',infoWait:'⏳ Nouvelles informations en attente de validation.',infoRef:'❌ Dernières informations refusées',
  approve:'✅ Accepter',reject:'❌ Refuser',rejQ:'Motif du refus (le partenaire le verra) :',nothing:'Rien à valider pour l’instant 👍',newInfo:'Nouvelles informations proposées',
  code:'Code d’accès',sendCode:'📤 Envoyer le code',newCode:'🔄 Nouveau code',newCodeQ:'Créer un nouveau code ? L’ancien ne marchera plus et le gestionnaire actuel perdra l’accès.',manager:'Gestionnaire',nomgr:'aucun pour l’instant',suspend:'Suspendre la vitrine',activate:'Réactiver la vitrine',suspended:'Vitrine suspendue (invisible pour les membres)',addP:'+ Ajouter un partenaire',addName:'Nom du nouveau partenaire ?',addCity:'Ville ?',
- shareTxt:'Bonjour {n} ! Votre vitrine MotoRoute est prête. 1) Installez MotoRoute et créez votre compte. 2) Onglet Annonces → « J’ai un code partenaire » → entrez ce code : {c}. Vous pourrez ensuite publier vos promotions, nouveautés et produits (validés par MotoRoute avant parution).',
+ shareTxt:'Bonjour {n} ! Votre vitrine MotoRoute est prête. 1) Installez MotoRoute et créez votre compte. 2) Onglet Annonces → « Vitrines des pros » → « J’ai un code » → entrez ce code : {c}. Vous pourrez ensuite publier vos promotions, nouveautés et produits (validés par MotoRoute avant parution).',
  people:'Membres différents',intC:'« Je suis intéressé »',views30:'Vues (30 derniers jours)',offline:'Pas de connexion au serveur : vitrines affichées depuis la dernière visite.',busy:'Envoi…',err:'Impossible pour l’instant (internet ?).',photoErr:'La photo n’a pas pu être envoyée.',onlyPend:'{n} publication(s) en attente : invisibles pour les membres tant qu’elles ne sont pas validées.',partnerMode:'Les membres voient seulement ce qui est validé par MotoRoute.',adminMode:'Mode administrateur : ce que tu publies ici est en ligne tout de suite.'},
-ar:{sDash:'إحصاءات',sShop:'المتجر',sMod:'مراجعة',sAcc:'الوصول',claim:'🔑 لدي رمز شريك',claimQ:'رمز الشريك الذي أرسلته MotoRoute (6 أحرف):',claimOk:'✅ أنت الآن تدير متجر «{n}». تظهر منشوراتك بعد موافقة MotoRoute.',claimBad:'رمز غير معروف.',claimTaken:'لهذا المتجر مسيّر بالفعل. اطلب رمزًا جديدًا من MotoRoute.',claimLogin:'سجّل الدخول إلى حسابك أولًا.',
+ar:{sDash:'إحصاءات',sShop:'المتجر',sMod:'مراجعة',sAcc:'الوصول',claim:'🔑 لدي رمز شريك',claimQ:'رمز الشريك الذي أرسلته MotoRoute (10 أحرف):',claimOk:'✅ أنت الآن تدير متجر «{n}». تظهر منشوراتك بعد موافقة MotoRoute.',claimBad:'رمز غير معروف.',claimTaken:'لهذا المتجر مسيّر بالفعل. اطلب رمزًا جديدًا من MotoRoute.',claimLogin:'سجّل الدخول إلى حسابك أولًا.',
  mod:'المراجعة',acc:'وصول الشركاء',modT:'منشورات للمراجعة',pending:'⏳ في انتظار الموافقة',online:'✅ منشور',refused:'❌ مرفوض',why:'السبب',
  sent:'✅ أُرسل! سيظهر للأعضاء بعد موافقة MotoRoute.',sentInfo:'✅ أُرسلت المعلومات: تحل محل القديمة بعد الموافقة.',infoWait:'⏳ معلومات جديدة في انتظار الموافقة.',infoRef:'❌ رُفضت آخر المعلومات',
  approve:'✅ قبول',reject:'❌ رفض',rejQ:'سبب الرفض (سيراه الشريك):',nothing:'لا شيء للمراجعة حاليًا 👍',newInfo:'معلومات جديدة مقترحة',
  code:'رمز الدخول',sendCode:'📤 إرسال الرمز',newCode:'🔄 رمز جديد',newCodeQ:'إنشاء رمز جديد؟ لن يعمل القديم وسيفقد المسيّر الحالي الوصول.',manager:'المسيّر',nomgr:'لا أحد بعد',suspend:'تعليق المتجر',activate:'إعادة تفعيل المتجر',suspended:'المتجر معلّق (غير ظاهر للأعضاء)',addP:'+ إضافة شريك',addName:'اسم الشريك الجديد؟',addCity:'المدينة؟',
- shareTxt:'مرحبًا {n}! متجركم على MotoRoute جاهز. 1) ثبّتوا MotoRoute وأنشئوا حسابكم. 2) تبويب الإعلانات ← «لدي رمز شريك» ← أدخلوا هذا الرمز: {c}. بعدها يمكنكم نشر العروض والجديد والمنتجات (بعد موافقة MotoRoute).',
+ shareTxt:'مرحبًا {n}! متجركم على MotoRoute جاهز. 1) ثبّتوا MotoRoute وأنشئوا حسابكم. 2) تبويب الإعلانات ← «متاجر المحترفين» ← «لدي رمز» ← أدخلوا هذا الرمز: {c}. بعدها يمكنكم نشر العروض والجديد والمنتجات (بعد موافقة MotoRoute).',
  people:'أعضاء مختلفون',intC:'«أنا مهتم»',views30:'المشاهدات (30 يومًا)',offline:'لا اتصال بالخادم: المتاجر من آخر زيارة.',busy:'جارٍ الإرسال…',err:'غير ممكن الآن (الإنترنت؟).',photoErr:'تعذر إرسال الصورة.',onlyPend:'{n} منشور في الانتظار: غير ظاهر للأعضاء حتى الموافقة.',partnerMode:'يرى الأعضاء فقط ما وافقت عليه MotoRoute.',adminMode:'وضع المسؤول: ما تنشره هنا يظهر فورًا.'},
-en:{sDash:'Stats',sShop:'Shop',sMod:'Approve',sAcc:'Access',claim:'🔑 I have a partner code',claimQ:'Partner code received from MotoRoute (6 characters):',claimOk:'✅ You now manage the “{n}” shop. Your posts will appear after MotoRoute approves them.',claimBad:'Unknown code.',claimTaken:'This shop already has a manager. Ask MotoRoute for a new code.',claimLogin:'Sign in to your MotoRoute account first.',
+en:{sDash:'Stats',sShop:'Shop',sMod:'Approve',sAcc:'Access',claim:'🔑 I have a partner code',claimQ:'Partner code received from MotoRoute (10 characters):',claimOk:'✅ You now manage the “{n}” shop. Your posts will appear after MotoRoute approves them.',claimBad:'Unknown code.',claimTaken:'This shop already has a manager. Ask MotoRoute for a new code.',claimLogin:'Sign in to your MotoRoute account first.',
  mod:'Approval',acc:'Partner access',modT:'Posts to approve',pending:'⏳ Waiting for approval',online:'✅ Live',refused:'❌ Rejected',why:'Reason',
  sent:'✅ Sent! Members will see it once MotoRoute approves it.',sentInfo:'✅ Details sent: they will replace the old ones once approved.',infoWait:'⏳ New details waiting for approval.',infoRef:'❌ Latest details rejected',
  approve:'✅ Approve',reject:'❌ Reject',rejQ:'Reason for rejecting (the partner will see it):',nothing:'Nothing to approve right now 👍',newInfo:'Proposed new details',
  code:'Access code',sendCode:'📤 Send the code',newCode:'🔄 New code',newCodeQ:'Create a new code? The old one will stop working and the current manager loses access.',manager:'Manager',nomgr:'nobody yet',suspend:'Suspend the shop',activate:'Reactivate the shop',suspended:'Shop suspended (hidden from members)',addP:'+ Add a partner',addName:'New partner’s name?',addCity:'City?',
- shareTxt:'Hello {n}! Your MotoRoute shop is ready. 1) Install MotoRoute and create your account. 2) Ads tab → “I have a partner code” → enter this code: {c}. You can then post your promotions, new arrivals and products (approved by MotoRoute before going live).',
+ shareTxt:'Hello {n}! Your MotoRoute shop is ready. 1) Install MotoRoute and create your account. 2) Ads tab → “Pro shops” → “I have a code” → enter this code: {c}. You can then post your promotions, new arrivals and products (approved by MotoRoute before going live).',
  people:'Different members',intC:'“I’m interested”',views30:'Views (last 30 days)',offline:'No server connection: shops shown from your last visit.',busy:'Sending…',err:'Not possible right now (internet?).',photoErr:'The photo could not be sent.',onlyPend:'{n} post(s) waiting: hidden from members until approved.',partnerMode:'Members only see what MotoRoute has approved.',adminMode:'Admin mode: what you post here goes live immediately.'}};
 const DD=()=>({...(T[lang]||T.fr),...(T2[lang]||T2.fr)});
 const CK='mr_partners_cache_v2',sbc=()=>window.mrSb,me=()=>window.mrUser&&window.mrUser();
 const COLS='id,name,kind,city,about,phone,addr,hours,active,sort,owner_id,pending,pending_at,info_note';
 const ICOLS='id,partner_id,kind,title,descr,price,old_price,until,img,feat,ex,status,note,created_at,updated_at';
-let SP=null,IT=[],ADM=false,loadAt=0,loading=false,srvOk=true,loadUid=null;
+let SP=null,IT=[],ADM=false,loadAt=0,loading=false,srvOk=true,loadUid=null,REQ=[];
 try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c&&c.p){SP=c.p;IT=c.i||[]}}catch(e){}
 async function load(force){
  const c=sbc(),u0=me()&&me().id||null;if(!c||loading)return;if(!force&&u0===loadUid&&Date.now()-loadAt<60000)return;loading=true;loadUid=u0;
@@ -1680,6 +1669,7 @@ async function load(force){
   SP=a.data||[];IT=b.data||[];srvOk=true;loadAt=Date.now();
   try{localStorage.setItem(CK,JSON.stringify({p:SP.filter(p=>p.active).map(p=>({...p,pending:null})),i:IT.filter(x=>x.status=='approved')}))}catch(e){}
   ADM=false;if(me()){try{const r=await c.rpc('mr_is_admin');ADM=!r.error&&r.data===true}catch(e){}}
+  REQ=[];if(me()){try{const r=await c.from('partner_requests').select('id,user_id,shop,kind,city,phone,message,status,note,partner_id,created_at').order('created_at',{ascending:false}).limit(50);if(!r.error)REQ=r.data||[]}catch(e){}}
  }catch(e){srvOk=false;loadAt=Date.now()-45000}
  loading=false;refresh();if(vaD.open)drawAdmin();
 }
@@ -1689,7 +1679,7 @@ const mine=p=>{const u=me();return !!(u&&p&&p.owner_id&&p.owner_id==u.id)};
 const canManage=p=>!!p&&!String(p.id).startsWith('local')&&(ADM||mine(p));
 const V=i=>({...i,desc:i.descr,old:i.old_price});
 const itemsOf=(p,all)=>IT.filter(i=>i.partner_id==p.id&&(all||i.status=='approved')).map(V);
-const pendN=()=>IT.filter(i=>i.status=='pending').length+(SP||[]).filter(p=>p.pending).length;
+const pendN=()=>IT.filter(i=>i.status=='pending').length+(SP||[]).filter(p=>p.pending).length+(ADM?REQ.filter(r=>r.status=='pending').length:0);
 function evt(pid,kind,item){const c=sbc(),u=me(),p=pById(pid);if(!c||!u||!p||String(p.id).startsWith('local'))return;try{c.from('partner_events').insert({partner_id:p.id,kind,item_id:item||null,user_id:u.id}).then(()=>{},()=>{})}catch(e){}}
 function notify(body){const c=sbc();if(!c)return;try{c.functions.invoke('partner-notify',{body}).catch(()=>{})}catch(e){}}
 window.mrPartnersReload=()=>load(true);setInterval(()=>{if(typeof tab!=='undefined'&&tab==2)load()},30000);setTimeout(()=>load(true),2500);
@@ -1709,10 +1699,23 @@ const stBadge=i=>{const d=DD();return i.status=='approved'?`<span class="vt-st o
 
 /* ---------- carte partenaire dans « Annonces » ---------- */
 partnersHtml=function(t){
- load();const d=DD(),n=ADM?pendN():0;
- const list=partners().filter(p=>p.active||canManage(p));
- return `<div class="meta" style="color:#fff;font-weight:600;margin:4px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+
- (ADM?`<button class="vt-modbtn${n?' hot':''}" data-vmod="1">🛡 ${d.modT}${n?` · <b>${n}</b>`:''}</button>`:'')+
+ load();const d=DD(),n=ADM?pendN():0,u=me();
+ const list=partners().filter(p=>p.active||canManage(p)),myShops=(SP||[]).filter(mine);
+ const myReq=u?REQ.find(r=>r.user_id==u.id):null,W3=(f,a,e)=>lang=='ar'?a:lang=='en'?e:f;
+ let pro;
+ if(myShops.length){
+  pro=`<div class="card partner vt-pro"><h3>🏪 ${W3('Mon espace pro','فضائي المهني','My pro space')}</h3><div class="meta">${W3('Publie tes promotions, nouveautés et produits. MotoRoute les valide avant parution.','انشر عروضك وجديدك ومنتجاتك. تراجعها MotoRoute قبل النشر.','Post your deals, new arrivals and products. MotoRoute approves them before they go live.')}</div>
+  ${myShops.map(p=>{const k=IT.filter(i=>i.partner_id==p.id&&i.status=='pending').length+(p.pending?1:0);return `<button class="p" style="width:100%;margin-top:8px;padding:12px" data-va="${h(p.id)}">⚙ ${W3('Gérer ma vitrine','إدارة متجري','Manage my shop')} « ${h(p.name)} »${k?` · ⏳ ${k}`:''}</button>`}).join('')}</div>`;
+ }else{
+  const st=myReq&&myReq.status=='pending'?`<div class="vt-demo">⏳ ${W3('Demande envoyée pour « {s} » : MotoRoute va l’étudier. Tu gèreras ta vitrine ici dès qu’elle sera acceptée.','تم إرسال طلب «{s}»: ستدرسه MotoRoute. ستدير متجرك هنا فور قبوله.','Request sent for “{s}”: MotoRoute will review it. You will manage your shop here once accepted.').replace('{s}',h(myReq.shop))}</div>`
+   :myReq&&myReq.status=='rejected'&&myReq.note&&!/^Remplacée/.test(myReq.note)?`<div class="vt-demo">❌ ${W3('Demande refusée','رُفض الطلب','Request declined')} : ${h(myReq.note)}</div>`:'';
+  pro=`<div class="card partner vt-pro"><span class="tag a">PRO</span><h3 style="margin-top:8px">🏪 ${W3('Vous êtes un magasin, un garage ou un vendeur moto ?','هل أنتم متجر أو ورشة أو بائع دراجات؟','Are you a shop, a garage or a bike dealer?')}</h3>
+  <div class="meta">${W3('Ayez votre vitrine dans MotoRoute : vos promotions, nouveautés et produits vus par tous les motards, qui vous contactent par WhatsApp ou appel.','احصلوا على متجركم في MotoRoute: عروضكم وجديدكم ومنتجاتكم يراها كل الدراجين ويتصلون بكم عبر واتساب أو الهاتف.','Get your shop in MotoRoute: your deals, new arrivals and products seen by every rider, who contact you by WhatsApp or call.')}</div>
+  <ol class="meta vt-steps"><li>${W3('Touchez « Demander ma vitrine » et remplissez le formulaire.','المسوا «طلب متجري» واملؤوا الاستمارة.','Tap “Request my shop” and fill in the form.')}</li><li>${W3('MotoRoute accepte votre demande : votre vitrine apparaît ici.','تقبل MotoRoute طلبكم: يظهر متجركم هنا.','MotoRoute accepts your request: your shop appears here.')}</li><li>${W3('« Gérer ma vitrine » → publiez promos et produits (validés par MotoRoute).','«إدارة متجري» ← انشروا العروض والمنتجات (بعد موافقة MotoRoute).','“Manage my shop” → post deals and products (approved by MotoRoute).')}</li></ol>
+  ${st}<div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">${myReq&&myReq.status=='pending'?'':`<button class="p" data-vreq="1">📝 ${W3('Demander ma vitrine','طلب متجري','Request my shop')}</button>`}<button class="g" data-vclaim="1">🔑 ${W3('J’ai un code','لدي رمز','I have a code')}</button></div></div>`;
+ }
+ return (ADM?`<button class="vt-modbtn${n?' hot':''}" data-vmod="1">🛡 ${d.modT}${n?` · <b>${n}</b>`:''}</button>`:'')+pro+
+ `<div class="meta" style="color:#fff;font-weight:600;margin:10px 0 8px;text-shadow:0 1px 4px rgba(0,0,0,.6)">${t.partners}</div>`+
  (!srvOk&&SP?`<div class="meta" style="color:#fff;opacity:.8">${d.offline}</div>`:'')+
  list.map(p=>{
   const its=itemsOf(p),feat=its.filter(i=>i.feat).slice(0,3),hot=its.some(promoOn),wl=waLink(p),id=h(p.id);
@@ -1723,12 +1726,24 @@ partnersHtml=function(t){
   ${feat.length?`<div class="vt-strip" data-vt="${id}">${feat.map(i=>`<div class="vt-mini">${pic(i,'vt-mimg')}<div class="vt-mt">${h(i.title)}</div>${i.price?`<div class="vt-mp">${money(i.price)}</div>`:''}</div>`).join('')}</div>`:''}
   <div class="vt-acts"><button class="p" data-vt="${id}">${d.see}</button>${p.phone?`<a class="lnk" href="tel:${h(p.phone)}" data-vs="${id}|call">${d.call}</a><a class="lnk" target="_blank" rel="noopener" href="${h(wl)}" data-vs="${id}|wa">${d.wa}</a>`:''}<a class="lnk" target="_blank" rel="noopener" href="${h(mapLink(p))}" data-vs="${id}|route">${d.route}</a></div>
   ${canManage(p)?`<button class="vt-admin" data-va="${id}">⚙ ${d.manage}${myPend?` · ⏳ ${myPend}`:''}</button>`:''}</div>`;
- }).join('')+
- `<div class="card partner"><span class="tag a">${t.ad_label}</span><h3 style="margin-top:8px">${t.slot_name}</h3><div class="meta">${t.slot_txt}</div><button class="vt-admin" style="margin-left:0" data-vclaim="1">${d.claim}</button></div>`;
+ }).join('')+(list.length?'':`<div class="empty">${W3('Aucune vitrine pour l’instant.','لا توجد متاجر بعد.','No shops yet.')}</div>`);
 };
 
 /* ---------- boîtes de dialogue ---------- */
-document.body.insertAdjacentHTML('beforeend','<dialog id="vtD" class="mp-dlg vt-dlg"></dialog><dialog id="vaD" class="mp-dlg vt-dlg"></dialog>');
+document.body.insertAdjacentHTML('beforeend','<dialog id="vtD" class="mp-dlg vt-dlg"></dialog><dialog id="vaD" class="mp-dlg vt-dlg"></dialog><dialog id="vrD" class="mp-dlg vt-dlg"></dialog>');
+const vrD=document.getElementById('vrD');
+function openReq(){
+ const W3=(f,a,e)=>lang=='ar'?a:lang=='en'?e:f,K=[['Showroom moto','معرض دراجات','Bike showroom'],['Pièces & équipement','قطع وتجهيزات','Parts & gear'],['Garage / mécanique','ورشة / ميكانيك','Garage / mechanic'],['Location de motos','كراء الدراجات','Bike rental'],['Autre','أخرى','Other']];
+ vrD.innerHTML=`<div class="vt-h"><div><div class="vt-off-badge">🏪 PRO</div><h2>${W3('Demander ma vitrine','طلب متجري','Request my shop')}</h2></div></div>
+ <div class="vt-b"><div class="meta">${W3('MotoRoute reçoit ta demande et te contacte. Une fois acceptée, ta vitrine apparaît dans « Vitrines des pros » et tu la gères depuis ce compte.','تصل طلبك إلى MotoRoute وتتصل بك. بعد القبول يظهر متجرك في «متاجر المحترفين» وتديره من هذا الحساب.','MotoRoute receives your request and contacts you. Once accepted, your shop appears in “Pro shops” and you manage it from this account.')}</div>
+ <label>${W3('Nom du magasin','اسم المتجر','Shop name')} *</label><input id="vr_s" maxlength="60" placeholder="Simou Cycle">
+ <label>${W3('Activité','النشاط','Business')}</label><select id="vr_k">${K.map(k=>`<option value="${h(k[0])}">${h(W3(k[0],k[1],k[2]))}</option>`).join('')}</select>
+ <label>${W3('Ville','المدينة','City')}</label><input id="vr_c" maxlength="40">
+ <label>${W3('Téléphone / WhatsApp du magasin','هاتف / واتساب المتجر','Shop phone / WhatsApp')} *</label><input id="vr_p" type="tel" inputmode="tel" maxlength="25" placeholder="05.. / 06.. / 07..">
+ <label>${W3('Message (facultatif)','رسالة (اختياري)','Message (optional)')}</label><textarea id="vr_m" rows="3" maxlength="400"></textarea></div>
+ <div class="vt-f"><button class="g" data-vclose="vrD">${DD().cancel||'Annuler'}</button><button class="p" data-vreqsend="1">📤 ${W3('Envoyer la demande','إرسال الطلب','Send request')}</button></div>`;
+ vrD.showModal();
+}
 const vtD=document.getElementById('vtD'),vaD=document.getElementById('vaD');
 let curP=null,vaTab='dash',vaEdit=null,vaImg=null,vaMsg='',vaStats=null,vaAcc=null,busy=false;
 
@@ -1793,13 +1808,16 @@ function drawAdmin(){
   <label class="vt-chk"><input id="va_f" type="checkbox" ${!e||e.feat?'checked':''}> ${d.feat}</label>
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px">${e?`<button class="g" data-vcancel="1">${d.cancel}</button>`:''}<button class="p" data-vpub="1">${e?d.update:d.publish}</button></div>`;
  }else if(vaTab=='mod'){
-  const pi=IT.filter(i=>i.status=='pending').map(V),pinfo=(SP||[]).filter(x=>x.pending);
-  body=(!pi.length&&!pinfo.length)?`<div class="empty">${d.nothing}</div>`:
+  const pi=IT.filter(i=>i.status=='pending').map(V),pinfo=(SP||[]).filter(x=>x.pending),prq=REQ.filter(r=>r.status=='pending');
+  body=prq.map(r=>`<div class="vt-modc"><div class="vt-sec" style="margin-top:0">🏪 ${lang=='ar'?'طلب متجر جديد':lang=='en'?'New shop request':'Nouvelle demande de vitrine'}</div>
+   <div class="vt-it" style="white-space:normal">${h(r.shop)}</div><div class="meta">${h(r.kind||'')}${r.city?' · '+h(r.city):''} · 📞 <a class="lnk" href="tel:${h(r.phone)}">${h(r.phone)}</a></div>${r.message?`<div class="meta">${h(r.message)}</div>`:''}<div class="meta">${new Date(r.created_at).toLocaleString()}</div>
+   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vreqd="${h(r.id)}|0">${d.reject}</button><button class="p" data-vreqd="${h(r.id)}|1">${d.approve}</button></div></div>`).join('')+
+  ((!pi.length&&!pinfo.length)?(prq.length?'':`<div class="empty">${d.nothing}</div>`):
    pinfo.map(x=>`<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(x.name)} · ${d.newInfo}</div>${['about','phone','addr','hours'].map(f=>(x.pending[f]||'')!==(x[f]||'')?`<div class="meta"><b>${d[f=='about'?'about':f=='phone'?'phone':f=='addr'?'addr':'hours']}</b> : <s>${h(x[f]||'—')}</s> → ${h(x.pending[f]||'—')}</div>`:'').join('')}
    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vinfo="${h(x.id)}|0">${d.reject}</button><button class="p" data-vinfo="${h(x.id)}|1">${d.approve}</button></div></div>`).join('')+
    pi.map(i=>{const pp=pById(i.partner_id)||{name:i.partner_id};return `<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(pp.name)} · ${d['t_'+i.kind]}</div><div class="vt-row" style="border:0">${pic(i,'vt-rimg')}<div class="vt-rb"><div class="vt-it" style="white-space:normal">${h(i.title)}</div>${i.price?`<div class="meta">${money(i.price)}${i.old?' (<s>'+money(i.old)+'</s>)':''}</div>`:''}${i.desc?`<div class="meta">${h(i.desc)}</div>`:''}${i.kind=='promo'&&i.until?`<div class="meta">⏳ ${d.until} ${fdate(i.until)}</div>`:''}</div></div>
    ${i.img?`<img src="${h(i.img)}" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px">`:''}
-   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vdec="${h(i.id)}|0">${d.reject}</button><button class="p" data-vdec="${h(i.id)}|1">${d.approve}</button></div></div>`}).join('');
+   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><button class="g" data-vdec="${h(i.id)}|0">${d.reject}</button><button class="p" data-vdec="${h(i.id)}|1">${d.approve}</button></div></div>`}).join(''));
  }else if(vaTab=='acc'){
   accList();const L2=vaAcc||[];
   body=(vaAcc===null||(!L2.length&&!srvOk))?'<div class="meta">…</div>':L2.map(x=>`<div class="vt-modc"><div class="vt-sec" style="margin-top:0">${h(x.name)} · ${h(x.city||'')}</div>
@@ -1829,12 +1847,17 @@ async function upload(pid,dataUrl){
 function rmPhoto(url){try{const m=String(url||'').split('/partner-photos/')[1];if(m)sbc().storage.from('partner-photos').remove([decodeURIComponent(m)]).then(()=>{},()=>{})}catch(e){}}
 const refresh=()=>{try{if(tab==2)render()}catch(e){}};
 
+/* test-57 : app Android → vrai sélecteur de photos du téléphone (js/photos.js) */
+document.addEventListener('click',async ev=>{
+ if(!ev.target||ev.target.id!=='va_img'||!window.mrPickPhotos)return;let nat=false;try{nat=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.Camera)}catch(e){}if(!nat)return;
+ ev.preventDefault();try{const g=await window.mrPickPhotos('gallery',1);if(!g.length)return;vaImg=g[0];const box=vaD.querySelector('.vt-pick');let im=box.querySelector('img');if(!im){im=document.createElement('img');box.prepend(im)}im.src=vaImg}catch(e){console.error('vt img',e)}
+},true);
 document.addEventListener('change',async ev=>{
  if(ev.target.id!=='va_img'||!ev.target.files[0])return;
  try{vaImg=await shrink(ev.target.files[0]);const box=vaD.querySelector('.vt-pick');let im=box.querySelector('img');if(!im){im=document.createElement('img');box.prepend(im)}im.src=vaImg}catch(e){console.error('vt img',e)}
 });
 document.addEventListener('click',async ev=>{
- const el=ev.target.closest('[data-vt],[data-va],[data-va2],[data-vs],[data-vnp],[data-vclose],[data-vtab],[data-vty],[data-vpub],[data-vcancel],[data-vedit],[data-vdel],[data-vfeat],[data-vsaveshop],[data-vprev],[data-vmod],[data-vclaim],[data-vdec],[data-vinfo],[data-vcode],[data-vrcode],[data-vact],[data-vaddp]');
+ const el=ev.target.closest('[data-vt],[data-va],[data-va2],[data-vs],[data-vnp],[data-vclose],[data-vtab],[data-vty],[data-vpub],[data-vcancel],[data-vedit],[data-vdel],[data-vfeat],[data-vsaveshop],[data-vprev],[data-vmod],[data-vclaim],[data-vdec],[data-vinfo],[data-vcode],[data-vrcode],[data-vact],[data-vaddp],[data-vreq],[data-vreqsend],[data-vreqd]');
  if(!el)return;const ds=el.dataset,d=DD(),c=sbc();
  if(ds.vs){const[id,k,it]=ds.vs.split('|');evt(id,k,it);return}
  ev.preventDefault();
@@ -1845,6 +1868,20 @@ document.addEventListener('click',async ev=>{
  if(ds.vnp){alert(d.nophone);return}
  if(ds.vclose){document.getElementById(ds.vclose).close();refresh();return}
  if(ds.vprev){openShop(curP,false);return}
+ if(ds.vreq){if(!me()||!c){alert(d.claimLogin);return}openReq();return}
+ if(ds.vreqsend){const g=id=>(vrD.querySelector(id).value||'').trim(),shop=g('#vr_s'),ph=g('#vr_p'),W3=(f,a,e)=>lang=='ar'?a:lang=='en'?e:f;
+  if(shop.length<2||ph.replace(/\D/g,'').length<9){alert(W3('Indique le nom du magasin et son numéro de téléphone.','أدخل اسم المتجر ورقم هاتفه.','Enter the shop name and its phone number.'));return}
+  if(busy)return;busy=true;el.textContent=d.busy;
+  try{const r=await c.rpc('mr_partner_request',{p_shop:shop,p_kind:g('#vr_k'),p_city:g('#vr_c'),p_phone:ph,p_message:g('#vr_m')});if(r.error)throw r.error;
+   vrD.close();alert(W3('✅ Demande envoyée ! MotoRoute va l’étudier et te contacter.','✅ أُرسل الطلب! ستدرسه MotoRoute وتتصل بك.','✅ Request sent! MotoRoute will review it and contact you.'))}
+  catch(x){const m=String(x&&x.message||x);alert(/deja-partenaire/.test(m)?W3('Tu gères déjà une vitrine.','أنت تدير متجرًا بالفعل.','You already manage a shop.'):/trop-de-demandes/.test(m)?W3('Trop de demandes aujourd’hui, réessaie demain.','طلبات كثيرة اليوم، أعد غدًا.','Too many requests today, try tomorrow.'):/PGRST20|42883|Could not find/.test(m)?W3('Le serveur n’est pas prêt : exécuter supabase/annonces.sql.','الخادم غير جاهز: نفّذ supabase/annonces.sql.','Server not ready: run supabase/annonces.sql.'):d.err)}
+  busy=false;await load(true);return}
+ if(ds.vreqd){const[id,ok]=ds.vreqd.split('|');let note='';if(ok!='1'){note=prompt(d.rejQ);if(note===null)return}
+  if(busy||!c)return;busy=true;try{const r=await c.rpc('mr_partner_request_decide',{p_req:id,ok:ok=='1',p_note:note||''});if(r.error)throw r.error;
+   const rq=REQ.find(x=>x.id==id);if(ok=='1'&&rq&&rq.phone&&confirm((lang=='ar'?'تم إنشاء المتجر. إعلام المتجر عبر واتساب؟':lang=='en'?'Shop created. Tell the shop on WhatsApp?':'Vitrine créée. Prévenir le magasin sur WhatsApp ?'))){let ph=rq.phone.replace(/\D/g,'');if(/^0[5-7]\d{8}$/.test(ph))ph='213'+ph.slice(1);
+    const txt=lang=='ar'?`مرحبًا! تم قبول متجر «${rq.shop}» على MotoRoute. افتح التطبيق ← الإعلانات ← متاجر المحترفين ← «إدارة متجري» لنشر عروضك.`:lang=='en'?`Hello! Your shop “${rq.shop}” is accepted on MotoRoute. Open the app → Ads → Pro shops → “Manage my shop” to post your deals.`:`Bonjour ! Votre vitrine « ${rq.shop} » est acceptée sur MotoRoute. Ouvrez l’app → Annonces → Vitrines des pros → « Gérer ma vitrine » pour publier vos promotions et produits.`;
+    window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(txt),'_blank')}}
+  catch(x){alert(d.err)}busy=false;vaAcc=null;await load(true);drawAdmin();return}
  if(ds.vclaim){
   if(!me()||!c){alert(d.claimLogin);return}
   const code=(prompt(d.claimQ)||'').replace(/\s+/g,'').toUpperCase();if(!code)return;
@@ -2541,7 +2578,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 :root[data-ui=futur] nav{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px))}
 .fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
 </style>
-<script src="js/places.js"></script><script src="js/sos.js"></script>
+<script src="js/photos.js"></script><script src="js/annonces.js"></script><script src="js/places.js"></script><script src="js/sos.js"></script>
 <script src="js/push.js"></script><script src="js/route-plus.js"></script><script src="js/itineraire.js"></script>
 <!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 

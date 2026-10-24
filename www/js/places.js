@@ -255,6 +255,17 @@ ${f.msg ? `<div class="card" style="margin-top:10px">${esc(f.msg)}</div>` : ''}`
     paint();
   }
 
+  /* test-57 : dans l'app Android, Galerie / Photo passent par le vrai sélecteur de photos du téléphone (js/photos.js) */
+  document.addEventListener('click', async ev => {
+    const lab = ev.target.closest('label'); if (!lab || !form || !window.mrPickPhotos) return;
+    const inp = lab.querySelector('#pl_gal,#pl_cam'); if (!inp) return;
+    let nat = false; try { nat = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins && Capacitor.Plugins.Camera); } catch (e) {}
+    if (!nat) return;
+    ev.preventDefault(); ev.stopPropagation(); readForm();
+    try { const got = await window.mrPickPhotos(inp.id == 'pl_cam' ? 'camera' : 'gallery', MAXP - form.photos.length); form.photos = form.photos.concat(got).slice(0, MAXP); } catch (e) { console.error('places photo', e); }
+    paint();
+  }, true);
+
   /* ---------- Événements ---------- */
   document.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-plopen],[data-plclose],[data-pladd],[data-plback],[data-plsave],[data-plk],[data-plfk],[data-plgps],[data-plrm],[data-pllike],[data-plrep],[data-pldel],[data-plunhide],[data-plbig]');
