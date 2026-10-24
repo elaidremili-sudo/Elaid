@@ -137,5 +137,4 @@ Choix retenu : **la bannière reste** (Annonces, liste des groupes, Carnet) + **
   au **premier lancement**, dans les **3 premières minutes**, moins de **6 min** après la précédente, plus de **3 par jour**.
 - Simulé (9 scénarios) : 1er lancement 0 · trajet 0 · Route/Conduite 0 · après une annonce 1 · journée de 3 h = 3 maximum.
 - Code : bloc « Publicités AdMob » de `www/index.html` (`INTER_ID`, `window.mrAdBreak`), `window.mrRiding` (Conduite), appel dans `www/js/annonces.js`.
-- **À faire par Elaid** : dans AdMob → app Motoroute → Blocs d'annonces → **Interstitiel** nommé « Plein écran » → envoyer l'identifiant
-  (`ca-app-pub-9115324413258436/…`) ; il remplacera l'identifiant de test dans `INTER_ID`. Pubs de test tant que `TESTING=true`.
+- test-63 : bloc interstitiel MotoRoute créé par Elaid (`ca-app-pub-9115324413258436/5213825810`) mis dans `INTER_ID`. Pubs de test tant que `TESTING=true` (passer à false à la mise en production Google Play).
