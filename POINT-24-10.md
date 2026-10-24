@@ -145,3 +145,5 @@ Choix retenu : **la bannière reste** (Annonces, liste des groupes, Carnet) + **
 - Supprimer un groupe : Groupes → ouvrir le groupe → tout en bas « Supprimer le groupe » (seulement le créateur, pour un groupe du serveur).
 
 - 24/10, 23 h 33 : Elaid confirme sur son téléphone que la pub plein écran marche avec test-64 (« pour la pub réglé »).
+- test-65 : la bannière AdMob se posait sur la discussion du groupe (capture d'Elaid) → cachée dès qu'une fenêtre est ouverte (discussion, formulaire), revient à la fermeture.
+- Groupe « now » : créé par le compte Ali (vérifié sur le serveur) → seul Ali voit « Supprimer le groupe » ; normal que le bouton manque sur le compte d'Elaid.

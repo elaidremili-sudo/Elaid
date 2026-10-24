@@ -1468,7 +1468,7 @@ const BANNER_ID='ca-app-pub-9115324413258436/4667030903',TESTING=true; // test-6
 const A=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.AdMob;
 if(!A())return;
 let ready=false,shown=false,busy=false;
-const want=()=>innerHeight>innerWidth&&(tab==2||(tab==3&&!gid)||tab==5); // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties, ni en paysage (test-24)
+const want=()=>innerHeight>innerWidth&&(tab==2||(tab==3&&!gid)||tab==5)&&!document.querySelector('dialog[open]'); // test-65 : bannière cachée quand une fenêtre est ouverte (discussion, formulaire…) — elle couvrait les messages // Annonces, liste des groupes, Carnet — jamais Conduite, Route ni Sorties, ni en paysage (test-24)
 const margin=()=>{const n=document.querySelector('nav');if(!n)return 64;const r=n.getBoundingClientRect();return Math.max(0,Math.round(innerHeight-r.top))+4}; // test-26 : la barre du bas flotte (style Futuriste) → on mesure depuis son bord haut
 let adH=0;const setB=()=>{document.documentElement.style.setProperty('--ad-b',(shown?margin()+(adH||60):0)+'px')};
 async function sync(){
@@ -1480,6 +1480,7 @@ async function sync(){
 }
 try{A().addListener('bannerAdSizeChanged',i=>{adH=(i&&i.height)||0;document.documentElement.style.setProperty('--mu-ad',adH+'px');setB()})}catch(e){}
 addEventListener('resize',()=>setTimeout(sync,350));
+setInterval(sync,700); // test-65 : suit l'ouverture/fermeture des fenêtres
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
 /* ===== test-62 : publicité plein écran (interstitiel), rare et seulement aux moments calmes =====
