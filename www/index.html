@@ -788,8 +788,8 @@ const fav=btn('fav','',P('📍 Épingler ma position','📍 تثبيت موقع�
 const SO=[['tyre',P('Crevaison','ثقب العجلة')],['eng',P('Panne moteur','عطل المحرك')],['fuel',P('Panne d\'essence','نفاد الوقود')],['help',P('Besoin d\'aide (chute)','أحتاج مساعدة (سقوط)')]];
 const sos=SO.map(s=>btn('sos',s[1],s[1])).join(' ')+note(P('Envoie ta position à ton groupe par WhatsApp. L\'alerte automatique aux motards proches viendra avec le serveur (version Android).','يرسل موقعك إلى مجموعتك عبر واتساب. التنبيه التلقائي للسائقين القريبين يحتاج خادمًا (نسخة أندرويد).'));
 const hz=(S.hz||[]).slice(0,5).map(x=>row(`${esc(t['h_'+x.k]||'')} ${x.ll?'· '+esc(x.ll):''} · ✔ ${x.c||0}`,btn('conf',x.id,'✔ '+P('Confirmer','تأكيد')))).join('')||note(t.haz_none||'');
-const host=btn('add','host',P('+ Hôte','+ مضيف'),'p')+p.host.map((h,i)=>row(`🏠 ${esc(h.n)} · ${esc(h.c)} · ${esc(h.pl)} ${P('pl.','أماكن')}${tel(h.tl)}`,del('host',i))).join('')+note(P('Motards qui accueillent un motard de passage pour la nuit.','سائقون يستضيفون سائقًا عابرًا لليلة.'));
-const dir=btn('add','dir',P('+ Adresse','+ عنوان'),'p')+p.dir.map((d,i)=>row(`🔧 ${esc(d.ty)} · ${esc(d.n)} · ${esc(d.c)}${tel(d.tl)}`,del('dir',i))).join('');
+const host=`<button class="p" data-plopen="host">📍 ${A()?'العناوين المشتركة (مبيت)':lang=='en'?'Shared places (lodging)':'Adresses partagées (hébergement)'}</button>`+note(A()?'ما يلي ملاحظاتك على هذا الهاتف فقط.':lang=='en'?'Below: your notes on this phone only.':'Ci-dessous : tes notes sur ce téléphone uniquement.')+btn('add','host',P('+ Hôte','+ مضيف'),'p')+p.host.map((h,i)=>row(`🏠 ${esc(h.n)} · ${esc(h.c)} · ${esc(h.pl)} ${P('pl.','أماكن')}${tel(h.tl)}`,del('host',i))).join('')+note(P('Motards qui accueillent un motard de passage pour la nuit.','سائقون يستضيفون سائقًا عابرًا لليلة.'));
+const dir=`<button class="p" data-plopen="meca">📍 ${A()?'العناوين المشتركة (ميكانيكي)':lang=='en'?'Shared places (mechanics)':'Adresses partagées (mécanos)'}</button>`+note(A()?'ما يلي ملاحظاتك على هذا الهاتف فقط.':lang=='en'?'Below: your notes on this phone only.':'Ci-dessous : tes notes sur ce téléphone uniquement.')+btn('add','dir',P('+ Adresse','+ عنوان'),'p')+p.dir.map((d,i)=>row(`🔧 ${esc(d.ty)} · ${esc(d.n)} · ${esc(d.c)}${tel(d.tl)}`,del('dir',i))).join('');
 const pd=p.mem.filter(m=>m.paid).length;
 const mem=btn('add','mem',P('+ Membre','+ عضو'),'p')+note(`${P('Cotisations payées','الاشتراكات المدفوعة')} : ${pd}/${p.mem.length}`)+p.mem.map((m,i)=>row(`${esc(m.n)} — ${esc(m.r)}`,btn('paid',i,(m.paid?'✅ ':'⬜ ')+P('Cotisation','اشتراك'))+del('mem',i))).join('');
 const rb=btn('add','rb',P('+ Étape','+ محطة'),'p')+(p.rb.length?' '+btn('rbs','',P('💬 Partager','💬 مشاركة')):'')+p.rb.map((s,i)=>row(`${i+1}. ${esc(s.t)}${s.la?` <a class="lnk" target="_blank" rel="noopener" href="${mp(s.la,s.lo)}">🗺</a>`:''}`,del('rb',i))).join('');
@@ -2534,7 +2534,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 :root[data-ui=futur] nav{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px))}
 .fab,:root[data-ui=futur] .fab{right:max(16px,env(safe-area-inset-right,0px))}
 </style>
-<script src="js/sos.js"></script>
+<script src="js/places.js"></script><script src="js/sos.js"></script>
 <script src="js/push.js"></script>
 <!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 
