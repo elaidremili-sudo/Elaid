@@ -1,5 +1,16 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-56 (24/10, 16 h 30) : itinéraire déplacé et enrichi (demande d'Elaid)
+- « 🌀 Proposer un itinéraire » est maintenant **en tête de l'onglet Sorties** (repliable, « Ouvrir ▾ »), plus dans Route.
+- Choix : 1) **genre de route** 🌀 sinueuse / 🛣️ dégagée (autoroute, nationale, lignes droites : on garde les variantes avec
+  le moins de virages au km puis la plus haute vitesse moyenne) ; 2) **passer par une ville** (facultatif, ex. Mostaganem,
+  trouvée par Nominatim, Algérie d'abord) ; 3) 🔁 **boucle** (retour au départ) ou ➡️ **aller simple** jusqu'à la ville ;
+  4) sans ville : **durée** 30 min, 1 h, 1 h 30, 2 h, 3 h, 4 h, 6 h, journée.
+- Avec une ville : 8 variantes (direct, détours à gauche/droite à l'aller et au retour).
+- Chaque proposition : km, durée, **vitesse moyenne**, virages, et **🏙️ Villes traversées** (ville + wilaya, km et temps de route
+  pour y arriver, + routes principales A1, N4…) ; la liste des villes part aussi dans le message WhatsApp / groupe.
+- Corrigé : après avoir tapé la ville, le premier bouton touché ne répondait pas (la carte se redessinait).
+
 ## 🆕 test-55 (24/10, 16 h) : « 🌀 Proposer un itinéraire » (idée d'Elaid)
 En haut de l'onglet **Route**. Le motard choisit son temps (1 h, 2 h, 3 h, ½ journée) → « 📍 Chercher autour de moi ».
 - L'app prend la position GPS, prépare **8 boucles** qui reviennent au départ (8 directions, taille = temps × 45 km/h)
