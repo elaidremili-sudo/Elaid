@@ -1491,30 +1491,39 @@ const IK='mr_inter',ld=()=>{try{return JSON.parse(localStorage.getItem(IK)||'{}'
 const T0=Date.now(),day=()=>new Date().toISOString().slice(0,10);
 {const o=ld();o.runs=(o.runs||0)+1;sv(o)}
 let iReady=false,iLoading=false,iShowing=false,nav=0,lastTab=tab;
-async function iLoad(){if(iReady||iLoading||(!TESTING&&/3940256099942544/.test(INTER_ID)))return;iLoading=true;try{await A().prepareInterstitial({adId:INTER_ID,isTesting:TESTING});iReady=true}catch(e){console.error('inter load',e)}finally{iLoading=false}}
-function calm(){
- if(!ready||!iReady||iShowing)return false;
- if(innerHeight<=innerWidth)return false;
- if(!(tab==2||tab==3||tab==5))return false;
- if(window.mrRiding&&window.mrRiding())return false;
- if(document.querySelector('dialog[open]'))return false;
+/* test-64 : en mode test, règles allégées pour pouvoir essayer tout de suite (production : règles complètes ci-dessous) */
+const RUNS=TESTING?1:2,WARM=TESTING?20e3:180e3,GAP=TESTING?60e3:360e3,PERDAY=TESTING?20:3;
+const rep=m=>{try{console.warn('inter',m);window.Sentry&&Sentry.captureMessage&&Sentry.captureMessage('Pub plein écran : '+m,'warning')}catch(e){}};
+let iErr='';
+async function iLoad(){if(iReady||iLoading)return;iLoading=true;try{await A().prepareInterstitial({adId:INTER_ID,isTesting:TESTING});iReady=true;iErr=''}catch(e){iErr=(e&&(e.message||e.code))||String(e);rep('chargement impossible : '+iErr)}finally{iLoading=false}}
+function why(){
+ if(!ready)return 'AdMob pas encore démarré';
+ if(iShowing)return 'déjà affichée';
+ if(!iReady)return iErr?'pub non chargée ('+iErr+')':'pub pas encore chargée (réessaie dans 30 s)';
+ if(innerHeight<=innerWidth)return 'téléphone en paysage';
+ if(!(tab==2||tab==3||tab==5))return 'rubrique non calme';
+ if(window.mrRiding&&window.mrRiding())return 'trajet en cours';
+ if(document.querySelector('dialog[open]'))return 'fenêtre ouverte';
  const o=ld(),n=Date.now();
- if((o.runs||0)<2||n-T0<180e3)return false;
- if(o.last&&n-o.last<360e3)return false;
- if(o.day==day()&&(o.n||0)>=3)return false;
- return true;
+ if((o.runs||0)<RUNS)return 'premier lancement';
+ if(n-T0<WARM)return 'app ouverte depuis moins de '+Math.round(WARM/1e3)+' s';
+ if(o.last&&n-o.last<GAP)return 'dernière pub il y a moins de '+Math.round(GAP/6e4)+' min';
+ if(o.day==day()&&(o.n||0)>=PERDAY)return 'maximum du jour atteint';
+ return '';
 }
-async function iShow(){
- if(!calm())return;iShowing=true;iReady=false;
+const calm=()=>!why();
+async function iShow(manual){
+ const w=why();if(w){if(manual&&TESTING)alert('🧪 Pub plein écran (mode test) non affichée : '+w+'.');if(manual&&TESTING)rep('non affichée après annonce : '+w);if(!iReady)iLoad();return}
+ iShowing=true;iReady=false;
  try{await A().showInterstitial();const o=ld();if(o.day!=day()){o.day=day();o.n=0}o.n=(o.n||0)+1;o.last=Date.now();sv(o)}
- catch(e){console.error('inter show',e)}finally{iShowing=false;setTimeout(iLoad,4000)}
+ catch(e){rep('affichage impossible : '+((e&&e.message)||e))}finally{iShowing=false;setTimeout(iLoad,4000)}
 }
-window.mrAdBreak=function(){setTimeout(iShow,700)}; // appelé après une publication réussie
+window.mrAdBreak=function(){setTimeout(()=>iShow(true),700)}; // appelé après une publication réussie
 try{A().addListener('interstitialAdDismissed',()=>{iShowing=false;setTimeout(iLoad,4000)})}catch(e){}
 const _r2=render;render=function(){const r=_r2.apply(this,arguments);
  if(tab!==lastTab){lastTab=tab;if(tab==2||tab==3||tab==5){if(++nav>=6&&calm()){nav=0;setTimeout(iShow,600)}}}
  return r};
-setTimeout(()=>{if(ready)iLoad();else{const w=setInterval(()=>{if(ready){clearInterval(w);iLoad()}},3000)}},60e3);
+setTimeout(()=>{if(ready)iLoad();else{const w=setInterval(()=>{if(ready){clearInterval(w);iLoad()}},3000)}},TESTING?5e3:60e3);
 document.head.insertAdjacentHTML('beforeend','<style>body.mr-ad main{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}body.mr-ad .fab,:root[data-ui=futur] body.mr-ad .fab{bottom:calc(var(--ad-b,150px) + 12px)!important}</style>');
 })();
 </script>

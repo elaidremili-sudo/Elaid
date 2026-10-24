@@ -138,3 +138,9 @@ Choix retenu : **la bannière reste** (Annonces, liste des groupes, Carnet) + **
 - Simulé (9 scénarios) : 1er lancement 0 · trajet 0 · Route/Conduite 0 · après une annonce 1 · journée de 3 h = 3 maximum.
 - Code : bloc « Publicités AdMob » de `www/index.html` (`INTER_ID`, `window.mrAdBreak`), `window.mrRiding` (Conduite), appel dans `www/js/annonces.js`.
 - test-63 : bloc interstitiel MotoRoute créé par Elaid (`ca-app-pub-9115324413258436/5213825810`) mis dans `INTER_ID`. Pubs de test tant que `TESTING=true` (passer à false à la mise en production Google Play).
+- test-64 : Elaid signale « la pub plein écran ne marche pas » sur test-63 (aucune erreur Sentry). Cause probable : en test, les règles
+  de production bloquaient tout essai immédiat (2ᵉ lancement, 3 min d'attente, chargement après 60 s). En **mode test** (`TESTING=true`)
+  les règles sont allégées : dès le 1er lancement, 20 s après l'ouverture, 1 min entre deux pubs ; si la pub ne s'affiche pas après une
+  annonce, un message 🧪 dit pourquoi (et Sentry reçoit « Pub plein écran : … »). Règles complètes inchangées en production (simulées).
+- Supprimer un groupe : Groupes → ouvrir le groupe → tout en bas « Supprimer le groupe » (seulement le créateur, pour un groupe du serveur).
+
