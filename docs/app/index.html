@@ -2419,7 +2419,9 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-err
  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
  box-shadow:0 16px 36px -16px rgba(0,0,0,.75),inset 0 1px 0 var(--fx-hi)}
 :root[data-ui=futur] .card h3{letter-spacing:.6px}
-:root[data-ui=futur] main.fx-enter .card{animation:fxIn .55s cubic-bezier(.2,.8,.2,1) both}
+/* test-60 : une seule animation d'entrée par carte. Avant, l'animation passait de « up » à « fxIn » puis revenait à « up »
+   quand la classe fx-enter était retirée (0,9 s après) : les cartes disparaissaient et réapparaissaient = 2e rafraîchissement. */
+:root[data-ui=futur] main .card{animation:fxIn .55s cubic-bezier(.2,.8,.2,1) both}
 :root[data-ui=futur] main.fx-enter .card:nth-child(2){animation-delay:.06s}
 :root[data-ui=futur] main.fx-enter .card:nth-child(3){animation-delay:.12s}
 :root[data-ui=futur] main.fx-enter .card:nth-child(4){animation-delay:.18s}
