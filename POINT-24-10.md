@@ -1,5 +1,7 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+> 📄 **Comparatif à montrer aux membres** (MotoRoute vs Cardo Ride/ex-Riser, Calimoto, REVER, Liberty Rider, Kurviger) : `docs-membres/comparatif-applis-moto.md` — version en ligne : https://claude.ai/artifact/Sre1aNBdaCvUYkrSJxAmNa
+
 ## 🆕 test-54 (24/10, après-midi) : ce qui manquait face aux concurrents
 Suite à l'analyse « MotoRoute — Analyse des applis concurrentes » (Calimoto, REVER, Cardo Ride, Liberty Rider…).
 - **Sortie → 🧭 Itinéraire Google Maps / 🚙 Waze** : navigation départ → arrivée en un geste (le guidage virage par virage
