@@ -48,8 +48,12 @@
       items = r.data || []; err = ''; loadedAt = Date.now();
       try { const a = await c.rpc('mr_is_admin'); admin = !a.error && a.data === true; } catch (e) { admin = false; }
     } catch (e) { err = errTxt(e); loadedAt = Date.now() - 20000; }
-    loading = false; redraw();
+    loading = false;
+    /* test-59 : on ne redessine que si les annonces ont changé (avant : tout l'écran toutes les 30 s) */
+    let sg = ''; try { sg = JSON.stringify([items, err, admin]); } catch (e) {}
+    if (force || sg !== lastSig) { lastSig = sg; redraw(); }
   }
+  let lastSig = '';
   window.mrAdsReload = () => load(true);
   setInterval(() => { try { if (tab == 2 && sub == 'm' && document.visibilityState == 'visible') load(); } catch (e) {} }, 30000);
 

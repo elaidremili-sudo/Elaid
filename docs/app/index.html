@@ -943,12 +943,14 @@ else{const r=await sb.auth.signInWithPassword({email:em,password:pw});if(r.error
 /* Compte obligatoire : sans connexion, l'app reste bloquée sur cet écran ; « Quitter » ferme l'application */
 const st=document.createElement('style');st.textContent='dialog.gate::backdrop{background:#0d0f12}';document.head.appendChild(st);
 function quitApp(){try{const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(A&&A.exitApp){A.exitApp();return}}catch(e){}try{window.close()}catch(e){}}
-function enforce(){if(!ready)return;if(user){if(gate){gate=false;d.classList.remove('gate');if(d.open)draw()}return}if(document.getElementById('mr_onb'))return;try{window.mrMusicAudio&&window.mrMusicAudio.pause()}catch(e){}if(!gate){gate=true;d.classList.add('gate');if(d.open)draw()}if(!d.open){document.querySelectorAll('dialog[open]').forEach(o=>{if(o!==d)try{o.close()}catch(e){}});draw();d.showModal()}}
+let noUserAt=0,hadUser=false;
+function enforce(){if(!ready)return;if(user){hadUser=true;noUserAt=0;if(gate){gate=false;d.classList.remove('gate');if(d.open)draw()}return}
+/* test-59 : si la session disparaît un court instant (réseau), on attend 3 s avant de tout fermer */if(hadUser&&!gate){if(!noUserAt)noUserAt=Date.now();if(Date.now()-noUserAt<3000)return}if(document.getElementById('mr_onb'))return;try{window.mrMusicAudio&&window.mrMusicAudio.pause()}catch(e){}if(!gate){gate=true;d.classList.add('gate');if(d.open)draw()}if(!d.open){document.querySelectorAll('dialog[open]').forEach(o=>{if(o!==d)try{o.close()}catch(e){}});draw();d.showModal()}}
 d.addEventListener('cancel',e=>{if(gate&&!user)e.preventDefault()});
 setInterval(enforce,800);window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
 window.mrSb=sb;window.mrUser=()=>user;
-if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
-sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();if(ready)enforce();setTimeout(()=>{if(window.mrSync)window.mrSync()},0)})}else{ready=true;enforce()}
+if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;try{lastUid=user?user.id:null}catch(e){}mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
+let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
 const lg=document.getElementById('lang');if(lg)lg.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0));
 document.querySelectorAll('[data-lg]').forEach(x=>x.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0)));
 mark();
@@ -1671,8 +1673,12 @@ async function load(force){
   ADM=false;if(me()){try{const r=await c.rpc('mr_is_admin');ADM=!r.error&&r.data===true}catch(e){}}
   REQ=[];if(me()){try{const r=await c.from('partner_requests').select('id,user_id,shop,kind,city,phone,message,status,note,partner_id,created_at').order('created_at',{ascending:false}).limit(50);if(!r.error)REQ=r.data||[]}catch(e){}}
  }catch(e){srvOk=false;loadAt=Date.now()-45000}
- loading=false;refresh();if(vaD.open)drawAdmin();
+ loading=false;
+ /* test-59 : on ne redessine l'écran que si les vitrines ont vraiment changé (avant : toutes les 30 s, même sans changement) */
+ let sg='';try{sg=JSON.stringify([SP,IT,REQ,ADM,srvOk])}catch(e){}
+ if(force||sg!==lastSig){lastSig=sg;refresh()}if(vaD.open)drawAdmin();
 }
+let lastSig='';
 const partners=()=>SP&&SP.length?SP:(typeof PARTNERS!=='undefined'?PARTNERS.filter(p=>!p.slot).map((p,i)=>({id:'local'+i,name:p.name,kind:p.kind,city:p.city,phone:p.phone||'',about:'',addr:p.addr||'',hours:'',active:true})):[]);
 const pById=id=>partners().find(p=>p.id==id);
 const mine=p=>{const u=me();return !!(u&&p&&p.owner_id&&p.owner_id==u.id)};
@@ -2488,19 +2494,33 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-err
   const slot = new Map();
   /* test-34 : boucle sans coupure — 1 s avant la fin, le second lecteur reprend la vidéo au début en fondu */
   function seam(box){
+    /* test-59 : boucle sans coupure, version stable — 3 s avant la fin, le second lecteur charge la vidéo et se place
+       au début (image prête) ; le fondu ne commence que quand il diffuse vraiment ('playing').
+       Avant, le relais partait sans être prêt et l'image affichée passait un instant à la photo fixe : effet de coupure. */
     const v = box.querySelectorAll('video');
     v.forEach((el, k) => {
       el.loop = false; el.removeAttribute('loop');
       el.addEventListener('timeupdate', () => {
-        if (reduce || !el.classList.contains('on') || el.dataset.fading || !el.duration || !isFinite(el.duration)) return;
-        if (el.duration - el.currentTime > 1.0) return;
-        const nx = v[1-k]; el.dataset.fading = '1';
-        if (nx.dataset.src !== el.dataset.src) { nx.poster = el.poster; nx.src = el.dataset.src; nx.dataset.src = el.dataset.src; }
-        nx.dataset.still = '';
-        try { nx.currentTime = 0; } catch(e) {}
-        const go = () => { nx.classList.add('on'); el.classList.remove('on'); slot.set(box, 1-k);
-          setTimeout(() => { delete el.dataset.fading; if (!el.classList.contains('on')) el.pause(); }, 1000); };
-        const pr = nx.play(); if (pr && pr.then) pr.then(go, () => { delete el.dataset.fading; }); else go();
+        if (reduce || !el.classList.contains('on') || el.dataset.fading || !el.duration || !isFinite(el.duration) || document.hidden) return;
+        const left = el.duration - el.currentTime, nx = v[1-k];
+        if (left > 3.2) return;
+        if (!el.dataset.prep) {
+          el.dataset.prep = '1';
+          if (nx.dataset.src !== el.dataset.src) { nx.poster = el.poster; nx.preload = 'auto'; nx.src = el.dataset.src; nx.dataset.src = el.dataset.src; }
+          nx.dataset.still = '';
+          try { nx.pause(); nx.currentTime = 0; } catch(e) {}
+        }
+        if (left > 0.9) return;
+        el.dataset.fading = '1';
+        let done = false;
+        const go = () => { if (done) return; done = true; nx.removeEventListener('playing', go);
+          nx.classList.add('on'); el.classList.remove('on'); slot.set(box, 1-k);
+          setTimeout(() => { delete el.dataset.fading; delete el.dataset.prep; if (!el.classList.contains('on')) el.pause(); }, 1000); };
+        nx.addEventListener('playing', go);
+        const pr = nx.play();
+        if (pr && pr.catch) pr.catch(() => { nx.removeEventListener('playing', go); delete el.dataset.fading; delete el.dataset.prep; try { el.currentTime = 0; el.play().catch(() => {}); } catch(e) {} });
+        // sécurité : si le second lecteur ne démarre pas à temps, la vidéo actuelle repart simplement du début
+        setTimeout(() => { if (!done) { nx.removeEventListener('playing', go); try { nx.pause(); } catch(e) {} delete el.dataset.fading; delete el.dataset.prep; } }, 2500);
       });
       el.addEventListener('ended', () => { if (el.classList.contains('on')) { try { el.currentTime = 0; el.play().catch(() => {}); } catch(e) {} } });
     });
@@ -2583,7 +2603,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 :root body.mu-on main,:root[data-ui=futur] body.mu-on main{padding-bottom:max(calc(320px + env(safe-area-inset-bottom,0px)),calc(var(--ad-b,90px) + var(--mu-h,0px) + 110px))!important}
 </style>
 <script src="js/photos.js"></script><script src="js/annonces.js"></script><script src="js/places.js"></script><script src="js/sos.js"></script>
-<script src="js/push.js"></script><script src="js/route-plus.js"></script><script src="js/itineraire.js"></script>
+<script src="js/push.js"></script><script src="js/route-plus.js"></script><script src="js/itineraire.js"></script><script src="js/ecran-stable.js"></script>
 <!-- test-42 : « Revoir mon trajet en 3D » retiré (rendu dessin animé refusé par Elaid) -->
 
 <style>

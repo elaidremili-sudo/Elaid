@@ -1,5 +1,16 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-59 (24/10, 21 h) : écran qui « coupe » et se rafraîchit tout seul (signalé par Elaid)
+Causes trouvées dans le code et corrigées (Android + iPhone) :
+- **Tout l'onglet était effacé puis recréé** à chaque mise à jour → nouveau module `www/js/ecran-stable.js` :
+  seules les cartes qui changent sont mises à jour ; photos, vidéos et défilement restent en place.
+  Changement d'onglet ou de langue : affichage complet comme avant. Testé onglet par onglet : résultat identique à l'ancien affichage.
+- **Annonces redessinées toutes les 30 s même sans changement** (vitrines + annonces des membres) → redessin seulement si les données ont changé.
+- **Renouvellement de connexion (toutes les heures, retour dans l'appli) = tout redessiné de force** → resynchronisation seulement si le compte change.
+- **Écran de connexion** : si la session disparaît un court instant (réseau), on attend 3 s avant de fermer les fenêtres ouvertes.
+- **Vidéos de fond** : le second lecteur se prépare 3 s avant la fin et le fondu attend qu'il diffuse vraiment (avant : passage à la photo fixe = coupure).
+À vérifier sur le téléphone : rester 2 min sur Annonces, sortir/revenir dans l'appli, regarder les vidéos de fond.
+
 ## 🆕 test-57 (24/10, 20 h) : système d'annonces refait (bugs signalés par Elaid)
 **Bug 1 – annonce d'Ali (GSX-R) invisible sur le téléphone d'Elaid** : les annonces des membres étaient gardées
 seulement dans la mémoire du téléphone qui publiait. Maintenant elles sont sur Supabase (table `annonces`).
