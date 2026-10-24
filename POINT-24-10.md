@@ -10,7 +10,7 @@ Suite à l'analyse « MotoRoute — Analyse des applis concurrentes » (Calimoto
   **Économie de batterie** : la carte GPS de l'onglet Conduite est coupée pendant l'enregistrement (avant : 2 GPS + carte rechargée toutes les 6 s).
 - **Alerte « motard décroché »** (comme PackRide de Cardo Ride) : pendant le suivi en direct d'une sortie, si un participant est
   à plus de 2 km de moi → vibration + bip + bandeau rouge, même panneau fermé (le suivi reste branché tant que je partage).
-- **💬 Contacter MotoRoute** (WhatsApp) en bas de l'onglet Route : s'affiche dès que `window.MR_SUPPORT_WA` (js/route-plus.js) contient le numéro d'Elaid — numéro pas encore donné.
+- **💬 Contacter MotoRoute** (WhatsApp) en bas de l'onglet Route : s'affiche dès que `window.MR_SUPPORT_WA` (js/route-plus.js) contient le numéro d'Elaid : 0561 60 94 54 (wa.me/213561609454).
 - Code : `www/js/route-plus.js` + quelques lignes dans `www/index.html` ; copie identique dans `docs/app` (iPhone).
 - À tester sur téléphone : ⬇ GPX (fenêtre de partage), batterie dans le résumé, alerte décrochage avec les 2 téléphones (s'éloigner de plus de 2 km).
 

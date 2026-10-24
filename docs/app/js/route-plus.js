@@ -76,7 +76,7 @@
   };
 
   /* ---------- 4. Contacter MotoRoute ---------- */
-  window.MR_SUPPORT_WA = window.MR_SUPPORT_WA || '';
+  window.MR_SUPPORT_WA = window.MR_SUPPORT_WA || '213561609454'; // 0561 60 94 54 (Elaid)
   window.mrSupportHtml = function () {
     var n = String(window.MR_SUPPORT_WA || '').replace(/\D/g, '');
     if (!n) return '';
