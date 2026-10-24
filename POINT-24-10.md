@@ -13,10 +13,19 @@ mécaniciens, points de vue… avec **position GPS** (celle du téléphone, sur 
   (tables places, place_likes, place_reports ; fonctions mr_place_like / mr_place_report / mr_place_unhide ;
   stockage photos « place-photos », dossier = identifiant du membre ; droits GRANT explicites).
 
-### ⚠️ À faire par Elaid
-1. **Exécuter `supabase/bonnes-adresses.sql`** dans Supabase → SQL Editor (l'installation lancée par
-   Claude a été annulée). Tant que ce n'est pas fait, la rubrique affiche « Le serveur n'est pas encore prêt ».
-2. Installer test-53, ajouter une vraie adresse sur place (GPS + photos), la voir depuis le 2ᵉ téléphone.
+### ✅ Serveur installé et vérifié (24/10, 11 h 45)
+- `supabase/bonnes-adresses.sql` exécuté par Elaid (« Success »). Vérifié par Claude : 3 tables avec RLS, 6 règles,
+  4 fonctions, déclencheur, stockage public « place-photos », droits GRANT par colonne.
+- Essais réels avec 4 comptes (transactions annulées, base restée vide) : ajout OK (auteur = prénom du profil),
+  visible par les autres, 👍 un par membre, impossible de modifier/supprimer chez un autre, compteurs non
+  modifiables, auto-signalement refusé, masqué au 3ᵉ signalement (l'auteur le voit encore), rien sans compte.
+- Règle photos : un membre ne dépose que dans son dossier (= son identifiant), comme le fait l'app.
+
+### ⏳ Reste à tester (téléphone réel, 2 minutes)
+- Installer test-53 → Route → 📍 ＋ Ajouter → photo → Publier ; vérifier que la photo s'affiche,
+  puis voir l'adresse depuis le 2ᵉ téléphone.
+- ⚠️ Aucune photo n'a encore jamais été envoyée sur le stockage Supabase (ni partenaires ni adresses) :
+  ce sera le premier envoi réel. En cas d'échec : « regarde Sentry ».
 
 ## Fait aussi le 24/10
 - Clé Google (Android key Firebase) **restreinte** à com.motoroute.app + SHA-1 de la clé MotoRoute
