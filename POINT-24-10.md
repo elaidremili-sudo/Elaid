@@ -1,5 +1,22 @@
 # MotoRoute – Point du 24 octobre 2026 (LIRE EN PREMIER, puis POINT-23-10.md et REPRISE.md)
 
+## 🆕 test-61 (24/10, 23 h) : compte AdMob créé et branché
+- Compte AdMob d'Elaid créé (profil de paiement AdSense Algérie, ELAID REMILI, seuil 70 €). Approbation du compte :
+  se fera après la publication sur Google Play et l'examen de l'app (rien à faire dans « Validation » pour l'instant).
+- App AdMob « Motoroute » (Android, non publiée) : ID d'application `ca-app-pub-9115324413258436~7133412146`
+  (inscrit dans `scripts/patch-android.js`, va dans le manifeste Android).
+- Bloc « Bannière bas » : `ca-app-pub-9115324413258436/4667030903` (inscrit dans `www/index.html`, `BANNER_ID`).
+- `TESTING=true` gardé exprès : pubs de test même avec les vrais identifiants (pas de clic invalide pendant les essais
+  ni pendant le test fermé à 12 testeurs). **Le jour de la mise en production : passer `TESTING=false`**, puis dans AdMob
+  « Ajouter une plate-forme de téléchargement » pour relier l'app à Google Play.
+- Les variables GitHub ADMOB_APP_ID / ADMOB_BANNER_ID ne sont plus nécessaires (Claude ne peut pas les régler).
+- Vérifié sur le téléphone le 24/10 : Bonnes adresses avec photo, vitrine pro (demande → validation → publication),
+  bas des pages (test-58), Proposer un itinéraire, plus de 2ᵉ rafraîchissement au changement de rubrique (test-60).
+
+## 🆕 test-60 (24/10, 22 h) : plus de second rafraîchissement au changement de rubrique
+- Style Futuriste : l'animation d'entrée des cartes passait de « up » à « fxIn » puis revenait à « up » 0,9 s après
+  (retrait de la classe fx-enter) → les cartes disparaissaient et réapparaissaient. Une seule animation désormais. Validé par Elaid.
+
 ## 🆕 test-59 (24/10, 21 h) : écran qui « coupe » et se rafraîchit tout seul (signalé par Elaid)
 Causes trouvées dans le code et corrigées (Android + iPhone) :
 - **Tout l'onglet était effacé puis recréé** à chaque mise à jour → nouveau module `www/js/ecran-stable.js` :

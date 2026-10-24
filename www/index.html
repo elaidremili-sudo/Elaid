@@ -1462,8 +1462,8 @@ render();
 <!-- ===================== Publicités AdMob (application Android uniquement) ===================== -->
 <script>
 (function(){
-// Identifiant de bannière : test Google tant que l'identifiant MotoRoute n'est pas renseigné ici.
-const BANNER_ID='ca-app-pub-3940256099942544/6300978111',TESTING=true;
+// Identifiant de bannière MotoRoute (AdMob, bloc « Bannière bas »).
+const BANNER_ID='ca-app-pub-9115324413258436/4667030903',TESTING=true; // test-61 : bannière MotoRoute. TESTING=true → pubs de test (aucun risque de clic invalide). Passer à false le jour de la mise en production Google Play.
 const A=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.AdMob;
 if(!A())return;
 let ready=false,shown=false,busy=false;

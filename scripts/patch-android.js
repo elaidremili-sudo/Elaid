@@ -43,13 +43,13 @@ fs.writeFileSync(gradlePath, gradle);
 console.log(`Version : 1.0.${run} (code ${100 + run})`);
 
 // AdMob : identifiant de l'application (test Google tant que ADMOB_APP_ID n'est pas fourni)
-const admobId = process.env.ADMOB_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
+const admobId = process.env.ADMOB_APP_ID || 'ca-app-pub-9115324413258436~7133412146'; // test-61 : application MotoRoute dans AdMob
 let man = fs.readFileSync(path, 'utf8');
 if (!man.includes('com.google.android.gms.ads.APPLICATION_ID')) {
   man = man.replace(/<application([^>]*)>/, `<application$1>\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobId}"/>`);
   fs.writeFileSync(path, man);
 }
-console.log('AdMob : ' + (process.env.ADMOB_APP_ID ? 'identifiant MotoRoute' : 'identifiant de test Google'));
+console.log('AdMob : identifiant MotoRoute ' + admobId);
 
 // Écran complet en paysage : l'app s'affiche aussi à côté de la caméra (plus de bande noire) — test-24
 const stylesPath = 'android/app/src/main/res/values/styles.xml';
