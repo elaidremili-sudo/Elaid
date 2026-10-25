@@ -872,3 +872,257 @@ public class MainActivity extends BridgeActivity {
     fs.writeFileSync(gradlePath, gr);
   }
 }
+
+// test-66 (25/10) : musique en arrière-plan. Android endort une appli qui n'est plus à l'écran, même si sa page joue du son :
+// la radio et les morceaux s'arrêtaient écran éteint. Service « lecture multimédia » (notification avec ⏮ ⏯ ⏭ ✕)
+// + session média : les boutons du casque Bluetooth / de l'intercom pilotent le lecteur de MotoRoute.
+fs.writeFileSync(javaDir + '/MrMusicPlugin.java', `package com.motoroute.app;
+
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "MrMusic")
+public class MrMusicPlugin extends Plugin {
+    private static MrMusicPlugin inst = null;
+
+    @Override
+    public void load() { inst = this; }
+
+    // appelé par le service : bouton de la notification ou du casque → l'app agit sur son lecteur
+    static void emit(String action) {
+        MrMusicPlugin p = inst;
+        if (p == null) return;
+        JSObject d = new JSObject();
+        d.put("action", action);
+        p.notifyListeners("action", d, true);
+    }
+
+    @PluginMethod
+    public void update(PluginCall call) {
+        Context c = getContext();
+        String title = call.getString("title", "MotoRoute"), artist = call.getString("artist", "");
+        boolean playing = Boolean.TRUE.equals(call.getBoolean("playing", false)), live = Boolean.TRUE.equals(call.getBoolean("live", false));
+        // service déjà lancé : mise à jour directe (Android interdit de relancer un service depuis l'arrière-plan,
+        // par ex. quand un morceau enchaîne sur le suivant écran éteint)
+        final MrMusicService s = MrMusicService.inst;
+        if (s != null) { new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> s.set(title, artist, playing, live)); call.resolve(); return; }
+        Intent i = new Intent(c, MrMusicService.class).setAction(MrMusicService.UPDATE)
+            .putExtra("title", title).putExtra("artist", artist).putExtra("playing", playing).putExtra("live", live);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("service: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void stop(PluginCall call) {
+        Context c = getContext();
+        try { c.stopService(new Intent(c, MrMusicService.class)); } catch (Exception e) {}
+        call.resolve();
+    }
+}
+`);
+
+fs.writeFileSync(javaDir + '/MrMusicService.java', `package com.motoroute.app;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ServiceInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
+import androidx.core.app.NotificationCompat;
+
+public class MrMusicService extends Service {
+    static volatile MrMusicService inst = null;
+    static final String UPDATE = "com.motoroute.app.MUSIC_UPDATE";
+    static final String CH = "mr_music_v1";
+    private static final int NID = 7600;
+    private MediaSessionCompat session;
+    private PowerManager.WakeLock cpu;
+    private WifiManager.WifiLock wifi;
+    private final Handler h = new Handler(Looper.getMainLooper());
+    private String title = "MotoRoute", artist = "";
+    private boolean playing = false, live = false;
+    // en pause depuis 10 min : on libère le téléphone (la musique reprend depuis l'app)
+    private final Runnable idle = () -> { MrMusicPlugin.emit("stop"); stopSelf(); };
+
+    @Override
+    public IBinder onBind(Intent intent) { return null; }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        inst = this;
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null && nm.getNotificationChannel(CH) == null) {
+                NotificationChannel ch = new NotificationChannel(CH, "Musique MotoRoute", NotificationManager.IMPORTANCE_LOW);
+                ch.setDescription("Commandes de la musique (radio, morceaux) pendant que tu roules.");
+                ch.setShowBadge(false);
+                ch.setSound(null, null);
+                nm.createNotificationChannel(ch);
+            }
+        }
+        session = new MediaSessionCompat(this, "MotoRoute");
+        session.setCallback(new MediaSessionCompat.Callback() {
+            @Override public void onPlay() { MrMusicPlugin.emit("play"); }
+            @Override public void onPause() { MrMusicPlugin.emit("pause"); }
+            @Override public void onSkipToNext() { MrMusicPlugin.emit("next"); }
+            @Override public void onSkipToPrevious() { MrMusicPlugin.emit("prev"); }
+            @Override public void onStop() { MrMusicPlugin.emit("stop"); }
+        });
+        session.setActive(true);
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MotoRoute:musique");
+            cpu.setReferenceCounted(false);
+        } catch (Exception e) {}
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            wifi = wm.createWifiLock(Build.VERSION.SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF, "MotoRoute:musique");
+            wifi.setReferenceCounted(false);
+        } catch (Exception e) {}
+    }
+
+    private PendingIntent act(String a, int code) {
+        Intent i = new Intent(this, MrMusicService.class).setAction(a);
+        return PendingIntent.getService(this, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private Notification build() {
+        Intent o = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent open = PendingIntent.getActivity(this, NID, o, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        NotificationCompat.Builder b = new NotificationCompat.Builder(this, CH)
+            .setSmallIcon(playing ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause)
+            .setContentTitle(title)
+            .setContentText(artist)
+            .setContentIntent(open)
+            .setDeleteIntent(act("mr.stop", 4))
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .setOngoing(playing)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .addAction(android.R.drawable.ic_media_previous, "Précédent", act("mr.prev", 1))
+            .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play, playing ? "Pause" : "Lecture", act("mr.toggle", 2))
+            .addAction(android.R.drawable.ic_media_next, "Suivant", act("mr.next", 3))
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Fermer", act("mr.stop", 4))
+            .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                .setMediaSession(session.getSessionToken())
+                .setShowActionsInCompactView(0, 1, 2));
+        return b.build();
+    }
+
+    private void apply() {
+        long acts = PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
+            | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_STOP;
+        session.setPlaybackState(new PlaybackStateCompat.Builder().setActions(acts)
+            .setState(playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, playing ? 1f : 0f).build());
+        session.setMetadata(new MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, live ? "Radio en direct" : "MotoRoute").build());
+        Notification n = build();
+        if (Build.VERSION.SDK_INT >= 29) startForeground(NID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        else startForeground(NID, n);
+        h.removeCallbacks(idle);
+        if (playing) {
+            try { if (cpu != null && !cpu.isHeld()) cpu.acquire(4 * 60 * 60 * 1000L); } catch (Exception e) {}
+            try { if (wifi != null && !wifi.isHeld()) wifi.acquire(); } catch (Exception e) {}
+        } else {
+            release();
+            h.postDelayed(idle, 10 * 60 * 1000L);
+        }
+    }
+
+    void set(String t, String a, boolean p, boolean l) {
+        title = t == null || t.isEmpty() ? "MotoRoute" : t; artist = a == null ? "" : a; playing = p; live = l;
+        apply();
+    }
+
+    private void release() {
+        try { if (cpu != null && cpu.isHeld()) cpu.release(); } catch (Exception e) {}
+        try { if (wifi != null && wifi.isHeld()) wifi.release(); } catch (Exception e) {}
+    }
+
+    @Override
+    public int onStartCommand(Intent i, int flags, int startId) {
+        String a = i == null ? null : i.getAction();
+        if (UPDATE.equals(a)) {
+            title = i.getStringExtra("title"); if (title == null || title.isEmpty()) title = "MotoRoute";
+            artist = i.getStringExtra("artist"); if (artist == null) artist = "";
+            playing = i.getBooleanExtra("playing", false);
+            live = i.getBooleanExtra("live", false);
+            apply();
+        } else {
+            // le service doit être au premier plan quelques secondes après son lancement, même pour un simple bouton
+            apply();
+            if ("mr.prev".equals(a)) MrMusicPlugin.emit("prev");
+            else if ("mr.next".equals(a)) MrMusicPlugin.emit("next");
+            else if ("mr.toggle".equals(a)) MrMusicPlugin.emit(playing ? "pause" : "play");
+            else if ("mr.stop".equals(a)) { MrMusicPlugin.emit("stop"); stopSelf(); }
+        }
+        return START_NOT_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // l'appli est balayée de l'écran des applis récentes : on arrête la musique avec elle
+        MrMusicPlugin.emit("stop");
+        stopSelf();
+        super.onTaskRemoved(rootIntent);
+    }
+
+    @Override
+    public void onDestroy() {
+        inst = null;
+        h.removeCallbacks(idle);
+        release();
+        try { session.setActive(false); session.release(); } catch (Exception e) {}
+        if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true);
+        super.onDestroy();
+    }
+}
+`);
+
+{
+  const mp = javaDir + '/MainActivity.java';
+  let ma = fs.readFileSync(mp, 'utf8');
+  if (!ma.includes('MrMusicPlugin')) ma = ma.replace('registerPlugin(MrSmsPlugin.class);', 'registerPlugin(MrSmsPlugin.class);\n        registerPlugin(MrMusicPlugin.class);');
+  if (!ma.includes('MrMusicPlugin')) throw new Error('patch-android : MainActivity sans MrMusicPlugin');
+  fs.writeFileSync(mp, ma);
+
+  let m = fs.readFileSync(path, 'utf8');
+  for (const p of ['android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK', 'android.permission.WAKE_LOCK', 'android.permission.ACCESS_WIFI_STATE']) {
+    if (!m.includes(`"${p}"`)) m = m.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
+  }
+  if (!m.includes('MrMusicService')) m = m.replace('</application>', '        <service android:name=".MrMusicService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n    </application>');
+  fs.writeFileSync(path, m);
+
+  let gr = fs.readFileSync(gradlePath, 'utf8');
+  if (!gr.includes('androidx.media:media')) {
+    gr = gr.replace(/dependencies\s*\{/, 'dependencies {\n    implementation "androidx.media:media:1.6.0"');
+    fs.writeFileSync(gradlePath, gr);
+  }
+  console.log('Musique : service MrMusicService (lecture écran éteint, notification, boutons du casque)');
+}

@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="MotoRoute"><link rel="apple-touch-icon" href="https://elaidremili-sudo.github.io/Elaid/icon.png">
 <meta name="color-scheme" content="dark light">
 <title>MotoRoute – Sorties et annonces</title>
-<script src="js/version.js"></script><script src="lib/sentry.min.js"></script><script src="js/sentry-init.js"></script>
+<script src="js/version.js"></script><script src="js/lean.js"></script><script src="lib/sentry.min.js"></script><script src="js/sentry-init.js"></script>
 <link href="lib/fonts/fonts.css" rel="stylesheet">
 <style>
 :root{--bg:#eceef0;--card:#fff;--ink:#1b1f24;--mute:#5d6670;--line:#d5d9de;--acc:#f2b705;--on-acc:#1b1f24;--ok:#0f766e;
@@ -463,8 +463,16 @@ E.addEventListener('close',()=>{stop();Object.assign(ed,{f:0,lu:100,co:100,sa:10
 const eb=document.createElement('button');eb.className='lang hb';eb.textContent='🎬';eb.setAttribute('aria-label','Éditeur');eb.onclick=()=>{ui();E.showModal();loop()};const tl=document.querySelector('.tools');if(tl)tl.appendChild(eb);
 /* Détection de chute */
 const FS=()=>S.fall=S.fall||{on:false};let lastLL='',sm=[],imp=0,busy=false,wid=null,tm=null,au=null;
-function mot(e){if(busy)return;const a=e.accelerationIncludingGravity;if(!a)return;const m=Math.hypot(a.x||0,a.y||0,a.z||0),n=Date.now();if(!imp){if(m>30){imp=n;sm=[]}return}sm.push(Math.abs(m-9.8));if(n-imp>3500){const av=sm.reduce((p,q)=>p+q,0)/(sm.length||1),still=sm.length>10&&av<2;imp=0;sm=[];if(still)alarm()}}
-async function fstart(){if(!('DeviceMotionEvent' in window)){alert(xx().fns);return false}try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(xx().fperm);return false}}catch(e){}addEventListener('devicemotion',mot);try{wid=navigator.geolocation.watchPosition(p=>{lastLL=p.coords.latitude+','+p.coords.longitude},()=>{},{enableHighAccuracy:true,maximumAge:10000})}catch(e){}return true}
+/* test-66 : sur un support, une vibration ou un nid-de-poule dépasse parfois 3 g, puis la moto s'arrête au feu → fausse alerte.
+   Maintenant il faut aussi : téléphone basculé de plus de 35° par rapport à juste avant le choc (moto couchée, téléphone éjecté)
+   ou choc énorme (> 6 g), et le GPS ne doit pas voir la moto rouler encore (> 11 km/h). */
+let pre=[],post=[],peak=0,spdG=null,spdT=0;const ang=(u,v)=>{const a=Math.hypot(...u),b=Math.hypot(...v);if(a<4||b<4)return 0;return Math.acos(Math.max(-1,Math.min(1,(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(a*b))))*180/Math.PI},avg=L=>[0,1,2].map(i=>L.reduce((p,q)=>p+q[i],0)/(L.length||1));
+function mot(e){if(busy)return;const a=e.accelerationIncludingGravity;if(!a)return;const v=[a.x||0,a.y||0,a.z||0],m=Math.hypot(...v),n=Date.now();
+ if(!imp){pre.push([n,v]);while(pre.length&&n-pre[0][0]>2000)pre.shift();if(m>30){imp=n;sm=[];post=[];peak=m}return}
+ peak=Math.max(peak,m);sm.push(Math.abs(m-9.8));if(n-imp>2000)post.push(v);
+ if(n-imp>3500){const av=sm.reduce((p,q)=>p+q,0)/(sm.length||1),still=sm.length>10&&av<2,before=pre.filter(q=>imp-q[0]>300).map(q=>q[1]),tilt=before.length>5&&post.length>5?ang(avg(before),avg(post)):90,
+  moving=spdG!=null&&n-spdT<5000&&spdG>3;imp=0;sm=[];post=[];pre=[];if(still&&!moving&&(tilt>35||peak>60))alarm()}}
+async function fstart(){if(!('DeviceMotionEvent' in window)){alert(xx().fns);return false}try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(xx().fperm);return false}}catch(e){}addEventListener('devicemotion',mot);try{wid=navigator.geolocation.watchPosition(p=>{lastLL=p.coords.latitude+','+p.coords.longitude;const sp=p.coords.speed;if(sp!=null&&!isNaN(sp)){spdG=sp;spdT=Date.now()}},()=>{},{enableHighAccuracy:true,maximumAge:10000})}catch(e){}return true}
 function fstop(){removeEventListener('devicemotion',mot);try{if(wid!=null)navigator.geolocation.clearWatch(wid)}catch(e){}wid=null}
 const A=document.createElement('dialog');A.style.border='3px solid #d7263d';document.body.appendChild(A);
 function beep(){try{au=au||new (window.AudioContext||window.webkitAudioContext)();const o=au.createOscillator(),g=au.createGain();o.connect(g);g.connect(au.destination);o.frequency.value=880;g.gain.value=.3;o.start();o.stop(au.currentTime+.25)}catch(e){}try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}}
@@ -514,7 +522,8 @@ A.onclick=async e=>{if(e.target.closest('[data-smsask]')){await smsPerm();return
 const _rv=routeView;routeView=function(t){const x=xx(),f=FS(),a=(S.alerts||[])[0];return `<div class="card"><h3>🛟 ${x.fall}</h3><label class="chk"><input type="checkbox" id="fall_chk" ${f.on?'checked':''}> ${x.fon}</label><div class="meta">${x.fnote}</div>${(()=>{const z=zz(),w=iceWho();return `<div class="meta" style="margin:8px 0;padding:10px;border-radius:10px;border:2px solid ${w?'#0f766e':'#d7263d'}">📞 <b>${z.ct}</b> : ${w||z.none} <button class="g" data-iceedit="1" style="margin-inline-start:6px">${w?z.ed:z.add}</button></div>`+(smsP()?(smsOk===false?smsFixHtml():smsOk?`<div class="meta" style="color:#3cc4b6;font-weight:700">${z.pok}</div>`:'')+`<div class="meta">📩 ${z.sms}</div><label class="chk"><input type="checkbox" id="fall_call" ${f.call!==false?'checked':''}> ${z.call}</label><div class="meta">🔊 ${z.vnote}</div>`+(w?`<div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="g" data-stest="1">${z.tsms}</button><button class="g" data-vtest="1">${z.vtest}</button></div><div class="meta" id="sms_tst"></div>`:''):`<div class="meta">${z.web}</div>`)})()}${window.mrGuardHtml?window.mrGuardHtml():''}${a?`<div class="meta">🕒 ${new Date(a.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · ${esc(a.msg)}</div>`:''}<div class="row"><button class="g" data-fsim="1">${x.ftest}</button></div></div>`+_rv(t)};
 $('main').addEventListener('change',async e=>{if(e.target.id=='fall_call'){FS().call=e.target.checked;save();if(e.target.checked)smsPerm()}if(e.target.id=='fall_chk'){const f=FS();if(e.target.checked){f.on=await fstart();if(f.on){await smsPerm();if(!iceNums().length)openIceEdit()}}else{f.on=false;fstop()}save();render()}});
 $('main').addEventListener('click',async e=>{if(e.target.closest('[data-stest]')){const z=zz(),n=iceNums()[0],P=smsP(),o=$('sms_tst');if(!n||!P)return;if(!confirm(z.tsmsc.replace('{n}',n)))return;if(smsOk!==true&&!await smsPerm()){if(o)o.innerHTML=smsFixHtml();return}smsDl();if(o)o.innerHTML='…';try{const rr=await P.send({to:n,msg:z.tsmsm});if(o)o.innerHTML='<div>'+z.ok.replace('{n}',esc(n))+(rr&&rr.simName?' · '+esc(z.sim.replace('{s}',rr.simName)):'')+'</div>'}catch(x){if(o)o.innerHTML='<div>'+z.ko.replace('{n}',esc(n))+' ('+esc(smsWhy(String(x&&x.message||x)))+')</div>'}return}if(e.target.closest('[data-vtest]')){const z=zz(),n=iceNums()[0];if(!n)return;if(!confirm(z.vconf.replace('{n}',n)))return;if(smsOk!==true)await smsPerm();if(!lastLL)await new Promise(r=>{try{navigator.geolocation.getCurrentPosition(q=>{lastLL=q.coords.latitude.toFixed(5)+','+q.coords.longitude.toFixed(5);r()},()=>r(),{enableHighAccuracy:true,timeout:8000,maximumAge:120000})}catch(x){r()}});try{await voiceCall(n,true);alert(z.vok.replace('{n}',n))}catch(x){alert(z.callko)}return}if(e.target.closest('[data-smsask]')){await smsPerm();render();return}if(e.target.closest('[data-smsset]')){try{await smsP().openSettings()}catch(x){}return}if(e.target.closest('[data-fsim]'))alarm(true)});window.mrAlarm=alarm;
-try{if(FS().on&&window.DeviceMotionEvent&&!DeviceMotionEvent.requestPermission)fstart()}catch(e){}
+/* test-66 : les Chrome/WebView récents ont aussi DeviceMotionEvent.requestPermission (accordé sans fenêtre sur Android) : avant, la détection de chute ne redémarrait pas toute seule à l'ouverture de l'appli */
+try{if(FS().on&&window.DeviceMotionEvent)(async()=>{const ok=!DeviceMotionEvent.requestPermission||await DeviceMotionEvent.requestPermission().then(r=>r=='granted',()=>false);if(ok)fstart()})()}catch(e){}
 })();
 /* Photo de la semaine : vote */
 (function(){
@@ -611,8 +620,8 @@ $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
 })();
 /* Conduite : vitesse, inclinaison, statistiques, chute renforcée */
 (function(){
-const K={fr:{t:"Conduite : vitesse et inclinaison",note:"Fixez le téléphone sur le support. 1) Moto droite et à l'arrêt, appuyez sur Calibrer. 2) Démarrez, puis roulez. Ne regardez pas l'écran en roulant : consultez vos statistiques à l'arrêt.",cal:"Calibrer (moto droite)",cald:"Calibré ✓",caln:"Non calibré",calw:"Ne bougez pas… calibrage en cours",calf:"Calibrage impossible : capteurs indisponibles ou téléphone qui bouge.",start:"Démarrer",stop:"Arrêter et enregistrer",kmh:"km/h",lean:"Inclinaison",left:"gauche",right:"droite",vmax:"Vitesse max",vavg:"Vitesse moyenne",lmax:"Inclinaison max",vc:"Vitesse max en virage",vca:"Vitesse moyenne en virage",dist:"Distance",dur:"Durée",saved:"Trajet enregistré : {n} km",short:"Trajet trop court pour être enregistré.",nocal:"Calibrez d'abord le téléphone.",nogps:"GPS indisponible.",nos:"Capteurs de mouvement indisponibles.",perm:"Autorisez l'accès aux capteurs de mouvement.",hist:"Vos derniers trajets",none:"Aucun trajet mesuré pour le moment.",best:"Records",est:"Inclinaison estimée à quelques degrés près (gyroscope contrôlé par le virage GPS), visible au-dessus de 15 km/h. Plus besoin de recalibrer si le téléphone change de support. En voiture, l’app affiche l’angle qu’aurait une moto dans le même virage (presque 0° en ligne droite).",fallnote:"Avec la détection de chute activée, un arrêt brutal après un choc ou une forte inclinaison déclenche aussi l'alerte."},ar:{t:"القيادة: السرعة والميلان",note:"ثبّت الهاتف على الحامل. 1) والدراجة مستقيمة وواقفة اضغط معايرة. 2) ابدأ ثم انطلق. لا تنظر إلى الشاشة أثناء القيادة: اطّلع على إحصائياتك عند التوقف.",cal:"معايرة (دراجة مستقيمة)",cald:"تمت المعايرة ✓",caln:"غير معايَر",calw:"لا تتحرك… جارٍ المعايرة",calf:"تعذّرت المعايرة: الحساسات غير متوفرة أو الهاتف يتحرك.",start:"ابدأ",stop:"إيقاف وتسجيل",kmh:"كم/س",lean:"الميلان",left:"يسار",right:"يمين",vmax:"السرعة القصوى",vavg:"السرعة المتوسطة",lmax:"أقصى ميلان",vc:"أقصى سرعة في المنعطف",vca:"متوسط السرعة في المنعطف",dist:"المسافة",dur:"المدة",saved:"تم تسجيل الرحلة: {n} كم",short:"الرحلة أقصر من أن تُسجَّل.",nocal:"عاير الهاتف أولاً.",nogps:"GPS غير متاح.",nos:"حساسات الحركة غير متوفرة.",perm:"اسمح بالوصول إلى حساسات الحركة.",hist:"آخر رحلاتك",none:"لا توجد رحلات مقاسة بعد.",best:"الأرقام القياسية",est:"الميلان تقديري بفارق بضع درجات (جيروسكوب يُراقَب بمنعطف GPS) ويظهر فوق 15 كم/س. لا حاجة لإعادة المعايرة إذا تغيّر حامل الهاتف. في السيارة يعرض التطبيق الميلان الذي تحتاجه دراجة في نفس المنعطف (قرابة 0° في الخط المستقيم).",fallnote:"مع تفعيل كشف السقوط، التوقف المفاجئ بعد صدمة أو ميلان شديد يطلق التنبيه أيضًا."}};
-K.en={"t": "Riding: speed and lean", "note": "Mount the phone on its holder. 1) With the bike upright and stopped, tap Calibrate. 2) Start, then ride. Don't look at the screen while riding: check your stats when stopped.", "cal": "Calibrate (bike upright)", "cald": "Calibrated ✓", "caln": "Not calibrated", "calw": "Don't move… calibrating", "calf": "Calibration failed: sensors unavailable or phone moving.", "start": "Start", "stop": "Stop and save", "kmh": "km/h", "lean": "Lean", "left": "left", "right": "right", "vmax": "Top speed", "vavg": "Average speed", "lmax": "Max lean", "vc": "Top speed in bends", "vca": "Average speed in bends", "dist": "Distance", "dur": "Duration", "saved": "Trip saved: {n} km", "short": "Trip too short to be saved.", "nocal": "Calibrate the phone first.", "nogps": "GPS unavailable.", "nos": "Motion sensors unavailable.", "perm": "Allow access to motion sensors.", "hist": "Your latest trips", "none": "No trip measured yet.", "best": "Records", "est": "Lean estimated to within a few degrees (gyroscope checked against the GPS curve), shown above 15 km/h. No need to recalibrate if the phone changes holder. In a car, the app shows the angle a motorcycle would need in the same curve (about 0° on a straight).", "fallnote": "With crash detection on, a sudden stop after an impact or a heavy lean also triggers the alert."};const kk=()=>K[lang=='ar'?'ar':lang=='en'?'en':'fr'],IOS=/iP(hone|ad|od)/.test(navigator.userAgent),R2=Math.PI/180;
+const K={fr:{t:"Conduite : vitesse et inclinaison",note:"Fixez le téléphone sur le support. 1) Moto droite et à l'arrêt, appuyez sur Calibrer. 2) Démarrez, puis roulez. Ne regardez pas l'écran en roulant : consultez vos statistiques à l'arrêt.",cal:"Calibrer (moto droite)",cald:"Calibré ✓",caln:"Non calibré",calw:"Ne bougez pas… calibrage en cours",calf:"Calibrage impossible : capteurs indisponibles ou téléphone qui bouge.",start:"Démarrer",stop:"Arrêter et enregistrer",kmh:"km/h",lean:"Inclinaison",left:"gauche",right:"droite",vmax:"Vitesse max",vavg:"Vitesse moyenne",lmax:"Inclinaison max",vc:"Vitesse max en virage",vca:"Vitesse moyenne en virage",dist:"Distance",dur:"Durée",saved:"Trajet enregistré : {n} km",short:"Trajet trop court pour être enregistré.",nocal:"Calibrez d'abord le téléphone.",nogps:"GPS indisponible.",nos:"Capteurs de mouvement indisponibles.",perm:"Autorisez l'accès aux capteurs de mouvement.",hist:"Vos derniers trajets",none:"Aucun trajet mesuré pour le moment.",best:"Records",est:"Inclinaison estimée à quelques degrés près (gyroscope contrôlé par le virage GPS), visible au-dessus de 15 km/h. Les vibrations du moteur, de la route et du vent sont filtrées. Plus besoin de recalibrer si le téléphone change de support. En voiture, l’app affiche l’angle qu’aurait une moto dans le même virage (presque 0° en ligne droite).",fallnote:"Avec la détection de chute activée, un choc suivi d'un arrêt avec la moto couchée (ou le téléphone éjecté) déclenche aussi l'alerte. Un nid-de-poule ou les vibrations du support ne suffisent pas."},ar:{t:"القيادة: السرعة والميلان",note:"ثبّت الهاتف على الحامل. 1) والدراجة مستقيمة وواقفة اضغط معايرة. 2) ابدأ ثم انطلق. لا تنظر إلى الشاشة أثناء القيادة: اطّلع على إحصائياتك عند التوقف.",cal:"معايرة (دراجة مستقيمة)",cald:"تمت المعايرة ✓",caln:"غير معايَر",calw:"لا تتحرك… جارٍ المعايرة",calf:"تعذّرت المعايرة: الحساسات غير متوفرة أو الهاتف يتحرك.",start:"ابدأ",stop:"إيقاف وتسجيل",kmh:"كم/س",lean:"الميلان",left:"يسار",right:"يمين",vmax:"السرعة القصوى",vavg:"السرعة المتوسطة",lmax:"أقصى ميلان",vc:"أقصى سرعة في المنعطف",vca:"متوسط السرعة في المنعطف",dist:"المسافة",dur:"المدة",saved:"تم تسجيل الرحلة: {n} كم",short:"الرحلة أقصر من أن تُسجَّل.",nocal:"عاير الهاتف أولاً.",nogps:"GPS غير متاح.",nos:"حساسات الحركة غير متوفرة.",perm:"اسمح بالوصول إلى حساسات الحركة.",hist:"آخر رحلاتك",none:"لا توجد رحلات مقاسة بعد.",best:"الأرقام القياسية",est:"الميلان تقديري بفارق بضع درجات (جيروسكوب يُراقَب بمنعطف GPS) ويظهر فوق 15 كم/س. اهتزازات المحرك والطريق والريح مُرشَّحة. لا حاجة لإعادة المعايرة إذا تغيّر حامل الهاتف. في السيارة يعرض التطبيق الميلان الذي تحتاجه دراجة في نفس المنعطف (قرابة 0° في الخط المستقيم).",fallnote:"مع تفعيل كشف السقوط، الصدمة متبوعة بتوقف والدراجة ملقاة على جانبها (أو سقوط الهاتف) تطلق التنبيه أيضًا. الحفرة أو اهتزازات الحامل لا تكفي."}};
+K.en={"t": "Riding: speed and lean", "note": "Mount the phone on its holder. 1) With the bike upright and stopped, tap Calibrate. 2) Start, then ride. Don't look at the screen while riding: check your stats when stopped.", "cal": "Calibrate (bike upright)", "cald": "Calibrated ✓", "caln": "Not calibrated", "calw": "Don't move… calibrating", "calf": "Calibration failed: sensors unavailable or phone moving.", "start": "Start", "stop": "Stop and save", "kmh": "km/h", "lean": "Lean", "left": "left", "right": "right", "vmax": "Top speed", "vavg": "Average speed", "lmax": "Max lean", "vc": "Top speed in bends", "vca": "Average speed in bends", "dist": "Distance", "dur": "Duration", "saved": "Trip saved: {n} km", "short": "Trip too short to be saved.", "nocal": "Calibrate the phone first.", "nogps": "GPS unavailable.", "nos": "Motion sensors unavailable.", "perm": "Allow access to motion sensors.", "hist": "Your latest trips", "none": "No trip measured yet.", "best": "Records", "est": "Lean estimated to within a few degrees (gyroscope checked against the GPS curve), shown above 15 km/h. Engine, road and wind vibrations are filtered out. No need to recalibrate if the phone changes holder. In a car, the app shows the angle a motorcycle would need in the same curve (about 0° on a straight).", "fallnote": "With crash detection on, an impact followed by a stop with the bike on its side (or the phone thrown off) also triggers the alert. A pothole or holder vibrations are not enough."};const kk=()=>K[lang=='ar'?'ar':lang=='en'?'en':'fr'],IOS=/iP(hone|ad|od)/.test(navigator.userAgent),R2=Math.PI/180;
 let U=null;try{if(S.ridecal&&S.ridecal.length==3)U=S.ridecal}catch(e){}
 let sumR=null,evN=0,on=false,calOn=false,calS=[],msg='',ls=false,wg=null,wl=null,ti=null,lastImp=0,lastFall=0,spd=0,lean=0,t0=0,km=0,last=null,vmax=0,vsum=0,vn=0,lL=0,lR=0,vc=0,vcs=0,vcn=0,hs=[],svT=0,pA=null,pB=null,trk=[],tkL=null,tkT=0,segM=0,segS=0;
 const r5=v=>Math.round(v*1e5)/1e5,ptsOf=(o,d)=>{const x={};if(o.pA&&o.pB){x.a=[r5(o.pA[0]),r5(o.pA[1])];x.b=[r5(o.pB[0]),r5(o.pB[1])]}if(o.trk&&o.trk.length>=2)x.tk=o.trk;try{const so=(S.sorties||[]).find(z=>z.srv&&z.joined&&z.d==d&&z.uid);if(so){x.so=so.uid;x.sot=so.t||''}}catch(e){}return x};
@@ -620,75 +629,23 @@ const RK='mr_ride_run',mkR=(o,end)=>{const dur=Math.round((end-o.t0)/1000),k=Mat
 try{const o=JSON.parse(localStorage.getItem(RK)||'null');if(o&&o.t0){localStorage.removeItem(RK);const x=mkR(o,o.ts);keepR(x);sumR={...x,rec:true};setTimeout(()=>{tab=6;render()},900)}}catch(e){}
 const g=id=>document.getElementById(id),fm=s=>Math.floor(s/60)+':'+String(Math.round(s)%60).padStart(2,'0');
 const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(x))};
-/* test-41 (22/10) : inclinaison fiabilisée (axe vertical suivi en continu, plafond physique 62°).
-   test-47 (22/10) : encore instable en ligne droite (0→30° à 127 km/h, téléphone tenu en main). Deux causes :
-   1) l'exception « virage franc au gyroscope » laissait passer les rotations de la main ;
-   2) le cap GPS calculé entre deux points proches est bruité : quelques mètres d'erreur = faux virage, multiplié par la vitesse.
-   Maintenant : le GPS décide s'il y a virage (cap donné par le GPS lui-même quand il existe, sinon cap sur 15 m au moins ;
-   taux de virage mesuré sur 2 s au moins ; médianes contre les points GPS faux), le gyroscope ne fait qu'affiner autour de
-   l'angle exigé par ce virage ; ligne droite → 0° ; sans GPS récent → 10° au plus ; téléphone qui bouge sans virage → message. */
-/* test-50 (22/10) : méthode des études sur la mesure d'inclinaison au téléphone (TU Darmstadt / IFZ 2020, Schlipsing 2012) :
-   filtre complémentaire = 1) vitesse de roulis du gyroscope intégrée (réaction immédiate, précise en virage)
-   + 2) angle « d'équilibre » tiré du lacet : sin(angle) = vitesse × lacet mesuré dans le repère de la moto / g
-   (test-47 l'avait remplacé à tort par atan : atan vaut pour le lacet au sol (GPS), pas pour celui mesuré par la moto penchée).
-   L'axe avant de la moto dans le téléphone est appris tout seul en roulant (axe de roulis = direction principale de rotation
-   perpendiculaire à la verticale, son sens est donné par la concordance avec l'angle d'équilibre).
-   Garde-fou GPS conservé (ligne droite → 0°, téléphone en main → message). Erreur visée par les études : ~2-4°. */
-let Ug=null,lTs=0,wBi=0,looseT=0,looseS=0,lastB=null,leanU=0,lss=0,lssP=0,rr=0,fAx=null,fN=0,fCor=0;const gH=[],wB=[],bH=[],oH=[],rH=[],C3=[[0,0,0],[0,0,0],[0,0,0]];
-/* axe avant appris lors des trajets précédents (effacé quand on recalibre : le téléphone a pu changer de support) */
-try{const q=S.rollAx;if(q&&q.a&&q.a.length==3){fAx=q.a;fN=301;fCor=q.c>0?25:-25}}catch(e){}
-function gpsLean(n,ms){const v=gH.filter(h=>n-h[0]<=ms).map(h=>h[1]).sort((p,q)=>p-q);return v.length?v[Math.floor(v.length/2)]:null} /* médiane : un point GPS faux ne crée plus de virage */
-function leanCap(n){const c=gpsLean(n,3000);return c==null?12:c<4?5:Math.min(62,c*1.15+8)}
-/* axe de roulis : vecteur propre principal (puissance itérée) des rotations perpendiculaires à la verticale */
-function learnAxis(gp){const m=Math.hypot(...gp);if(m<.15||m>4)return;for(let i=0;i<3;i++)for(let j=0;j<3;j++)C3[i][j]=C3[i][j]*.998+gp[i]*gp[j];fN++;
- let v=fAx||[gp[0]/m,gp[1]/m,gp[2]/m];for(let k=0;k<3;k++){const w=[0,1,2].map(i=>C3[i][0]*v[0]+C3[i][1]*v[1]+C3[i][2]*v[2]);const q=Math.hypot(...w)||1;v=w.map(x=>x/q)}
- if(fAx&&v[0]*fAx[0]+v[1]*fAx[1]+v[2]*fAx[2]<0)v=v.map(x=>-x);fAx=v}
-function mot(e){const a=e.accelerationIncludingGravity;if(a){let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);if(Math.hypot(x,y,z)>25)lastImp=Date.now();
-  const h=Math.hypot(x,y,z);if(h>6&&h<14){const v=[x/h,y/h,z/h];if(!Ug)Ug=U?U.slice():v;else{const k=.006;Ug=Ug.map((q,i)=>q*(1-k)+v[i]*k);const m=Math.hypot(...Ug);Ug=Ug.map(q=>q/m)}}}
- if(!on||!U)return;const r=e.rotationRate;if(!r)return;const n=Date.now(),dt=lTs?Math.min(.2,(n-lTs)/1000):.016;lTs=n;
- if(spd<15){lean*=.9;leanU*=.9;lss*=.9;looseS=0;return}
- const A=Ug||U,gv=[(r.beta||0)*R2,(r.gamma||0)*R2,(r.alpha||0)*R2],w0=gv[0]*A[0]+gv[1]*A[1]+gv[2]*A[2];
- /* dérive du gyroscope : apprise quand le GPS voit une ligne droite, puis retirée */
- {const gl=gpsLean(n,2500);if(gl!=null&&gl<2&&Math.abs(w0-wBi)<.15)wBi=wBi*.9995+w0*.0005}
- const w=w0-wBi,vm=spd/3.6,raw=Math.asin(Math.max(-.883,Math.min(.883,vm*w/9.81)))/R2;
- lss=lss*.85+raw*.15; /* angle d'équilibre lissé (~0,1 s) */
- /* vitesse de roulis : rotation perpendiculaire à la verticale, projetée sur l'axe avant appris */
- const gp=[gv[0]-w0*A[0],gv[1]-w0*A[1],gv[2]-w0*A[2]];learnAxis(gp);
- rr=rr*.6+(fAx?(gp[0]*fAx[0]+gp[1]*fAx[1]+gp[2]*fAx[2])/R2:0)*.4; /* °/s, filtré ~5 Hz */
- const dL=(lss-lssP)/dt;lssP=lss;if(fAx&&Math.abs(dL)<200)fCor=fCor*.999+rr*dL*dt;
- const sg=fCor<0?-1:1,ok=fAx&&fN>300&&Math.abs(fCor)>20;
- wB.push([n,w]);while(wB.length&&n-wB[0][0]>800)wB.shift();
- /* téléphone tenu en main ou mal fixé : le gyroscope s'agite alors que le GPS ne voit aucun virage */
- const wm=wB.reduce((p,q)=>p+q[1],0)/wB.length,wsd=Math.sqrt(wB.reduce((p,q)=>p+(q[1]-wm)**2,0)/wB.length),gl=gpsLean(n,2500);
- if(Math.abs(leanU)>12){const s2=Math.sign(leanU);if(!rH.length||rH[rH.length-1][1]!=s2)rH.push([n,s2])}while(rH.length&&n-rH[0][0]>4000)rH.shift();
- /* la main fait tourner le téléphone dans un sens puis dans l'autre ; un vrai virage tourne toujours du même côté */
- let g4=0;for(const h of gH)if(n-h[0]<=4500)g4=Math.max(g4,h[1]);
- if((wsd>.8||rH.length>=2)&&gH.length&&g4<4)looseT=n; /* GPS droit pendant 4,5 s (pas une simple sortie de virage) */
- /* filtre complémentaire : roulis intégré (court terme) + angle d'équilibre (long terme, constante 1,2 s) */
- const K=ok?1.2/(1.2+dt):0;let t=ok?K*(lean+sg*rr*dt)+(1-K)*lss:lean*.9+lss*.1;
- /* plafond GPS seulement si le téléphone a bougé dans les 20 dernières secondes (en main, en voiture) : sur un support fixe il retardait
-    et rabotait les vrais virages (simulation : 9,6° d'erreur au lieu de 1,9°) */
- const mx=90*dt;t=Math.max(lean-mx,Math.min(lean+mx,t));const cap=looseT&&n-looseT<20000?leanCap(n):62;lean=Math.max(-cap,Math.min(cap,t));
- /* sans le contrôle GPS, seulement pour la détection de chute (le téléphone bascule quand la moto tombe) */
- leanU=Math.max(-62,Math.min(62,leanU*.9+raw*.1))}
+/* test-66 (25/10) : l'inclinaison est calculée par js/lean.js (filtre anti-vibrations ~3 Hz, axe de roulis appris par
+   corrélation avec le virage, ancrage GPS en ligne droite), vérifié sur le banc d'essai scripts/banc/banc-inclinaison.js.
+   Plus d'alerte « le téléphone bouge » pendant le trajet (retour d'Elaid : les vibrations du support la déclenchaient sans arrêt) :
+   un seul conseil à l'arrêt, dans le résumé du trajet. Historique : test-41, test-47, test-50 (voir REPRISE.md). */
+let leanU=0,rdStat=null,bigImp=0;const VS=()=>(S.vibSens&&['faible','normale','forte'].includes(S.vibSens))?S.vibSens:'normale';
+const est=window.MrLean?MrLean.create({U,rollAx:S.rollAx,sens:VS()}):null;
+function mot(e){const a=e.accelerationIncludingGravity;if(!a)return;let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);{const hm=Math.hypot(x,y,z);if(hm>25)lastImp=Date.now();if(hm>60)bigImp=Date.now()}
+ const r=e.rotationRate;if(!est||!r)return;est.motion(x,y,z,r.alpha||0,r.beta||0,r.gamma||0,Date.now());
+ if(on){lean=est.display();leanU=est.leanU}}
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
  if(last){const d=hv(last.p,pt);if(v==null||isNaN(v)){const dt=(n-last.t)/1000;v=dt>0?d*1000/dt:0}if(v*3.6>3&&d<1)km+=d}else if(v==null||isNaN(v))v=0;
- /* cap : celui du GPS (vitesse Doppler, précis) s'il le donne, sinon entre deux points espacés d'au moins 20 m (1,5 s de route) */
- {const br=(q,w)=>{const R=Math.PI/180,y=Math.sin((w[1]-q[1])*R)*Math.cos(w[0]*R),x=Math.cos(q[0]*R)*Math.sin(w[0]*R)-Math.sin(q[0]*R)*Math.cos(w[0]*R)*Math.cos((w[1]-q[1])*R);return Math.atan2(y,x)/R};
-  let hd=null;const sp=Math.max(0,v);
-  if(c.heading!=null&&!isNaN(c.heading)&&sp>4)hd=c.heading;
-  else if(lastB&&hv(lastB,pt)*1000>=Math.max(20,sp*1.5)){hd=br(lastB,pt);lastB=pt}
-  if(!lastB)lastB=pt;
-  if(hd!=null){bH.push([n,hd]);while(bH.length&&n-bH[0][0]>8000)bH.shift();
-   let o=null;for(let i=bH.length-2;i>=0;i--)if(n-bH[i][0]>=2000){o=bH[i];break}
-   if(o){let d=hd-o[1];d=((d+540)%360)-180;oH.push(d*R2/((n-o[0])/1000));while(oH.length>3)oH.shift();
-    const md=oH.length<3?0:oH.slice().sort((p,q)=>p-q)[1],g0=sp<4?0:Math.atan(sp*Math.abs(md)/9.81)/R2;
-    gH.push([n,Math.min(62,g0)]);while(gH.length&&n-gH[0][0]>6000)gH.shift()}}}
+ if(est)est.gps(c.latitude,c.longitude,Math.max(0,v),c.heading,n); /* virage vu par le GPS : js/lean.js */
  last={p:pt,t:n};spd=Math.max(0,v*3.6);if(on){if(!pA)pA=pt;pB=pt;
  const dd=tkL?hv(tkL,pt):1;if(dd>=.025||(n-tkT>5000&&dd>=.005)){trk.push([r5(pt[0]),r5(pt[1]),Math.round(segM),segM<3?0:(segS>0?-1:1),Math.round(spd),Math.round((n-t0)/1000),c.altitude!=null&&!isNaN(c.altitude)?Math.round(c.altitude):null]);segM=0;segS=0;tkL=pt;tkT=n;if(trk.length>3000)trk=trk.filter((x,i)=>i%2==0||i==trk.length-1)}}}
 function liveHtml(){const k=kk(),el=(Date.now()-t0)/1000;return `${k.vmax} : <b>${Math.round(vmax)} ${k.kmh}</b> · ${k.vavg} : <b>${vn?Math.round(vsum/vn):0} ${k.kmh}</b><br>${k.lmax} : ↶ <b>${Math.round(lL)}°</b> · ↷ <b>${Math.round(lR)}°</b><br>${k.vc} : <b>${Math.round(vc)} ${k.kmh}</b> · ${k.vca} : <b>${vcn?Math.round(vcs/vcn):0} ${k.kmh}</b><br>${k.dist} : <b>${km.toFixed(2)} km</b> · ${k.dur} : <b>${fm(el)}</b>`}
 function paint(){const k=kk();if(g('rd_v'))g('rd_v').textContent=Math.round(spd);
- if(g('rd_l')){const a0=Math.round(Math.abs(lean)),a=a0<5?0:a0,ls=looseT&&Date.now()-looseT<5000;g('rd_l').innerHTML=(spd<15?'—':a+'° '+(a<5?'':(lean>0?k.left:k.right)))+(ls?'<div style="font-size:14px;font-weight:600;color:#ffb020;margin-top:4px">📱 '+(lang=='ar'?'الهاتف يتحرك: ثبّته على الحامل لقياس صحيح':lang=='en'?'Phone is moving: fix it on the holder for an accurate lean':'Le téléphone bouge : fixe-le sur le support pour une inclinaison juste')+'</div>':'')}
+ if(g('rd_l')){const a0=Math.round(Math.abs(lean)),a=a0<5?0:a0;g('rd_l').textContent=spd<15?'—':a+'° '+(a<5?'':(lean>0?k.left:k.right))}
  if(g('rd_b'))g('rd_b').style.transform='rotate('+(spd<15||Math.abs(lean)<5?0:-lean)+'deg)';
  if(g('rd_s'))g('rd_s').innerHTML=liveHtml()}
 function tick(){const n=Date.now(),al=Math.abs(lean),au=Math.abs(leanU);
@@ -696,7 +653,8 @@ function tick(){const n=Date.now(),al=Math.abs(lean),au=Math.abs(leanU);
  if(al>=15){vc=Math.max(vc,spd);vcs+=spd;vcn++}if(spd>=15&&al>segM){segM=al;segS=lean}
  hs.push([n,spd,Math.max(al,au)]);while(hs.length&&n-hs[0][0]>3500)hs.shift();
  const mx=hs.reduce((p,h)=>Math.max(p,h[1]),0),ml=hs.reduce((p,h)=>Math.max(p,h[2]),0);
- if(mx>=25&&spd<5&&(n-lastImp<4000||ml>=50)&&n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
+ const tl=est&&U?est.tilt():90; /* test-66 : moto couchée ou téléphone éjecté (> 35° de la position calibrée) */
+ if(mx>=25&&spd<5&&((n-lastImp<4000&&tl>35)||n-bigImp<4000||ml>=50)&&n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
  paint();if(on&&n-svT>4000){svT=n;try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk,ts:n}))}catch(e){}}}
 async function perm(){if(!('DeviceMotionEvent' in window)){alert(kk().nos);return false}
  try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(kk().perm);return false}}catch(e){}
@@ -705,29 +663,36 @@ async function calib(){if(!await perm())return;calOn=true;calS=[];msg=kk().calw;
  setTimeout(()=>{calOn=false;const n=calS.length;if(n<10){msg=(evN?kk().calf:'Aucun signal des capteurs : le navigateur les bloque. Ouvrez la page dans Chrome et autorisez Capteurs de mouvement dans Parametres du site.')+' (signaux : '+evN+')';alert(msg);render();return}
   const m=[0,1,2].map(i=>calS.reduce((p,q)=>p+q[i],0)/n),h=Math.hypot(m[0],m[1],m[2]),sd=Math.sqrt(calS.reduce((p,q)=>p+((Math.hypot(q[0],q[1],q[2])-h)**2),0)/n);
   if(h<5||h>15||sd>3.5){msg=kk().calf+' (g='+h.toFixed(1)+', bruit='+sd.toFixed(1)+')';alert(msg);render();return}
-  U=m.map(x=>x/h);S.ridecal=U;fAx=null;fN=0;fCor=0;C3.forEach(r=>r.fill(0));S.rollAx=null;save();msg='';render()},3000)}
+  U=m.map(x=>x/h);S.ridecal=U;if(est)est.setU(U);S.rollAx=null;save();msg='';render()},3000)}
 async function rstart(){if(on)return;if(!U){alert(kk().nocal);return}if(!navigator.geolocation){alert(kk().nogps);return}if(!await perm())return;
- on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;segS=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];gH.length=0;wB.length=0;bH.length=0;oH.length=0;rH.length=0;lastB=null;looseT=0;looseS=0;leanU=0;lss=0;lssP=0;rr=0;lTs=0;wBi=0;
+ on=true;t0=Date.now();km=0;last=null;pA=pB=null;trk=[];tkL=null;tkT=0;segM=0;segS=0;vmax=vsum=vn=lL=lR=vc=vcs=vcn=0;spd=0;lean=0;hs=[];leanU=0;rdStat=null;if(est){est.setSens(VS());est.start()}
  try{wg=navigator.geolocation.watchPosition(gps,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}catch(e){}
  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>{wl=l}).catch(()=>{})}catch(e){}
  ti=setInterval(tick,200);try{window.mrBatStart&&window.mrBatStart()}catch(e){}try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.keepAwake()}catch(e){}render()}
 function rstop(){if(!on)return;on=false;clearInterval(ti);try{if(wg!=null)navigator.geolocation.clearWatch(wg)}catch(e){}wg=null;try{wl&&wl.release()}catch(e){}wl=null;
  try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KeepAwake&&Capacitor.Plugins.KeepAwake.allowSleep()}catch(e){}try{localStorage.removeItem(RK)}catch(e){}
- try{if(fAx&&fN>300&&Math.abs(fCor)>20)S.rollAx={a:fAx.map(v=>Math.round(v*1e4)/1e4),c:fCor>0?1:-1}}catch(e){}
+ try{if(est){est.stop();rdStat=est.stats();const ax=est.rollAx();if(ax)S.rollAx=ax}}catch(e){}
  const x=mkR({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk},Date.now());keepR(x);sumR=x;try{window.mrBatEnd&&window.mrBatEnd(x.r,()=>{save();render()})}catch(e){}render();setTimeout(()=>window.mrCmpUp&&window.mrCmpUp(),500)}
 function histHtml(){const k=kk(),L=S.rides||[];if(!L.length)return `<div class="meta">${k.none}</div>`;
  const bv=Math.max(...L.map(r=>r.vmax||0)),bl=Math.max(...L.map(r=>Math.max(r.lL||0,r.lR||0))),bc=Math.max(...L.map(r=>r.vc||0));
  return `<div class="meta"><b>${k.best}</b> : ${k.vmax} ${bv} ${k.kmh} · ${k.lmax} ${bl}° · ${k.vc} ${bc} ${k.kmh}</div><div class="meta"><b>${k.hist}</b></div>`+L.slice(0,5).map(r=>`<div class="meta">${esc(r.d)} · ${r.km} km · ${fm(r.dur)} · ${r.vmax}/${r.vavg} ${k.kmh} · ↶ ${r.lL}° ↷ ${r.lR}° · ${k.vc} ${r.vc} ${k.kmh}${r.bat?` · 🔋 −${r.bat.d}%`:''}${window.mrCmpBtn?window.mrCmpBtn(r):''}${r.tk&&r.tk.length>1?` <button class="g" data-gpxx="${r.id}">⬇ GPX</button>`:''}</div>`).join('')}
-function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div>${r.bat?`<div class="meta">🔋 ${ar?'البطارية':lang=='en'?'Battery':'Batterie'} : <b>−${r.bat.d} %</b>${r.bat.h!=null?` (${r.bat.h} %/h)`:''}</div>`:''}<div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div><div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.ok&&window.mrCmpBtn?'<div class="row">'+window.mrCmpBtn(r,1)+'</div>':''}${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
+function sumHtml(){if(!sumR)return'';const k=kk(),r=sumR.r,ar=lang=='ar';return `<div class="card" style="border:2px solid var(--acc)"><div class="row" style="justify-content:space-between"><b>🏁 ${ar?'ملخص الرحلة':lang=='en'?'Trip summary':'Résumé du trajet'}</b><button class="g" data-rdsumx="1">✕</button></div><div class="meta">${k.dist} : <b>${r.km} km</b> · ${k.dur} : <b>${fm(r.dur)}</b></div>${r.bat?`<div class="meta">🔋 ${ar?'البطارية':lang=='en'?'Battery':'Batterie'} : <b>−${r.bat.d} %</b>${r.bat.h!=null?` (${r.bat.h} %/h)`:''}</div>`:''}<div class="meta">${k.vmax} : <b>${r.vmax} ${k.kmh}</b> · ${k.vavg} : <b>${r.vavg} ${k.kmh}</b></div><div class="meta">${k.lmax} : ↶ <b>${r.lL}°</b> · ↷ <b>${r.lR}°</b></div><div class="meta">${k.vc} : <b>${r.vc} ${k.kmh}</b> · ${k.vca} : <b>${r.vca} ${k.kmh}</b></div>${sumR.rec?'':tipHtml()}<div class="meta">${sumR.ok?k.saved.replace('{n}',r.km):k.short}</div>${sumR.ok&&window.mrCmpBtn?'<div class="row">'+window.mrCmpBtn(r,1)+'</div>':''}${sumR.rec?`<div class="meta">${ar?'⚠️ توقف التسجيل قبل الضغط على «إيقاف» (إغلاق التطبيق أو انطفاء الشاشة): هذا ملخص ما سُجّل.':lang=='en'?'⚠️ Recording stopped before you tapped Stop (app closed or screen off): here is what was recorded.':'⚠️ L’enregistrement s’est arrêté avant « Arrêter » (appli fermée ou écran éteint) : voici ce qui a été enregistré.'}</div>`:''}</div>`}
+/* test-66 : un seul conseil, à l'arrêt (jamais pendant le trajet) */
+function vsHtml(){const ar=lang=='ar',en=lang=='en',v=VS(),L=[['faible',ar?'ضعيفة':en?'Low':'Faible'],['normale',ar?'عادية':en?'Normal':'Normale'],['forte',ar?'قوية':en?'High':'Forte']];
+ return `<div class="meta" style="margin-top:8px">〰️ ${ar?'حساسية لحركة الهاتف على الحامل':en?'Sensitivity to the phone moving on its holder':'Sensibilité aux mouvements du téléphone sur le support'}</div><div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap">${L.map(([id,t])=>`<button class="g${v==id?' on':''}" data-rdvs="${id}" aria-pressed="${v==id}">${t}</button>`).join('')}</div><div class="meta">${ar?'الاهتزازات (المحرك، الطريق، الريح) تُرشَّح دائمًا. «ضعيفة» تناسب حاملًا يهتز كثيرًا.':en?'Vibrations (engine, road, wind) are always filtered. “Low” suits a holder that shakes a lot.':'Les vibrations (moteur, route, vent) sont toujours filtrées. « Faible » convient à un support qui vibre beaucoup.'}</div>`}
+function tipHtml(){const t=rdStat;if(!t||!t.rideMs||t.rideMs<60000)return'';const ar=lang=='ar',en=lang=='en';
+ if(t.loosePct>=15)return `<div class="meta" style="color:#ffb020">📱 ${ar?`تحرّك الهاتف كثيرًا خلال هذه الرحلة (${t.loosePct} % من الوقت): تحقّق من شدّ الحامل. قد يكون الميلان أقل دقة في هذه الرحلة.`:en?`The phone moved a lot during this trip (${t.loosePct} % of the time): check that the holder is tight. Lean may be less accurate for this trip.`:`Le téléphone a beaucoup bougé pendant ce trajet (${t.loosePct} % du temps) : vérifie le serrage du support. L’inclinaison de ce trajet peut être moins précise.`}</div>`;
+ if(t.vib>=4)return `<div class="meta">〰️ ${ar?'الحامل يهتز كثيرًا. الاهتزازات مُرشَّحة فلا تؤثر على الميلان، لكن حاملًا بممتص صدمات يحمي أيضًا كاميرا هاتفك.':en?'Your holder vibrates a lot. Vibrations are filtered so the lean stays accurate, but a holder with a damper also protects your phone’s camera.':'Ton support vibre beaucoup. Les vibrations sont filtrées, l’inclinaison reste juste, mais un support avec amortisseur protège aussi la caméra de ton téléphone.'}</div>`;
+ return''}
 function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
 routeView=function(t){return musicHtml()+_rv3(t)};
 window.mrRiding=()=>!!on; /* test-62 : la pub plein écran ne s'affiche jamais pendant un trajet */
 window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtml();if(ch){gpOff();return ch}} /* test-29 : la carte GPS n'est pas affichée → on coupe son suivi (sinon l'écran se redessine à chaque position) */const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
  const body=on?`<div style="text-align:center"><div style="font-size:56px;font-weight:800;line-height:1" id="rd_v">0</div><div class="meta">${k.kmh}</div><div style="position:relative;height:64px;margin:6px auto;width:120px;border-bottom:3px solid var(--line)"><div id="rd_b" style="position:absolute;left:56px;bottom:0;width:8px;height:60px;border-radius:4px;background:var(--acc);transform-origin:50% 100%"></div></div><div style="font-size:28px;font-weight:800" id="rd_l">—</div><div class="meta">${k.lean}</div></div><div class="meta" id="rd_s"></div><div class="row"><button class="p" data-rdstop="1">${k.stop}</button></div>`
- :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${msg?`<div class="meta">${msg}</div>`:''}<div class="meta" id="rd_dbg"></div><div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
+ :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${vsHtml()}${msg?`<div class="meta">${msg}</div>`:''}<div class="meta" id="rd_dbg"></div><div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
  return `<div class="card"><h3>📊 ${k.t}</h3><div class="meta">${k.note}</div>${body}<div class="meta">${k.est}</div><div class="meta">${k.fallnote}</div></div>`+(!on&&window.mrCmpIntro?window.mrCmpIntro():'')+(on?(gpOff(),`<div class="meta" style="text-align:center">🔋 ${lang=='ar'?'وضع توفير البطارية: الخريطة متوقفة أثناء التسجيل.':lang=='en'?'Battery saver: the map is paused while recording.':'Économie de batterie : la carte est en pause pendant l’enregistrement.'}</div>`):gpsHtml())};
-$('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;if(D.rdcal!==undefined)calib();else if(D.rdstart!==undefined)rstart();else if(D.rdstop!==undefined)rstop();else if(D.rdsumx!==undefined){sumR=null;render()}});
+$('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;if(D.rdvs){S.vibSens=D.rdvs;save();if(est)est.setSens(VS());render();return}if(D.rdcal!==undefined)calib();else if(D.rdstart!==undefined)rstart();else if(D.rdstop!==undefined)rstop();else if(D.rdsumx!==undefined){sumR=null;render()}});
 let gpP=null,gpW=null,gpU=0,gpE=0;
 const gpUrl=p=>'https://www.openstreetmap.org/export/embed.html?bbox='+[p[1]-.006,p[0]-.004,p[1]+.006,p[0]+.004].map(x=>x.toFixed(5)).join('%2C')+'&layer=mapnik&marker='+p[0].toFixed(5)+'%2C'+p[1].toFixed(5);
 function gpOff(){try{if(gpW!=null)navigator.geolocation.clearWatch(gpW)}catch(e){}gpW=null}
@@ -746,7 +711,7 @@ function gpsHtml(){const ar=lang=='ar',en=lang=='en',w=(a,f,e)=>ar?a:en?e:f;
  else body=`<div class="meta">${gpE==1?w('الوصول إلى الموقع مرفوض. اسمح به في إعدادات المتصفح.','Accès à la position refusé. Autorisez la localisation dans les réglages du navigateur.','Location access denied. Allow location in your browser settings.'):gpE==2?w('GPS غير متاح.','GPS indisponible ou signal introuvable.','GPS unavailable or no signal.'):w('جارٍ البحث عن موقعك…','Recherche de votre position…','Finding your position…')}</div>`;
  return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div></div>`}
 $('main').addEventListener('click',e=>{if(e.target.closest('[data-gpon]')){gpE=0;gpOff();gpOn();render()}});
-setInterval(()=>{try{if(!ls&&window.DeviceMotionEvent&&!DeviceMotionEvent.requestPermission){addEventListener('devicemotion',mot);ls=true}}catch(e){}const d=g('rd_dbg');if(d){const a=window.dbgA;d.textContent='Capteurs : '+evN+' signaux'+(a?' · x='+a[0].toFixed(1)+' y='+a[1].toFixed(1)+' z='+a[2].toFixed(1):'')}},500);
+let mpTry=false;setInterval(()=>{try{if(!ls&&window.DeviceMotionEvent){if(!DeviceMotionEvent.requestPermission){addEventListener('devicemotion',mot);ls=true}else if(!mpTry){mpTry=true;DeviceMotionEvent.requestPermission().then(r=>{if(r=='granted'&&!ls){addEventListener('devicemotion',mot);ls=true}},()=>{})}}}catch(e){}const d=g('rd_dbg');if(d){const a=window.dbgA;d.textContent='Capteurs : '+evN+' signaux'+(a?' · x='+a[0].toFixed(1)+' y='+a[1].toFixed(1)+' z='+a[2].toFixed(1):'')}},500);
 })();
 statics();render();
 </script>
@@ -2208,19 +2173,43 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
     } catch(e) {}
   }
+  // test-66 : lecture écran éteint / appli en arrière-plan (service Android « MrMusic » : notification + boutons du casque)
+  const nat = () => { try { return window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins && Capacitor.Plugins.MrMusic || null; } catch(e) { return null; } };
+  let natKey = '', natOn = false;
+  function natSync(){
+    const N = nat(); if (!N) return; const t = queue[qi];
+    if (!t || state === 'idle') { if (natOn) { natOn = false; natKey = ''; try { N.stop(); } catch(e) {} } return; }
+    const playing = state === 'playing' || state === 'loading', k = [t.url, playing, err].join('|');
+    if (k === natKey) return; natKey = k; natOn = true;
+    try { N.update({title: t.name, artist: err || t.info || '', playing, live: !!t.live}).catch(() => {}); } catch(e) {}
+  }
+  try { const N = nat(); if (N && N.addListener) N.addListener('action', d => { const a = d && d.action;
+    if (a === 'play') play(); else if (a === 'pause') audio.pause(); else if (a === 'next') step(1); else if (a === 'prev') step(-1); else if (a === 'stop') stop(); }); } catch(e) {} // « stop » → stop() → natSync() arrête aussi le service
+  let retry = 0, skips = 0, wd = null;
   function start(list, i){
     queue = list.slice(); qi = i; const t = queue[qi]; if (!t) return;
-    err = ''; state = 'loading'; audio.src = t.url; setMS(t); play(); bar(); rerender();
+    err = ''; retry = 0; state = 'loading'; audio.src = t.url; setMS(t); play(); bar(); rerender(); watch();
   }
   function play(){ if (!audio.src) return; const p = audio.play(); if (p && p.catch) p.catch(() => { state = 'paused'; bar(); rerender(); }); }
   function step(d){ if (!queue.length) return; start(queue, (qi + d + queue.length) % queue.length); }
-  function stop(){ audio.pause(); audio.removeAttribute('src'); try { audio.load(); } catch(e) {} queue = []; qi = -1; state = 'idle'; bar(); rerender(); }
-  audio.addEventListener('playing', () => { state = 'playing'; err = ''; bar(); rerender(); });
-  audio.addEventListener('pause', () => { if (state !== 'idle') { state = 'paused'; bar(); rerender(); } });
-  audio.addEventListener('waiting', () => { state = 'loading'; bar(); });
-  audio.addEventListener('ended', () => step(1));
-  audio.addEventListener('error', () => { if (qi < 0) return; err = W3('Ce flux ne répond pas. Essaie une autre radio.','هذا البث لا يستجيب. جرّب إذاعة أخرى.','This stream is not responding. Try another one.'); state = 'paused'; bar(); rerender(); });
+  function stop(){ clearTimeout(wd); audio.pause(); audio.removeAttribute('src'); try { audio.load(); } catch(e) {} queue = []; qi = -1; state = 'idle'; skips = 0; bar(); rerender(); }
+  // flux qui ne démarre pas (réseau faible en montagne) : on relance une fois, puis on passe au suivant (morceaux) ou on prévient (radio)
+  function watch(){ clearTimeout(wd); wd = setTimeout(() => { if (state === 'loading' && qi >= 0) fail(); }, 20000); }
+  function fail(){
+    const t = queue[qi]; if (!t) return;
+    if (retry < 1) { retry++; try { audio.load(); } catch(e) {} play(); watch(); return; }
+    if (!t.live && queue.length > 1 && skips < queue.length - 1) { skips++; step(1); return; }
+    clearTimeout(wd); err = t.live ? W3('Cette radio ne répond pas. Essaie une autre radio.','هذه الإذاعة لا تستجيب. جرّب إذاعة أخرى.','This radio is not responding. Try another one.') : W3('Ce morceau ne répond pas. Vérifie Internet et réessaie.','هذه الأغنية لا تستجيب. تحقّق من الإنترنت.','This track is not responding. Check your connection.');
+    state = 'paused'; bar(); rerender();
+  }
+  audio.addEventListener('playing', () => { clearTimeout(wd); state = 'playing'; err = ''; retry = 0; skips = 0; bar(); rerender(); });
+  audio.addEventListener('pause', () => { if (state !== 'idle') { clearTimeout(wd); state = 'paused'; bar(); rerender(); } });
+  audio.addEventListener('waiting', () => { state = 'loading'; bar(); watch(); });
+  // une radio en direct ne « finit » pas : si le flux se coupe, on se reconnecte ; un morceau fini → le suivant
+  audio.addEventListener('ended', () => { const t = queue[qi]; if (t && t.live) { retry = 0; state = 'loading'; try { audio.load(); } catch(e) {} play(); watch(); bar(); } else step(1); });
+  audio.addEventListener('error', () => { if (qi < 0 || !audio.getAttribute('src')) return; fail(); });
   function bar(){
+    natSync();
     const b = document.getElementById('mu_bar'); if (!b) return;
     const t = queue[qi], show = !!t;
     b.hidden = !show; document.body.classList.toggle('mu-on', show);
