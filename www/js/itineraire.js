@@ -131,7 +131,7 @@
       else good.sort(function (a, b) { return (a.tpk - b.tpk) || (b.km / b.h - a.km / a.h); });
       st.res = good.slice(0, 3);
       if (!st.res.length) st.msg = W('Aucun itinéraire trouvé (connexion internet ?). Réessaie dans un instant.', 'لم يُعثر على مسار (الإنترنت؟). أعد المحاولة بعد قليل.', 'No route found (internet connection?). Try again shortly.');
-    } catch (e) { st.msg = e.message || String(e); }
+    } catch (e) { st.msg = window.mrErrTxt ? window.mrErrTxt(e, true) : (e.message || String(e)); } /* test-67 : message traduit */
     st.busy = false; st.prog = ''; draw();
   }
   /* villes traversées : un point tous les ~20 km (max 15), nom de la ville et de la wilaya */
@@ -253,7 +253,7 @@
       var r = await sb.from('group_messages').insert({ group_id: uid, user_id: u.id, first_name: fn, body: body.slice(0, 500) });
       if (r.error) throw r.error;
       st.grp.msg = '✅ ' + W('Envoyé dans la discussion du groupe.', 'أُرسل في دردشة المجموعة.', 'Sent to the group chat.');
-    } catch (e) { st.grp.msg = '⚠️ ' + ((e && e.message) || String(e)); }
+    } catch (e) { st.grp.msg = '⚠️ ' + (window.mrErrTxt ? window.mrErrTxt(e) : ((e && e.message) || String(e))); }
     draw();
   }
 

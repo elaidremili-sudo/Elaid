@@ -1,4 +1,5 @@
 // MotoRoute – sos-push (20/10/2026, sirène app fermée le 22/10 : test-47, sécurité 23/10)
+// 29/10 (test-67) : identifiant d'alerte « aid » → pas de doublon quand le téléphone renvoie l'alerte après une coupure réseau.
 // 23/10 : le texte affiché et lu à voix haute est rédigé ICI par le serveur (avant, le téléphone pouvait
 // envoyer n'importe quel texte → risque de fausses alertes). Limite : 5 alertes par heure vers les autres.
 // Envoie une notification d'urgence (sirène + lecture vocale à l'ouverture) aux anges gardiens
@@ -79,9 +80,13 @@ async function googleToken(sa: { client_email: string; private_key: string }) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, why: "methode" }, 405);
+  // test-67 : ligne de journal réservée pour cette alerte ; effacée si l'envoi plante, pour qu'un renvoi soit possible
+  let reserved: number | null = null;
+  let adminRef: ReturnType<typeof createClient> | null = null;
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    adminRef = admin;
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const { data: ud, error: ue } = await admin.auth.getUser(jwt);
     if (ue || !ud?.user) return json({ ok: false, why: "nouser" }, 401);
@@ -106,12 +111,47 @@ Deno.serve(async (req) => {
     const lng = okLat && okLng ? (+b.lng).toFixed(5) : "";
     const kind = self ? "self" : test ? "test" : "real";
 
+    // test-67 : identifiant unique de l'alerte (aid), créé par le téléphone et gardé dans sa file d'attente.
+    // Si le téléphone renvoie la même alerte (réseau coupé pendant la réponse), on ne la renvoie pas une 2e fois.
+    // L'expéditeur est TOUJOURS celui du jeton de connexion (me) : aucun identifiant du corps n'est utilisé.
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let aid: string | null = !self && typeof b.aid === "string" && UUID.test(b.aid) ? b.aid.toLowerCase() : null;
+    if (aid) {
+      const { data: prev, error: pe } = await admin.from("sos_push_log")
+        .select("id,sent,recipients,done,at").eq("user_id", me).eq("client_id", aid).maybeSingle();
+      if (pe) aid = null; // colonne absente : script test-67.sql pas encore passé → ancien fonctionnement
+      else if (prev) {
+        if (prev.done) return json({ ok: true, dup: true, recipients: prev.recipients ?? prev.sent, sent: prev.sent });
+        // envoi encore en cours (autre essai parallèle) : le téléphone réessaiera un peu plus tard
+        if (Date.now() - new Date(prev.at).getTime() < 90_000) return json({ ok: false, why: "encours" });
+        await admin.from("sos_push_log").delete().eq("id", prev.id); // essai précédent planté : on le refait
+      }
+    }
+
     // Anti-abus : essai sur son propre téléphone = 6 par 10 min ; alertes vers les autres = 5 par heure
     const since = new Date(Date.now() - (self ? 10 : 60) * 60 * 1000).toISOString();
     let q = admin.from("sos_push_log").select("*", { count: "exact", head: true }).eq("user_id", me).gte("at", since);
     q = self ? q.eq("kind", "self") : q.neq("kind", "self");
     const { count } = await q;
     if ((count || 0) >= (self ? 6 : 5)) return json({ ok: false, why: "trop" });
+
+    // test-67 : on réserve la ligne du journal AVANT d'envoyer (compte dans la limite, bloque les doublons)
+    let logId: number | null = null;
+    if (aid) {
+      const { data: rv, error: re } = await admin.from("sos_push_log")
+        .insert({ user_id: me, sent: 0, kind, client_id: aid, done: false }).select("id").single();
+      if (re) {
+        if ((re as { code?: string }).code === "23505") return json({ ok: false, why: "encours" });
+        aid = null;
+      } else logId = rv.id;
+    }
+    reserved = logId;
+    const writeLog = async (sent: number, recipients: number) => {
+      if (logId != null) {
+        await admin.from("sos_push_log").update({ sent, recipients, done: true, at: new Date().toISOString() }).eq("id", logId);
+        reserved = null;
+      } else await admin.from("sos_push_log").insert({ user_id: me, sent, kind });
+    };
 
     const { data: prof } = await admin.from("profiles").select("first_name,moto").eq("id", me).maybeSingle();
     const { data: ice } = await admin.from("emergency_cards").select("full_name").eq("user_id", me).maybeSingle();
@@ -134,7 +174,7 @@ Deno.serve(async (req) => {
     if (self) { ids.clear(); ids.add(me); }
     const list = [...ids].slice(0, 300);
     if (!list.length) {
-      await admin.from("sos_push_log").insert({ user_id: me, sent: 0, kind });
+      await writeLog(0, 0);
       return json({ ok: true, recipients: 0, sent: 0, guardians: nGuard });
     }
     const { data: toks } = await admin.from("push_tokens").select("user_id,token,lang").in("user_id", list);
@@ -181,9 +221,11 @@ Deno.serve(async (req) => {
       }
     }));
     if (dead.length) await admin.from("push_tokens").delete().in("user_id", dead);
-    await admin.from("sos_push_log").insert({ user_id: me, sent, kind });
+    await writeLog(sent, list.length);
     return json({ ok: true, recipients: list.length, withApp: (toks || []).length, sent, guardians: nGuard, errors: errs.slice(0, 3), dead: dead.length });
   } catch (e) {
+    if (reserved != null && adminRef) { try { await adminRef.from("sos_push_log").delete().eq("id", reserved); } catch { /* rien */ } }
+    console.error("sos-push", String((e as Error)?.message || e).slice(0, 300));
     return json({ ok: false, why: "erreur", detail: String((e as Error)?.message || e).slice(0, 200) }, 500);
   }
 });

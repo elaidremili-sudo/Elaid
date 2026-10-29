@@ -84,6 +84,23 @@ jobs:
           jarsigner -verify ../MotoRoute-$RUN.aab | tail -1
           rm -f ../mr.keystore ../aligned.apk
 
+      # 29/10 : contrôle Google Play sur l'APK fabriquée. Si la cible n'est pas Android 16 (API 36) ou si une
+      # autorisation refusée par Google Play réapparaît (par une bibliothèque par exemple), la fabrication échoue.
+      - name: Vérifier l'appli pour Google Play (API 36, autorisations)
+        run: |
+          APK=MotoRoute-test-${{ github.run_number }}.apk
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/aapt2" dump badging "$APK" > badging.txt
+          grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission)" badging.txt
+          grep -q "targetSdkVersion:'36'" badging.txt || { echo "::error::L'appli ne cible pas Android API 36 (exigé par Google Play)."; exit 1; }
+          for P in READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_PHONE_STATE; do
+            if grep -q "android.permission.$P'" badging.txt; then echo "::error::Autorisation $P présente dans l'appli (refusée par Google Play)."; exit 1; fi
+          done
+          for P in SEND_SMS CALL_PHONE; do
+            grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le SOS automatique ne marcherait plus."; exit 1; }
+          done
+          rm -f badging.txt
+
       - name: Garder les fichiers (onglet Actions)
         uses: actions/upload-artifact@v4
         with:

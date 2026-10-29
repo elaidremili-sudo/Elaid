@@ -1,5 +1,7 @@
 # MotoRoute – Point de reprise
 
+**➡️ Dernier point : 29/10 — test-67 — lire d'abord POINT-29-10.md (corrections de l'audit : API 36, SOS en file d'attente, Mes urgences ; SQL supabase/test-67.sql à exécuter par Elaid ; talkie-walkie prévu plus tard).**
+
 **➡️ Dernier point : 25/10 — test-66 — lire d'abord POINT-25-10.md (inclinaison anti-vibrations `www/js/lean.js` + banc d'essai `scripts/banc/`, musique en arrière-plan `MrMusicService`, chute moins sensible aux vibrations).**
 
 **➡️ Dernier point : 24/10, 23 h 45 — test-65 — lire d'abord POINT-24-10.md (encadré « Point de reprise » en haut : publicité AdMob bannière + plein écran ; avant : Bonnes adresses, clé Google restreinte). Avant : 23/10, 10 h 50 — lire d'abord POINT-23-10.md (relecture de sécurité : sirène SOS, codes partenaires, fonctions serveur), puis POINT-22-10.md.**
