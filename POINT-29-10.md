@@ -1,5 +1,15 @@
 # MotoRoute – Point du 29 octobre 2026 (test-67) — LIRE EN PREMIER
 
+> **Point de reprise 29/10, 14 h 30 (demandé par Elaid, suite la prochaine fois)**
+> - ✅ **test-67 publiée** (APK + AAB signés, onglet Releases) : fabrication réussie avec API 36, contrôle Google Play passé.
+> - ⚠️ **SQL `supabase/test-67.sql` PAS encore appliqué** : l'application par Claude via le connecteur Supabase a été annulée 4 fois (même après accord d'Elaid) → **Elaid doit le coller dans Supabase → SQL Editor → Run**. L'app test-67 marche quand même avec l'ancien serveur.
+> - ⏳ Après le SQL seulement : Claude déploie les fonctions `sos-push` puis `delete-account` (verify JWT).
+> - 🚧 **Talkie-walkie (test-68) en cours sur la branche `test-68-en-cours`** (pas sur main) :
+>   - ✅ Partie Android faite (scripts/patch-android.js : plugin `MrTalkie` start/stop/isRunning/state, service au premier plan `MrTalkieService` type microphone, notification Parler/Arrêter, bouton du casque = parler, 30 s max, coupure si appel) + contrôle du workflow (RECORD_AUDIO, FOREGROUND_SERVICE_MICROPHONE) + `play-store/declaration-micro-talkie.md`. Non compilé (pas de SDK ici), à valider par le build GitHub.
+>   - 🚧 Partie app + serveur en cours (www/js/talkie.js, carte talkie dans Conduite/groupes/sorties, supabase/talkie.sql, fonction `talkie` pour Cloudflare, section audio de la confidentialité). Contrat : la page expose `window.MrTalkie.pttDown/pttUp/toggle` ; sur l'événement `mr-talkie-native` type `button`, le natif appelle lui-même `toggle()` (ne pas le refaire) ; types `timeout`/`focus` → `pttUp()` ; `stop` → fermer micro/réseau ; envoyer `state({receiving})` pendant la lecture.
+>   - Reste : finir/relire l'app, test navigateur à 2 membres, build test-68, test sur téléphone (Android 14+, casque, écran éteint), compte Cloudflare + app Realtime + secrets Supabase (Elaid), SQL talkie à appliquer.
+> - Toujours à faire par Elaid : régénérer la clé du compte de service Firebase.
+
 ## Ce qui est dans test-67
 Corrections de l'audit du 26-10 (6 agents), faites par 3 agents puis relues par Claude.
 
