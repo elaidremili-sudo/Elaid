@@ -62,9 +62,12 @@
         } catch (e) {}
         P.addListener('registration', async t => {
           const uu = me(); if (!uu || !t || !t.value) return;
-          try { await sb().from('push_tokens').upsert({ user_id: uu.id, token: t.value, lang: ['fr', 'ar', 'en'].includes(L()) ? L() : 'fr', updated_at: new Date().toISOString() }); } catch (e) {}
+          try {
+            const r = await sb().from('push_tokens').upsert({ user_id: uu.id, token: t.value, lang: ['fr', 'ar', 'en'].includes(L()) ? L() : 'fr', updated_at: new Date().toISOString() });
+            if (r && r.error) { regAt = 0; report('jeton-fcm-enregistrement-serveur', r.error); }
+          } catch (e) { regAt = 0; report('jeton-fcm-enregistrement-serveur', e); }
         });
-        P.addListener('registrationError', e => { try { window.Sentry && Sentry.captureMessage('Notifications : enregistrement refusé'); } catch (x) {} });
+        P.addListener('registrationError', e => { regAt = 0; report('jeton-fcm-refuse-par-firebase', null, { error: String((e && e.error) || e || '').slice(0, 120) }); });
         P.addListener('pushNotificationReceived', n => handle(n && n.data));
         P.addListener('pushNotificationActionPerformed', a => handle(a && a.notification && a.notification.data, true));
       }
@@ -77,22 +80,74 @@
       try { const q = await c.from('push_tokens').select('token').eq('user_id', u.id).maybeSingle(); mine = q.data; } catch (e) {}
       if (!mine && P.unregister) { try { await P.unregister(); } catch (e) {} }
       await P.register();
-    } catch (e) {}
+    } catch (e) { report('jeton-fcm-setup', e instanceof Error ? e : null, { msg: String((e && e.message) || e).slice(0, 120) }); }
   }
   setTimeout(setup, 3500); setInterval(setup, 20000);
 
   /* ---------- Envoi depuis le téléphone qui a chuté ---------- */
+  /* test-67 : chaque échec est signalé à Sentry (s'il est chargé), sans jamais bloquer le SOS */
+  function report(what, err, extra) {
+    try {
+      if (window.mrSosReport) return window.mrSosReport(what, err, extra);
+      const SN = window.Sentry; if (!SN) return;
+      const ctx = { tags: { mr: 'push', mr_step: what }, extra: extra || {} };
+      if (err instanceof Error) SN.captureException(err, ctx); else SN.captureMessage('Push : ' + what, ctx);
+    } catch (e) {}
+  }
+  // Un seul appel à sos-push. Rend { done, res } pour la file d'attente de sos.js.
+  // L'identité de l'expéditeur vient uniquement du jeton de connexion (le serveur ignore tout identifiant du corps).
+  async function callPush(o) {
+    const c = sb(), u = me();
+    if (!c || !u) return { done: false, why: 'nouser' };
+    const body = { lat: o.lat, lng: o.lng, test: o.test === true, self: o.self === true, aid: o.aid || undefined, msg: o.msg, say: o.say };
+    const r = await c.functions.invoke('sos-push', { body });
+    if (!r.error) {
+      const d = r.data || { ok: false, why: 'erreur' };
+      if (d.ok) {
+        if (!d.sent && d.recipients) report('sirene-aucun-telephone-atteint', null, { recipients: d.recipients, errors: (d.errors || []).slice(0, 2) });
+        return { done: true, res: d };
+      }
+      if (d.why === 'trop' || d.why === 'nofcm') { report('sirene-' + d.why, null); return { done: true, res: d }; }
+      return { done: false, why: d.why || 'erreur', err: new Error('sos-push: ' + (d.why || 'erreur')) };
+    }
+    // Erreur HTTP : on lit la réponse du serveur (401 = session expirée → on réessaie après rafraîchissement)
+    let d = null, st = 0;
+    try { const ctx = r.error.context; st = ctx && ctx.status || 0; d = ctx && ctx.json ? await ctx.json() : null; } catch (e) {}
+    if (d && (d.why === 'trop' || d.why === 'nofcm')) { report('sirene-' + d.why, null); return { done: true, res: d }; }
+    if (st === 401) { try { await c.auth.refreshSession(); } catch (e) {} }
+    return { done: false, why: st ? 'http' + st : 'net', err: r.error };
+  }
   window.mrPushSos = async function (o) {
+    o = o || {};
     const c = sb(), u = me();
     if (!c || !u) return { ok: false, why: 'nouser' };
+    // Vraie alerte : passe par la file persistante de sos.js (renvoi automatique quand le réseau revient, sans doublon)
+    if (!o.test && !o.self && window.MrSosQueue) {
+      try {
+        const x = await window.MrSosQueue.add('push', o);
+        if (x.state === 'pending') return { ok: false, why: 'queued', id: x.id };
+        return Object.assign({ id: x.id }, x.res || { ok: false, why: x.why || 'net' });
+      } catch (e) { report('sirene-file', e); }
+    }
+    // Tests (sirène de test, réception sur ce téléphone) : 3 essais immédiats, pas de file (un test qui sonnerait 1 h plus tard serait trompeur)
     for (let k = 0; k < 3; k++) {
       try {
-        const r = await c.functions.invoke('sos-push', { body: o });
-        if (r.error) throw r.error;
-        return r.data || { ok: false, why: 'erreur' };
-      } catch (e) { if (k === 2) return { ok: false, why: 'net' }; await new Promise(r => setTimeout(r, 3000)); }
+        const out = await callPush(o);
+        if (out.done) return out.res;
+        if (k === 2) { report('sirene-test-echec', out.err, { why: out.why }); return { ok: false, why: 'net' }; }
+      } catch (e) { if (k === 2) { report('sirene-test-echec', e); return { ok: false, why: 'net' }; } }
+      await new Promise(r => setTimeout(r, 3000));
     }
+    return { ok: false, why: 'net' };
   };
+  if (window.MrSosQueue) window.MrSosQueue.register('push', callPush);
+  else report('file-sos-absente', null); // sos.js doit être chargé avant push.js
+  // Quand la sirène en attente finit par partir, on l'affiche dans le cadre du SOS s'il est encore ouvert
+  if (window.MrSosQueue) window.MrSosQueue.on((x, res) => {
+    if (x.ch !== 'push' || x.state === 'pending' || x.tries < 2) return;
+    const el = document.getElementById('sos_auto');
+    if (el) el.insertAdjacentHTML('beforeend', '<div>' + (x.state === 'cancelled' ? W('Sirène annulée.', 'أُلغيت الصفارة.', 'Siren cancelled.') : window.mrPushStatus(res || { ok: false, why: x.why })) + '</div>');
+  });
   window.mrPushStatus = function (r) {
     if (r && r.ok) {
       if (!r.recipients) return '<span style="color:#ff6b6b">' + W('🔕 <b>Personne n’a reçu la sirène</b> : aucun ange gardien relié et aucun membre dans tes groupes. Sur le téléphone de ton proche : Route → Détection de chute → « Veiller sur un motard » → entre ton code.', '🔕 <b>لم يتلقَّ أحد الصفارة</b>: لا يوجد ملاك حارس مرتبط ولا أعضاء في مجموعاتك. في هاتف قريبك: الطريق ← كشف السقوط ← «حراسة دراج» ← أدخل رمزك.', '🔕 <b>Nobody got the siren</b>: no guardian angel linked and nobody in your groups. On your close one’s phone: Route → Crash detection → “Watch over a rider” → enter your code.') + '</span>';
@@ -103,8 +158,10 @@
     }
     const w = r && r.why;
     if (w === 'nofcm') return '⚠️ ' + W('Alertes sonores pas encore activées sur le serveur.', 'التنبيهات الصوتية غير مفعلة بعد.', 'Siren alerts not enabled on the server yet.');
-    if (w === 'trop') return '⚠️ ' + W('Trop d’alertes en 10 min : alerte sonore non renvoyée.', 'تنبيهات كثيرة: لم يُرسل.', 'Too many alerts in 10 min.');
+    if (w === 'trop') return '⚠️ ' + W('Trop d’alertes en 1 heure (5 au maximum) : alerte sonore non renvoyée.', 'تنبيهات كثيرة خلال ساعة: لم يُرسل.', 'Too many alerts in 1 hour (5 max).');
     if (w === 'nouser') return '⚠️ ' + W('Pas connecté : pas d’alerte sonore.', 'غير متصل: لا تنبيه صوتي.', 'Not signed in: no siren alert.');
+    if (w === 'queued') return '⏳ ' + W('Pas d’internet : sirène en attente, elle partira toute seule dès que le réseau revient (pendant 2 h).', 'لا إنترنت: الصفارة في الانتظار وستُرسل فور عودة الشبكة (خلال ساعتين).', 'No internet: siren waiting, it will go out as soon as the network is back (for 2 h).');
+    if (w === 'expire') return '❌ ' + W('Pas d’internet pendant 2 h : sirène abandonnée.', 'لا إنترنت لمدة ساعتين: أُلغيت الصفارة.', 'No internet for 2 h: siren dropped.');
     return '❌ ' + W('Pas d’internet : alerte sonore non envoyée.', 'لا إنترنت: لم يُرسل التنبيه الصوتي.', 'No internet: siren alert not sent.');
   };
 

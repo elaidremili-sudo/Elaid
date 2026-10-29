@@ -12,8 +12,8 @@ const permissions = [
   'android.permission.MODIFY_AUDIO_SETTINGS',
   'android.permission.VIBRATE',
   'android.permission.POST_NOTIFICATIONS',
-  'android.permission.READ_MEDIA_IMAGES',
-  'android.permission.READ_MEDIA_VIDEO',
+  // 29/10 : READ_MEDIA_IMAGES / READ_MEDIA_VIDEO retirées (refusées par Google Play pour ce cas) :
+  // les photos passent par le sélecteur système (plugin Camera / champ « fichier » de la page), sans autorisation.
 ];
 const features = [
   'android.hardware.location.gps',
@@ -118,7 +118,7 @@ import java.util.List;
     name = "MrSms",
     permissions = {
         @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
-        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE })
+        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
     }
 )
 public class MrSmsPlugin extends Plugin {
@@ -134,32 +134,32 @@ public class MrSmsPlugin extends Plugin {
         }
     }
 
-    // Carte SIM à utiliser : celle des SMS par défaut, sinon la première SIM active
+    // Carte SIM à utiliser : celle choisie pour les SMS dans les réglages du téléphone.
+    // 29/10 : plus besoin de READ_PHONE_STATE (refusée par Google Play pour cet usage). Sans SIM SMS par défaut
+    // (« toujours demander »), on renvoie INVALID et Android utilise sa SIM SMS par défaut (SmsManager standard).
     private int pickSub() {
-        int sub = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
-        try { sub = SubscriptionManager.getDefaultSmsSubscriptionId(); } catch (Exception e) {}
-        if (sub != SubscriptionManager.INVALID_SUBSCRIPTION_ID) return sub;
-        try {
-            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                SubscriptionManager sm = (SubscriptionManager) getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
-                List<SubscriptionInfo> l = sm == null ? null : sm.getActiveSubscriptionInfoList();
-                if (l != null && !l.isEmpty()) return l.get(0).getSubscriptionId();
-            }
-        } catch (Exception e) {}
+        try { return SubscriptionManager.getDefaultSmsSubscriptionId(); } catch (Throwable e) {}
         return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     }
 
-    // test-41 : nom de la SIM utilisée (opérateur + emplacement) pour l'afficher au motard
+    // test-41 / 29/10 : nom de la SIM utilisée (emplacement + opérateur) pour l'afficher au motard,
+    // lu uniquement avec des fonctions Android qui ne demandent aucune autorisation. Sinon "" (jamais d'erreur).
     private String simLabel(int sub) {
         try {
             if (sub == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return "";
-            if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_PHONE_STATE) != android.content.pm.PackageManager.PERMISSION_GRANTED) return "";
-            SubscriptionManager sm = (SubscriptionManager) getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
-            SubscriptionInfo i = sm == null ? null : sm.getActiveSubscriptionInfo(sub);
-            if (i == null) return "";
-            CharSequence c = i.getCarrierName();
-            return "SIM " + (i.getSimSlotIndex() + 1) + (c != null && c.length() > 0 ? " (" + c + ")" : "");
-        } catch (Exception e) { return ""; }
+            int slot = -1;
+            if (Build.VERSION.SDK_INT >= 29) { try { slot = SubscriptionManager.getSlotIndex(sub); } catch (Throwable e) {} }
+            String op = "";
+            if (Build.VERSION.SDK_INT >= 24) {
+                try {
+                    android.telephony.TelephonyManager tm = (android.telephony.TelephonyManager) getContext().getSystemService(Context.TELEPHONY_SERVICE);
+                    if (tm != null) { String s = tm.createForSubscriptionId(sub).getSimOperatorName(); if (s != null) op = s.trim(); }
+                } catch (Throwable e) {}
+            }
+            if (slot < 0 && op.isEmpty()) return "";
+            if (slot < 0) return op;
+            return "SIM " + (slot + 1) + (op.isEmpty() ? "" : " (" + op + ")");
+        } catch (Throwable e) { return ""; }
     }
 
     private SmsManager managerFor(int sub) {
@@ -395,7 +395,7 @@ public class MainActivity extends BridgeActivity {
 }
 `);
 let man2 = fs.readFileSync(path, 'utf8');
-for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE', 'android.permission.READ_PHONE_STATE']) {
+for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE']) {
   if (!man2.includes(`"${p}"`)) man2 = man2.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
 if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
@@ -1125,4 +1125,62 @@ public class MrMusicService extends Service {
     fs.writeFileSync(gradlePath, gr);
   }
   console.log('Musique : service MrMusicService (lecture écran éteint, notification, boutons du casque)');
+}
+
+// ---------------------------------------------------------------------------------------------
+// 29/10 : Google Play exige targetSdk 36 (Android 16). Capacitor 7 génère 35 : on monte compileSdk et
+// targetSdk à 36, et l'outil de fabrication Android (AGP) au moins à 8.10.1 (API 36 demande AGP ≥ 8.9.1,
+// AGP 8.10 accepte jusqu'à l'API 36 et fonctionne avec Gradle 8.11.1, celui de Capacitor 7).
+// Chaque remplacement est vérifié : si Capacitor change ses fichiers, la fabrication s'arrête au lieu de
+// produire une appli refusée par Google Play.
+// ---------------------------------------------------------------------------------------------
+{
+  const SDK = 36;
+  const vg = 'android/variables.gradle';
+  let v = fs.readFileSync(vg, 'utf8');
+  v = v.replace(/compileSdkVersion\s*=\s*\d+/, `compileSdkVersion = ${SDK}`)
+       .replace(/targetSdkVersion\s*=\s*\d+/, `targetSdkVersion = ${SDK}`);
+  if (!new RegExp(`compileSdkVersion = ${SDK}\\b`).test(v) || !new RegExp(`targetSdkVersion = ${SDK}\\b`).test(v))
+    throw new Error('patch-android : compileSdkVersion/targetSdkVersion introuvables dans variables.gradle');
+  fs.writeFileSync(vg, v);
+
+  const ver = s => s.split('.').map(n => parseInt(n, 10) || 0);
+  const lower = (a, b) => { const x = ver(a), y = ver(b); for (let k = 0; k < 3; k++) { if ((x[k] || 0) !== (y[k] || 0)) return (x[k] || 0) < (y[k] || 0); } return false; };
+
+  const rg = 'android/build.gradle';
+  let r = fs.readFileSync(rg, 'utf8');
+  const agp = r.match(/com\.android\.tools\.build:gradle:([\d.]+)/);
+  if (!agp) throw new Error('patch-android : version AGP introuvable dans android/build.gradle');
+  const AGP_MIN = '8.10.1';
+  if (lower(agp[1], AGP_MIN)) {
+    r = r.replace(agp[0], `com.android.tools.build:gradle:${AGP_MIN}`);
+    fs.writeFileSync(rg, r);
+  }
+
+  const wp = 'android/gradle/wrapper/gradle-wrapper.properties';
+  let w = fs.readFileSync(wp, 'utf8');
+  const gv = w.match(/gradle-([\d.]+)-(all|bin)\.zip/);
+  if (!gv) throw new Error('patch-android : version Gradle introuvable dans gradle-wrapper.properties');
+  if (lower(gv[1], '8.11.1')) { w = w.replace(gv[0], `gradle-8.11.1-${gv[2]}.zip`); fs.writeFileSync(wp, w); }
+
+  console.log(`Android : compileSdk ${SDK}, targetSdk ${SDK}, AGP ${lower(agp[1], AGP_MIN) ? AGP_MIN : agp[1]}, Gradle ${lower(gv[1], '8.11.1') ? '8.11.1' : gv[1]}`);
+}
+
+// 29/10 : autorisations refusées par Google Play pour MotoRoute. On les retire du manifeste, et on demande
+// à Android de les supprimer même si une bibliothèque les ajoutait (tools:node="remove").
+{
+  const banned = ['android.permission.READ_MEDIA_IMAGES', 'android.permission.READ_MEDIA_VIDEO', 'android.permission.READ_PHONE_STATE'];
+  let m = fs.readFileSync(path, 'utf8');
+  if (!m.includes('xmlns:tools=')) m = m.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ');
+  for (const p of banned) {
+    m = m.replace(new RegExp(`[ \\t]*<uses-permission[^>]*android:name="${p.replace(/\./g, '\\.')}"[^>]*/>\\r?\\n?`, 'g'), '');
+    m = m.replace('</manifest>', `    <uses-permission android:name="${p}" tools:node="remove" />\n</manifest>`);
+  }
+  // contrôle : chaque autorisation interdite n'apparaît plus qu'une fois, avec tools:node="remove"
+  for (const p of banned) {
+    const hits = m.match(new RegExp(`<uses-permission[^>]*"${p.replace(/\./g, '\\.')}"[^>]*>`, 'g')) || [];
+    if (hits.length !== 1 || !hits[0].includes('tools:node="remove"')) throw new Error('patch-android : ' + p + ' encore demandée');
+  }
+  fs.writeFileSync(path, m);
+  console.log('Autorisations retirées (Google Play) : ' + banned.map(p => p.split('.').pop()).join(', '));
 }

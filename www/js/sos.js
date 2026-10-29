@@ -52,6 +52,11 @@
     if (why === 'nouser') return '⚠️ ' + W('Pas connecté : alerte non envoyée aux groupes. Appelle ou envoie WhatsApp.', 'غير متصل: لم يُرسل التنبيه. اتصل أو أرسل عبر واتساب.', 'Not signed in: groups not alerted. Call or use WhatsApp.');
     if (why === 'nogroup') return '⚠️ ' + W('Tu n’es membre d’aucun groupe : personne à alerter. Appelle ou envoie WhatsApp.', 'لست عضوًا في أي مجموعة. اتصل أو أرسل عبر واتساب.', 'You are not in any group. Call or use WhatsApp.');
     if (why === 'noserver') return '⚠️ ' + W('Alertes pas encore activées sur le serveur (script sos-alertes.sql). Appelle ou envoie WhatsApp.', 'التنبيهات غير مفعلة على الخادم بعد. اتصل أو أرسل عبر واتساب.', 'Alerts not enabled on the server yet. Call or use WhatsApp.');
+    // test-67 : alerte gardée dans le téléphone et renvoyée toute seule quand internet revient
+    if (why === 'queued') return '⏳ <b>' + W('Pas de réseau : alerte aux groupes en attente.', 'لا توجد شبكة: تنبيه المجموعات في الانتظار.', 'No network: group alert waiting.') + '</b> ' + W('Elle partira toute seule dès que internet revient (pendant 2 h). Le SMS, lui, part sans internet. Appelle aussi.', 'سيُرسل تلقائيًا فور عودة الإنترنت (خلال ساعتين). الرسالة القصيرة تُرسل دون إنترنت. اتصل أيضًا.', 'It will go out by itself as soon as internet is back (for 2 h). The SMS goes without internet. Call too.');
+    if (why === 'trop') return '⚠️ ' + W('Trop d’alertes en 1 heure (5 au maximum) : alerte aux groupes non renvoyée. Appelle ou envoie WhatsApp.', 'تنبيهات كثيرة خلال ساعة (5 كحد أقصى). اتصل أو أرسل عبر واتساب.', 'Too many alerts in 1 hour (5 max). Call or use WhatsApp.');
+    if (why === 'refus') return '⚠️ ' + W('Le serveur a refusé l’alerte (tu n’es plus membre actif de ce groupe ?). Appelle ou envoie WhatsApp.', 'رفض الخادم التنبيه. اتصل أو أرسل عبر واتساب.', 'The server refused the alert. Call or use WhatsApp.');
+    if (why === 'expire') return '❌ ' + W('Pas de réseau pendant 2 h : alerte aux groupes abandonnée.', 'لا شبكة لمدة ساعتين: أُلغي تنبيه المجموعات.', 'No network for 2 h: group alert dropped.');
     return '❌ ' + W('Pas de réseau : alerte non envoyée. Appelle ou envoie WhatsApp.', 'لا توجد شبكة: لم يُرسل التنبيه. اتصل أو أرسل عبر واتساب.', 'No network: alert not sent. Call or use WhatsApp.');
   };
 
@@ -64,29 +69,170 @@
     const m = (u && u.user_metadata) || {};
     return String(m.first_name || (typeof S !== 'undefined' && S.me && S.me.name) || 'Motard').split(' ')[0].slice(0, 40);
   }
+
+  /* ---------- test-67 : signalement à Sentry (jamais bloquant, sans position ni texte du message) ---------- */
+  function report(what, err, extra) {
+    try {
+      const SN = window.Sentry; if (!SN) return;
+      const ctx = { tags: { mr: 'sos', mr_step: what }, extra: extra || {} };
+      if (err instanceof Error) SN.captureException(err, ctx);
+      else SN.captureMessage('SOS : ' + what + (err ? ' (' + String((err && (err.code || err.message)) || err).slice(0, 120) + ')' : ''), ctx);
+    } catch (e) {}
+  }
+  window.mrSosReport = report;
+
+  /* ---------- test-67 : file d'attente SOS persistante ----------
+     Sans réseau, l'alerte aux groupes (canal « grp ») et la sirène (canal « push », fonction sos-push)
+     ne sont plus abandonnées : elles sont gardées dans le téléphone (localStorage, survit à la fermeture)
+     et renvoyées dès que le réseau revient (événement « online », retour dans l'app, et nouvel essai
+     après 5 s, 15 s, 30 s puis toutes les 60 s, pendant 2 h au maximum).
+     Chaque alerte a un identifiant unique (aid) envoyé au serveur : un renvoi ne crée jamais de doublon.
+     Le SMS local n'est pas concerné : il part tout de suite, sans internet.
+     API pour l'écran : window.MrSosQueue.pending(), .all(), .cancel(), .flush(), .on(fn). */
+  const QK = 'mr_sos_queue', DELAYS = [5000, 15000, 30000, 60000], MAX_AGE = 2 * 3600e3;
+  const senders = {}, subs = [];
+  let qbusy = false, qtimer = null, qmem = null;
+  const uuid = () => {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+  };
+  function qload() {
+    try { const a = JSON.parse(localStorage.getItem(QK) || '[]'); if (Array.isArray(a)) return (qmem = a); } catch (e) {}
+    return qmem || (qmem = []);
+  }
+  function qsave(a) {
+    // on garde les alertes terminées 24 h (pour afficher leur état), au plus 30 lignes
+    const now = Date.now();
+    qmem = a.filter(x => x.state === 'pending' || now - (x.end || x.at) < 24 * 3600e3).slice(-30);
+    try { localStorage.setItem(QK, JSON.stringify(qmem)); } catch (e) { report('file-sauvegarde', e); }
+  }
+  const pub = x => ({ id: x.id, ch: x.ch, kind: x.p && x.p.kind, test: !!(x.p && x.p.test), at: x.at, tries: x.tries, next: x.next, state: x.state, why: x.why || null });
+  function emit(x) { const v = pub(x); subs.slice().forEach(f => { try { f(v, x.res); } catch (e) {} }); }
+  function plan() {
+    clearTimeout(qtimer); qtimer = null;
+    const p = qload().filter(x => x.state === 'pending');
+    if (!p.length) return;
+    const wait = Math.max(0, Math.min(...p.map(x => x.next || 0)) - Date.now());
+    qtimer = setTimeout(flush, Math.min(wait, 60000) + 50);
+  }
+  function finish(a, x, state, res, why) {
+    x.state = state; x.res = res || null; x.why = why || null; x.end = Date.now();
+    qsave(a); emit(x);
+  }
+  // Un seul essai pour une alerte. Le « sender » rend { done:true, res } (fini, réussi ou refus définitif)
+  // ou { done:false, why } (à réessayer) ; une exception = à réessayer.
+  async function attempt(x, force) {
+    let a = qload(), cur = a.find(y => y.id === x.id);
+    if (!cur || cur.state !== 'pending') return cur;
+    if (Date.now() - cur.at > MAX_AGE) { finish(a, cur, 'expired', null, 'expire'); report('abandon-apres-2h', null, { ch: cur.ch, tries: cur.tries }); return cur; }
+    if (!force && (cur.next || 0) > Date.now()) return cur;
+    const fn = senders[cur.ch];
+    if (!fn) return cur; // le module qui envoie ce canal n'est pas encore chargé
+    let out;
+    try { out = await fn(cur.p, cur); } catch (e) { out = { done: false, why: 'net', err: e }; }
+    a = qload(); cur = a.find(y => y.id === x.id);
+    if (!cur || cur.state !== 'pending') return cur; // annulée pendant l'envoi
+    cur.tries = (cur.tries || 0) + 1;
+    if (out && out.done) { finish(a, cur, out.res && out.res.ok ? 'sent' : 'failed', out.res, out.res && out.res.why); return cur; }
+    cur.why = (out && out.why) || 'net';
+    cur.next = Date.now() + DELAYS[Math.min(cur.tries - 1, DELAYS.length - 1)];
+    if (cur.tries === 1) report('echec-' + cur.ch + '-mis-en-file', out && out.err, { ch: cur.ch, why: cur.why });
+    qsave(a); emit(cur);
+    return cur;
+  }
+  async function flush(force) {
+    if (qbusy) return; qbusy = true;
+    try {
+      for (const x of qload().filter(y => y.state === 'pending')) { await attempt(x, force === true); }
+    } catch (e) { report('file-flush', e); }
+    finally { qbusy = false; plan(); }
+  }
+  window.MrSosQueue = {
+    // ajoute une alerte et fait tout de suite un premier essai ; rend l'état après cet essai
+    async add(ch, payload) {
+      const x = { id: (payload && payload.aid) || uuid(), ch, p: payload || {}, at: Date.now(), tries: 0, next: 0, state: 'pending' };
+      x.p.aid = x.id;
+      const a = qload(); a.push(x); qsave(a); emit(x);
+      while (qbusy) await new Promise(r => setTimeout(r, 30));
+      qbusy = true;
+      let cur;
+      try { cur = await attempt(x, true); } finally { qbusy = false; plan(); }
+      return cur || x;
+    },
+    register(ch, fn) { senders[ch] = fn; setTimeout(flush, 0); },
+    pending: () => qload().filter(x => x.state === 'pending').map(pub),
+    all: () => qload().map(pub),
+    // fausse alerte : on vide la file (rien ne partira plus) ; rend le nombre d'alertes retirées
+    cancel() {
+      const a = qload(); let n = 0;
+      a.forEach(x => { if (x.state === 'pending') { x.state = 'cancelled'; x.end = Date.now(); n++; emit(x); } });
+      qsave(a); plan(); return n;
+    },
+    flush: () => flush(true),
+    on(fn) { subs.push(fn); return () => { const i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); }; },
+  };
+  try { window.addEventListener('online', () => flush(true)); } catch (e) {}
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) flush(true); });
+  try { const A = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App; if (A && A.addListener) A.addListener('resume', () => flush(true)); } catch (e) {}
+  setInterval(() => { if (qload().some(x => x.state === 'pending')) flush(); }, 60000);
+  setTimeout(flush, 1500); // alertes restées en attente quand l'app a été fermée
+
+  /* Envoi réel aux groupes (un essai). Identifiant d'alerte « client_id » : le serveur ignore un renvoi déjà reçu. */
+  let noCid = false; // serveur sans la colonne client_id (test-67.sql pas encore passé)
+  async function sendGroups(p, x) {
+    const c = window.mrSb, u = window.mrUser && window.mrUser();
+    if (!c || !u) return { done: false, why: 'nouser' }; // déconnecté : on attend (2 h max)
+    const gs = await activeGroups(c, u);
+    if (!gs.length) return { done: true, res: { ok: false, why: 'nogroup' } };
+    // heure réelle de l'alerte (pas celle du renvoi) : les membres voient « il y a 40 min » et non « à l'instant »
+    const at = new Date(x && x.at || Date.now()).toISOString();
+    const mk = cid => gs.map(g => Object.assign({ group_id: g, first_name: firstName(u), msg: String(p.msg || '').slice(0, 500), lat: p.lat, lng: p.lng, kind: p.kind === 'sos' ? 'sos' : 'chute', created_at: at }, cid ? { client_id: p.aid } : {}));
+    let r = await c.from('sos_alerts').insert(mk(!noCid));
+    if (r.error && /client_id/i.test(r.error.message || '')) { noCid = true; r = await c.from('sos_alerts').insert(mk(false)); }
+    if (!r.error) return { done: true, res: { ok: true, n: gs.length } };
+    const m = String(r.error.message || ''), code = String(r.error.code || '');
+    if (code === '23505') return { done: true, res: { ok: true, n: gs.length, dup: true } }; // déjà reçue par le serveur
+    if (/mr-sos-trop/.test(m)) { report('groupes-limite-5-par-heure', r.error); return { done: true, res: { ok: false, why: 'trop' } }; }
+    if (/relation|schema cache/i.test(m) && /sos_alerts/i.test(m)) { report('groupes-table-absente', r.error); return { done: true, res: { ok: false, why: 'noserver' } }; }
+    if (code === '42501' || /row-level security/i.test(m)) { report('groupes-refus-serveur', r.error); return { done: true, res: { ok: false, why: 'refus' } }; }
+    return { done: false, why: 'net', err: r.error };
+  }
+  window.MrSosQueue.register('grp', sendGroups);
+
   window.mrSosSend = async function (msg, ll, kind) {
     const c = window.mrSb, u = window.mrUser && window.mrUser();
     if (!c || !u) return { ok: false, why: 'nouser' };
     let lat = null, lng = null;
     if (ll) { const p = String(ll).split(','); lat = parseFloat(p[0]); lng = parseFloat(p[1]); if (isNaN(lat) || isNaN(lng)) lat = lng = null; }
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const gs = await activeGroups(c, u);
-        if (!gs.length) return { ok: false, why: 'nogroup' };
-        const rows = gs.map(g => ({ group_id: g, first_name: firstName(u), msg: String(msg || '').slice(0, 500), lat, lng, kind: kind === 'sos' ? 'sos' : 'chute' }));
-        const r = await c.from('sos_alerts').insert(rows);
-        if (r.error) {
-          if (/sos_alerts|relation|schema cache/i.test(r.error.message || '')) return { ok: false, why: 'noserver' };
-          throw r.error;
-        }
-        return { ok: true, n: gs.length };
-      } catch (e) {
-        if (attempt === 2) return { ok: false, why: 'net' };
-        await new Promise(r => setTimeout(r, 4000));
-      }
-    }
-    return { ok: false, why: 'net' };
+    try {
+      const x = await window.MrSosQueue.add('grp', { msg: String(msg || '').slice(0, 500), lat, lng, kind: kind === 'sos' ? 'sos' : 'chute' });
+      if (x.state === 'pending') return { ok: false, why: 'queued', id: x.id };
+      return Object.assign({ id: x.id }, x.res || { ok: false, why: x.why || 'net' });
+    } catch (e) { report('groupes-envoi', e); return { ok: false, why: 'net' }; }
   };
+
+  /* test-67 : fausse alerte. Vide la file (rien ne partira plus) et retire des groupes les alertes déjà
+     envoyées depuis 2 h (ceux qui ne les ont pas encore vues ne les verront plus). Une sirène déjà
+     partie ne peut pas être rappelée. Rend { cancelled, removed }. */
+  window.mrSosCancel = async function () {
+    let cancelled = 0, removed = 0;
+    try { cancelled = window.MrSosQueue.cancel(); } catch (e) { report('annulation-file', e); }
+    const c = window.mrSb, u = window.mrUser && window.mrUser();
+    if (c && u) {
+      try {
+        const r = await c.from('sos_alerts').delete().eq('user_id', u.id).gte('created_at', new Date(Date.now() - 2 * 3600e3).toISOString());
+        if (r && r.error) report('annulation-serveur', r.error); else removed = 1;
+      } catch (e) { report('annulation-serveur', e); }
+    }
+    return { cancelled, removed };
+  };
+
+  // Quand une alerte en file finit par partir, on met à jour la ligne d'état si elle est encore à l'écran
+  window.MrSosQueue.on((x, res) => {
+    if (x.ch !== 'grp' || x.state === 'pending' || x.tries < 2) return;
+    const el = document.getElementById('sos_st') || document.getElementById('sos_gst');
+    if (el) el.innerHTML = x.state === 'cancelled' ? W('Alerte aux groupes annulée.', 'أُلغي تنبيه المجموعات.', 'Group alert cancelled.') : window.mrSosStatus(res || { ok: false, why: x.why });
+  });
 
   // Bouton « Alerter mes groupes » sous le SOS manuel (onglet Route)
   document.addEventListener('click', async e => {
