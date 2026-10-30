@@ -1,4 +1,10 @@
-# MotoRoute – Point du 29 octobre 2026 (test-67) — LIRE EN PREMIER
+# MotoRoute – Point du 29-30 octobre 2026 (test-67) — LIRE EN PREMIER
+
+> **Point de reprise 30/10, 10 h 40 (demandé par Elaid)**
+> - ✅ `supabase/test-67.sql` collé par Elaid dans le SQL Editor (succès) et vérifié par Claude : groups.city, sos_alerts.client_id, sos_push_log.client_id/recipients/done, déclencheur sos_alert_guard, table mr_storage_purge, delete_my_account avec purge des photos.
+> - ✅ Fonctions serveur en ligne (verify JWT) : `sos-push` v9 (anti-doublon de sirène) et `delete-account` v1 (efface aussi les photos) ; code en ligne relu = code du dépôt. Pas encore appelées pour de vrai.
+> - ⏭️ Prochain : Elaid teste test-67 sur ses 2 téléphones (SOS rouge, Mes urgences, SOS réseau coupé puis rétabli, sortie « Sportif », groupe avec ville, Supprimer mon compte sur un compte de test) ; en cas d'erreur : « regarde Sentry ».
+> - ⏭️ Ensuite : relecture du talkie-walkie (branche test-68-en-cours) → test-68 ; Elaid : compte Cloudflare + app Realtime ; clé Firebase à régénérer.
 
 > **Point de reprise 29/10, 14 h 30 (demandé par Elaid, suite la prochaine fois)**
 > - ✅ **test-67 publiée** (APK + AAB signés, onglet Releases) : fabrication réussie avec API 36, contrôle Google Play passé.
