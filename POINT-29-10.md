@@ -1,6 +1,8 @@
 # MotoRoute – Point du 29-30 octobre 2026 (test-67) — LIRE EN PREMIER
 
-> **31/10, 11 h 20 : test-69 publiée** : vraie icône talkie-walkie (au trait, antenne + bouton de côté) à la place de la radio 📻, dans le titre et le gros bouton ; boutons « Activer le son / Réécouter / Quitter » qui s'affichaient à tort désormais cachés. APK vérifiée.
+> **31/10, 12 h 10 : `supabase/talkie.sql` appliqué par Elaid et vérifié par Claude** (2 tables, 4 fonctions, déclencheur, bucket privé talkie-audio, 7 règles, temps réel, aucun droit anon) → le talkie marche en **messages vocaux**. La fonction serveur `talkie` n'est PAS en ligne (mise en ligne refusée depuis le mobile) : inutile tant que Cloudflare n'est pas configuré (l'app retombe en silence sur les messages vocaux, et les messages deviennent illisibles après 24 h par les règles). À faire depuis un PC, avec la création du compte Cloudflare. Astuce collage SQL sur téléphone : page https://elaidremili-sudo.github.io/Elaid/sql/talkie.html (bouton Copier).
+>
+> **31/10, 11 h 20 : test-69 publiée**> **31/10, 11 h 20 : test-69 publiée** : vraie icône talkie-walkie (au trait, antenne + bouton de côté) à la place de la radio 📻, dans le titre et le gros bouton ; boutons « Activer le son / Réécouter / Quitter » qui s'affichaient à tort désormais cachés. APK vérifiée.
 >
 > **Point de reprise 31/10, 11 h (talkie-walkie → test-68)**
 > - ✅ **test-68 publiée** (APK + AAB signés, onglet Releases) : talkie-walkie de groupe fusionné sur main ; APK vérifiée (talkie.js présent et identique, service MrTalkieService, micro déclaré).
