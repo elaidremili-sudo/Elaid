@@ -1,5 +1,7 @@
 # MotoRoute – Point de reprise
 
+> **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
+
 **➡️ Dernier point : 29/10 — test-67 — lire d'abord POINT-29-10.md (corrections de l'audit : API 36, SOS en file d'attente, Mes urgences ; SQL supabase/test-67.sql à exécuter par Elaid ; talkie-walkie prévu plus tard).**
 
 **➡️ Dernier point : 25/10 — test-66 — lire d'abord POINT-25-10.md (inclinaison anti-vibrations `www/js/lean.js` + banc d'essai `scripts/banc/`, musique en arrière-plan `MrMusicService`, chute moins sensible aux vibrations).**
