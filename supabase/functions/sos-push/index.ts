@@ -164,8 +164,16 @@ Deno.serve(async (req) => {
     const { data: gs } = await admin.from("guardians").select("guardian_id").eq("rider_id", me);
     for (const g of gs || []) ids.add(g.guardian_id);
     const nGuard = ids.size;
-    const { data: mine } = await admin.from("group_members").select("group_id,status").eq("user_id", me);
-    const groups = (mine || []).filter((m) => (m.status || "active") === "active").map((m) => m.group_id);
+    // test-71 (B3) : groupes que ce membre a le droit de faire sonner (anti-spam des groupes publics, securite-31-10.sql).
+    // Si la fonction n'existe pas encore sur la base, on garde l'ancien calcul.
+    let groups: string[] = [];
+    const sg = await admin.rpc("mr_sos_siren_groups", { p_user: me });
+    if (!sg.error && Array.isArray(sg.data)) {
+      groups = sg.data.map((x: unknown) => (typeof x === "string" ? x : (x as Record<string, string>)?.mr_sos_siren_groups)).filter(Boolean);
+    } else {
+      const { data: mine } = await admin.from("group_members").select("group_id,status").eq("user_id", me);
+      groups = (mine || []).filter((m) => (m.status || "active") === "active").map((m) => m.group_id);
+    }
     if (groups.length) {
       const { data: mem } = await admin.from("group_members").select("user_id,status").in("group_id", groups);
       for (const m of mem || []) if ((m.status || "active") === "active") ids.add(m.user_id);

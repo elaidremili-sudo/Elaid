@@ -35,10 +35,10 @@
   function create(o) {
     o = o || {};
     let U = o.U && o.U.length === 3 ? o.U.slice() : null;
-    const KT = o.kt || 1.2, LT = o.lt || .25; // constantes du filtre (réglées sur le banc d'essai)
+    const KT = o.kt || 1.2, LT = o.lt || .25, BC = o.bc == null ? 1 : o.bc, SM = o.sm == null ? 1 : o.sm, YU = o.yu == null ? 1 : o.yu; // constantes du filtre (réglées sur le banc d'essai)
     let sens = SENS[o.sens] ? o.sens : 'normale';
     // état qui survit d'un trajet à l'autre
-    let Ug = null, wBi = 0, fAx = null, nn = 0, fwN = 0;
+    let Ug = null, wBi = 0, wBu = 0, fAx = null, nn = 0, fwN = 0;
     const fw = [0, 0, 0]; // axe avant de la moto, appris aux accélérations / freinages en ligne droite
     const cv = [0, 0, 0];
     // axe appris lors des trajets précédents (format test-50 : a = axe, c = sens) : point de départ, vite confirmé ou corrigé
@@ -46,7 +46,7 @@
     const fG = lp3(3), fA = lp3(2), fD = lp3(1), fW = lp2(1);
     let dbg = {}, lastAf = null;
     // état d'un trajet
-    let active = false, lTs = 0, spd = 0, lean = 0, leanU = 0, lss = 0, lssP = 0, rr = 0, looseT = 0, looseS = 0, lastB = null;
+    let active = false, lTs = 0, spd = 0, lean = 0, leanU = 0, lss = 0, ssm = 0, dlt = 0, lssP = 0, rr = 0, looseT = 0, looseS = 0, lastB = null;
     let looseMs = 0, rideMs = 0, vibSum = 0, vibN = 0, gAcc = 0, gAccT = 0, gAccN = 0, spP = null, spPT = 0;
     const gH = [], wB = [], bH = [], oH = [], rH = [], dH = [], aB = [];
 
@@ -92,8 +92,8 @@
     const axOk = () => fAx && nn > .25;
 
     function resetRide() {
-      gAcc = 0; gAccT = 0; gAccN = 0; spP = null; spPT = 0;
-      lTs = 0; spd = 0; lean = 0; leanU = 0; lss = 0; lssP = 0; rr = 0; looseT = 0; looseS = 0; lastB = null;
+      wBu = wBi; gAcc = 0; gAccT = 0; gAccN = 0; spP = null; spPT = 0;
+      lTs = 0; spd = 0; lean = 0; leanU = 0; lss = 0; ssm = 0; dlt = 0; lssP = 0; rr = 0; looseT = 0; looseS = 0; lastB = null;
       looseMs = 0; rideMs = 0; vibSum = 0; vibN = 0;
       gH.length = wB.length = bH.length = oH.length = rH.length = dH.length = aB.length = 0; wBi = 0;
       fG.reset(); fA.reset(); fD.reset(); fW.reset();
@@ -118,17 +118,35 @@
       const gv = fG.step([(be || 0) * R2, (ga || 0) * R2, (al || 0) * R2], dt);
       if (!active || !U) return;
       { const A0 = Ug && (Ug[0] * U[0] + Ug[1] * U[1] + Ug[2] * U[2]) < .985 ? Ug : U; learnFwd(ad1, A0, n, dt); }
-      if (spd < 15) { lean *= .9; leanU *= .9; lss *= .9; dH.length = 0; return; }
+      if (spd < 15) { lean *= .9; leanU *= .9; lss *= .9; ssm *= .9; dlt *= .9; dH.length = 0; return; }
       rideMs += dt * 1000;
       const A = Ug || U, w0 = gv[0] * A[0] + gv[1] * A[1] + gv[2] * A[2];
       // dérive du gyroscope : apprise quand le GPS voit une ligne droite, puis retirée
       { const gl = gpsLean(n, 2500); if (gl != null && gl < 2 && Math.abs(w0 - wBi) < .15) wBi = wBi * (1 - .03 * dt) + w0 * .03 * dt; }
-      const w = w0 - wBi, vm = spd / 3.6, raw = Math.asin(Math.max(-.883, Math.min(.883, vm * w / 9.81))) / R2;
-      const kl = Math.min(1, dt / LT); lss += (raw - lss) * kl; // angle d'équilibre lissé (~0,25 s : le bruit du lacet est multiplié par la vitesse)
+      /* test-71 : lacet mesuré autour de la gravité apparente INSTANTANÉE (accéléromètre filtré à 2 Hz), puis sin(angle) = vitesse × lacet / g.
+         Avant : axe A qui suit la gravité apparente avec ~3 s de retard → +3 à +6° en entrée de virage (mauvais repère au moment du pic). */
+      let wF0 = w0; if (YU && lastAf) { const hf = Math.hypot(lastAf[0], lastAf[1], lastAf[2]); if (hf > 6 && hf < 16) wF0 = (gv[0] * lastAf[0] + gv[1] * lastAf[1] + gv[2] * lastAf[2]) / hf; }
+      { const gl = gpsLean(n, 2500); if (gl != null && gl < 2 && Math.abs(wF0 - wBu) < .15) wBu = wBu * (1 - .03 * dt) + wF0 * .03 * dt; }
+      const vm = spd / 3.6, w = w0 - wBi, wF = YU ? wF0 - wBu : w;
+      const rat = vm * wF / 9.81, raw = Math.asin(Math.max(-.883, Math.min(.883, rat))) / R2;
+      const kl = Math.min(1, dt / LT);
+      /* test-71 : on lisse d'abord le rapport vitesse × lacet / g, PUIS on convertit en angle. Avant, on lissait les angles déjà
+         convertis : avec le bruit du gyroscope, l'arcsinus gonfle plus vers le haut que vers le bas (+3 à +6° en virage). */
+      if (SM) { ssm += (rat - ssm) * kl; lss = Math.asin(Math.max(-.883, Math.min(.883, ssm))) / R2; } else lss += (raw - lss) * kl; // angle d'équilibre lissé (~0,25 s : le bruit du lacet est multiplié par la vitesse)
       const gp = [gv[0] - w0 * A[0], gv[1] - w0 * A[1], gv[2] - w0 * A[2]];
       const dL = (lss - lssP) / dt; lssP = lss; learnAxis(gp, dL * R2, dt);
       const ax = rollAxis(A);
       rr = ax ? (gp[0] * ax[0] + gp[1] * ax[1] + gp[2] * ax[2]) / R2 : 0; // °/s (déjà filtré)
+      /* test-71 : angle de la MOTO, pas de l'ensemble moto + pilote. La formule vitesse × lacet donne l'inclinaison de l'ensemble.
+         Quand le pilote se penche vers l'intérieur, la moto penche moins (la centrale d'une moto, ex. Z H2, mesure la moto seule).
+         L'écart se voit dans l'accéléromètre : la gravité apparente penche sur le côté par rapport à la position calibrée « moto droite » (U).
+         ax est l'axe de roulis (sens : rotation positive = pencher à gauche) ; gauche = ax × U. */
+      if (BC && ax && lastAf && Math.abs(lss) > 8) { // virage franc seulement : en ligne droite, le freinage fausserait la mesure
+        const Y = [ax[1] * U[2] - ax[2] * U[1], ax[2] * U[0] - ax[0] * U[2], ax[0] * U[1] - ax[1] * U[0]];
+        const fu = lastAf[0] * U[0] + lastAf[1] * U[1] + lastAf[2] * U[2], fy = lastAf[0] * Y[0] + lastAf[1] * Y[1] + lastAf[2] * Y[2];
+        const d0 = fu > 4 ? Math.atan2(fy, fu) / R2 : 0, lim = Math.min(12, Math.abs(lss) * .35); // le pilote ne change pas l'angle de plus d'un tiers
+        dlt += (Math.max(-lim, Math.min(lim, d0)) - dlt) * Math.min(1, dt / .6);
+      } else dlt -= dlt * Math.min(1, dt / .4);
       const sg = 1, ok = !!ax;
       // téléphone tenu en main ou mal fixé : le gyroscope (filtré) s'agite alors que le GPS ne voit aucun virage
       wB.push([n, fW.step(w, dt)]); while (wB.length && n - wB[0][0] > 1500) wB.shift();
@@ -141,7 +159,7 @@
       // dispersion de la gravité apparente sur 1,5 s (degrés) : quasi nulle sur un support, même en virage
       let ad = 0; if (aB.length > 10) { let mx = 0, my = 0, mz = 0; for (const q of aB) { mx += q[1]; my += q[2]; mz += q[3]; } const mn = Math.hypot(mx, my, mz) || 1; mx /= mn; my /= mn; mz /= mn;
         let sq = 0; for (const q of aB) { const c = Math.max(-1, Math.min(1, q[1] * mx + q[2] * my + q[3] * mz)); sq += Math.acos(c) ** 2; } ad = Math.sqrt(sq / aB.length) / R2; }
-      if (o.debug) dbg = { wsd, ad, rh: rH.length, g4, lss, rr, raw, ok: !!ok, fwN, fwM: Math.hypot(fw[0], fw[1], fw[2]), ax: ax && ax.map(v => +v.toFixed(2)) };
+      if (o.debug) dbg = { dlt, wsd, ad, rh: rH.length, g4, lss, rr, raw, ok: !!ok, fwN, fwM: Math.hypot(fw[0], fw[1], fw[2]), ax: ax && ax.map(v => +v.toFixed(2)) };
       // mesures sur le banc d'essai (p95, ligne droite) : support avec fortes vibrations ad ≈ 3-3,7° ; téléphone en main ad ≈ 7-8°
       const brk = gAccT && n - gAccT < 3000; // freinage ou accélération franche (GPS)
       const shaky = !brk && (ad > 5.5 * S || (wsd > .35 * S && ad > 4 * S) || (rH.length >= 4 && ad > 4.5 * S)) && gH.length && g4 < 4;
@@ -150,7 +168,8 @@
       if (looseS > .8) { looseT = n; looseMs += dt * 1000; }
       // filtre complémentaire : roulis intégré (court terme) + angle d'équilibre (long terme, constante 1,2 s)
       const K = ok ? KT / (KT + dt) : 0;
-      let t = ok ? K * (lean + sg * rr * dt) + (1 - K) * lss : lean + (lss - lean) * Math.min(1, dt * 6);
+      const lb = lss - BC * dlt; // angle d'équilibre ramené à la moto
+      let t = ok ? K * (lean + sg * rr * dt) + (1 - K) * lb : lean + (lb - lean) * Math.min(1, dt * 6);
       // ligne droite confirmée par le GPS pendant 3 s : on ramène doucement vers 0 (dérive, route abîmée, vent)
       { let gm = null; for (const q of gH) if (n - q[0] <= 3000) gm = Math.max(gm == null ? 0 : gm, Math.abs(q[1]));
         if (gm != null && gm < 2.5 && Math.abs(lss) < 6 && gH.length && n - gH[0][0] >= 2500) t -= t * Math.min(1, dt / 1.5); } // le gyroscope ne voit pas de virage non plus (le GPS a ~2 s de retard)

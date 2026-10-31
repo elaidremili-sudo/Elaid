@@ -191,7 +191,7 @@
     const chip = x => `<span style="display:inline-block;margin:3px 4px 0 0;padding:3px 8px;border-radius:999px;border:1px solid var(--line,#555)">${ESC(x.first_name)} <a href="#" data-gdel="${ESC(x.kind)}:${ESC(x.other_id)}" style="text-decoration:none">✕</a></span>`;
     elNow.innerHTML = head +
       `<div class="meta">${W('Ils reçoivent une <b>sirène + lecture vocale</b> sur leur téléphone si tu chutes (gratuit, il faut internet). Ils doivent avoir MotoRoute Android et un compte.', 'يصلهم <b>صفارة وقراءة صوتية</b> عند سقوطك (مجاني، يحتاج إنترنت). يجب أن يكون لديهم MotoRoute أندرويد وحساب.', 'They get a <b>siren + spoken alert</b> on their phone if you crash (free, needs internet). They need MotoRoute Android and an account.')}</div>` +
-      (code ? `<div style="margin:6px 0;font-size:22px;font-weight:800;letter-spacing:3px">${ESC(code)}</div><div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="p" data-gshare="1">📤 ${W('Envoyer mon code', 'إرسال رمزي', 'Send my code')}</button></div>` : `<div class="meta">${W('Code indisponible (serveur pas encore prêt).', 'الرمز غير متوفر.', 'Code unavailable.')}</div>`) +
+      (code ? `<div style="margin:6px 0;font-size:22px;font-weight:800;letter-spacing:3px">${ESC(code)}</div><div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="p" data-gshare="1">📤 ${W('Envoyer mon code', 'إرسال رمزي', 'Send my code')}</button><button class="g" data-greset="1">🔄 ${W('Changer mon code', 'تغيير رمزي', 'Change my code')}</button></div>` : `<div class="meta">${W('Code indisponible (serveur pas encore prêt).', 'الرمز غير متوفر.', 'Code unavailable.')}</div>`) +
       `<div class="meta" style="margin-top:6px">${W('Veillent sur moi', 'يحرسونني', 'Watching over me')} : ${gs.length ? gs.map(chip).join('') : '<b style="color:#ff6b6b">' + W('personne pour l’instant : en cas de chute, aucune sirène ne sonnera chez un proche.', 'لا أحد بعد: عند السقوط لن ترن الصفارة عند أي قريب.', 'nobody yet: after a crash, no siren will ring for anyone.') + '</b>'}</div>` +
       (gs.length ? `<div class="row" style="justify-content:flex-start"><button class="g" data-gtest="1">🔔 ${W('Tester la sirène chez eux', 'تجربة الصفارة عندهم', 'Test the siren on their phones')}</button></div><div class="meta" id="mr_gtst"></div>` : '') +
       `<div class="meta" style="margin-top:8px">👁️ <b>${W('Veiller sur un motard', 'حراسة دراج', 'Watch over a rider')}</b></div>` +
@@ -259,17 +259,43 @@
       location.href = 'https://wa.me/?text=' + encodeURIComponent(txt);
       return;
     }
+    if (t.closest && t.closest('[data-greset]')) {
+      /* test-71 (B6) : changer son code (3 fois par 24 h) ; on peut aussi retirer ses anges gardiens actuels */
+      if (!confirm(W('Créer un nouveau code ? L’ancien ne marchera plus pour de nouveaux anges gardiens.', 'إنشاء رمز جديد؟ الرمز القديم لن يعمل لملائكة جدد.', 'Create a new code? The old one will stop working for new guardians.'))) return;
+      const rm = confirm(W('Retirer aussi tes anges gardiens actuels ?\nOK = les retirer · Annuler = les garder', 'هل تزيل أيضًا ملائكتك الحاليين؟\nموافق = إزالتهم · إلغاء = إبقاؤهم', 'Also remove your current guardians?\nOK = remove · Cancel = keep'));
+      try {
+        const r = await sb().rpc('mr_guard_code_reset', { p_retirer_anges: rm });
+        if (r.error) throw r.error;
+        code = r.data; fillGuard(true);
+      } catch (x) {
+        const m = String(x && x.message || x);
+        alert(/mr-code-trop/.test(m) ? W('3 changements de code par 24 h au maximum. Réessaie demain.', '3 تغييرات كحد أقصى في 24 ساعة.', 'At most 3 code changes per 24 h.') : /function|does not exist|schema cache/i.test(m) ? W('Bientôt disponible (mise à jour du serveur en cours).', 'قريبًا.', 'Coming soon.') : W('Impossible pour l’instant (internet ?).', 'غير ممكن الآن.', 'Not possible right now.'));
+      }
+      return;
+    }
     if (t.closest && t.closest('[data-gjoin]')) {
       const v = (((document.getElementById('mr_gcode') || {}).value || gVal || '')).replace(/\s+/g, '').toUpperCase();
       if (!/^[A-Z2-9]{6}$/.test(v)) { alert(W('Le code fait 6 lettres ou chiffres.', 'الرمز من 6 أحرف أو أرقام.', 'The code has 6 letters or digits.')); return; }
+      const ok = nm => { alert(W(`✅ Tu veilles maintenant sur ${nm}. Si ${nm} chute, ton téléphone sonnera.`, `✅ أنت الآن تحرس ${nm}.`, `✅ You now watch over ${nm}.`)); gVal = ''; setup(); fillGuard(true); };
       try {
+        /* test-71 (B6) : nouvelle fonction qui compte les essais ratés (5 par 15 min, 20 par 24 h) */
+        const r2 = await sb().rpc('mr_guard_join_v2', { p_code: v });
+        if (!r2.error && r2.data && typeof r2.data === 'object') {
+          const j = r2.data;
+          if (j.ok) { ok(j.name); return; }
+          if (j.why === 'trop-essais') alert(W(`Trop d’essais ratés. Réessaie dans ${j.minutes || 15} min.`, `محاولات خاطئة كثيرة. أعد المحاولة بعد ${j.minutes || 15} دقيقة.`, `Too many wrong tries. Try again in ${j.minutes || 15} min.`));
+          else if (j.why === 'code-inconnu') alert(W('Code inconnu.', 'رمز غير معروف.', 'Unknown code.') + (j.left != null ? ' ' + W(`Encore ${j.left} essai(s).`, `بقي ${j.left} محاولة.`, `${j.left} tries left.`) : ''));
+          else if (j.why === 'son-propre-code') alert(W('C’est ton propre code 🙂', 'هذا رمزك 🙂', 'That is your own code 🙂'));
+          else alert(j.msg || W('Impossible pour l’instant.', 'غير ممكن الآن.', 'Not possible right now.'));
+          return;
+        }
+        /* ancienne fonction tant que securite-31-10.sql n'est pas appliqué */
         const r = await sb().rpc('mr_guard_join', { p_code: v });
         if (r.error) throw r.error;
-        alert(W(`✅ Tu veilles maintenant sur ${r.data}. Si ${r.data} chute, ton téléphone sonnera.`, `✅ أنت الآن تحرس ${r.data}.`, `✅ You now watch over ${r.data}.`));
-        gVal = ''; setup(); fillGuard(true);
+        ok(r.data);
       } catch (x) {
         const m = String(x && x.message || x);
-        alert(/code-inconnu/.test(m) ? W('Code inconnu.', 'رمز غير معروف.', 'Unknown code.') : /propre/.test(m) ? W('C’est ton propre code 🙂', 'هذا رمزك 🙂', 'That is your own code 🙂') : W('Impossible pour l’instant (internet ?).', 'غير ممكن الآن.', 'Not possible right now.'));
+        alert(/code-inconnu/.test(m) ? W('Code inconnu.', 'رمز غير معروف.', 'Unknown code.') : /propre/.test(m) ? W('C’est ton propre code 🙂', 'هذا رمزك 🙂', 'That is your own code 🙂') : /bloqu|trop/.test(m) ? W('Trop d’essais ratés. Réessaie plus tard.', 'محاولات كثيرة. أعد لاحقًا.', 'Too many tries. Try later.') : W('Impossible pour l’instant (internet ?).', 'غير ممكن الآن.', 'Not possible right now.'));
       }
       return;
     }

@@ -69,4 +69,41 @@
     return viaInput(source, max);
   };
   window.mrShrinkPhoto = shrinkSrc;
+
+  /* test-71 (bilan A2) : miniatures pour les listes.
+     À l'envoi, chaque photo est rangée deux fois : la photo (1200 px) et une miniature de 400 px « …-t.jpg ».
+     Les listes affichent la miniature, le grand format seulement quand on touche la photo.
+     Les deux sont gardées 1 an en mémoire par le téléphone (cacheControl), au lieu d'1 heure.
+     Anciennes photos sans miniature : on retombe automatiquement sur la photo (voir l'écouteur « error » plus bas). */
+  const YEAR = '31536000';
+  const toBlob = async d => (await fetch(d)).blob();
+  window.mrThumbUrl = u => String(u || '').replace(/\.jpg(\?.*)?$/i, '-t.jpg$1');
+  window.mrThumbImg = (u, attrs) => {
+    const e = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return `<img src="${e(window.mrThumbUrl(u))}" data-full="${e(u)}" loading="lazy" decoding="async" alt="" ${attrs || ''}>`;
+  };
+  window.mrUploadPhoto = async function (c, bucket, uid, dataUrl) {
+    const base = uid + '/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const r = await c.storage.from(bucket).upload(base + '.jpg', await toBlob(dataUrl), { contentType: 'image/jpeg', upsert: false, cacheControl: YEAR });
+    if (r.error) throw r.error;
+    try {
+      const t = await shrinkSrc(dataUrl, 400);
+      await c.storage.from(bucket).upload(base + '-t.jpg', await toBlob(t), { contentType: 'image/jpeg', upsert: false, cacheControl: YEAR });
+    } catch (e) { /* sans miniature, la liste affichera la photo */ }
+    return c.storage.from(bucket).getPublicUrl(base + '.jpg').data.publicUrl;
+  };
+  /* chemins à effacer : la photo et sa miniature */
+  window.mrPhotoPaths = function (urls, bucket) {
+    const out = [];
+    (urls || []).forEach(u => {
+      const p = String(u).split('/' + bucket + '/')[1]; if (!p) return;
+      const d = decodeURIComponent(p.split('?')[0]); out.push(d);
+      if (/\.jpg$/i.test(d) && !/-t\.jpg$/i.test(d)) out.push(d.replace(/\.jpg$/i, '-t.jpg'));
+    });
+    return out;
+  };
+  document.addEventListener('error', ev => {
+    const i = ev.target;
+    if (i && i.tagName === 'IMG' && i.dataset && i.dataset.full && i.getAttribute('src') !== i.dataset.full) i.src = i.dataset.full;
+  }, true);
 })();

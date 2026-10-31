@@ -45,6 +45,10 @@ const MAX_SESSIONS_PER_HOUR = 30; // anti-abus : sessions Cloudflare créées pa
 // Au-delà, le direct est refusé et l'app repasse toute seule en messages vocaux (rien n'est facturé par Cloudflare).
 const MONTH_MINUTES = Number(Deno.env.get("TALKIE_MONTH_MINUTES") || 300000); // tout le club, par mois
 const DAY_MINUTES = Number(Deno.env.get("TALKIE_DAY_MINUTES") || 240);        // par membre et par jour (4 h)
+// A5 (31/10) : le téléphone ne compte plus chaque minute mais toutes les 5 minutes (moins d'appels serveur).
+// Chaque « tick » ajoute donc 5 minutes, comptées D'AVANCE (premier tick dès la connexion) : on surestime, jamais l'inverse.
+// La valeur est fixée ICI, côté serveur : le téléphone ne choisit pas combien de minutes il déclare.
+const TICK_MINUTES = 5;
 const STUN = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.cloudflare.com:53"] }];
 
 type Obj = Record<string, unknown>;
@@ -92,6 +96,33 @@ async function iceServers(): Promise<unknown[]> {
     return arr.length ? [...STUN, ...arr] : STUN;
   } catch { return STUN; }
 }
+
+// Lecture du compteur (sans rien ajouter). true = encore du quota. Compteur illisible = false (prudence : pas de facture surprise).
+// deno-lint-ignore no-explicit-any
+async function quotaOk(admin: any, me: string): Promise<boolean> {
+  const { data: u, error } = await admin.rpc("mr_talkie_usage", { p_user: me });
+  const row = Array.isArray(u) ? u[0] : u;
+  return !error && !!row && Number(row.month_minutes) < MONTH_MINUTES && Number(row.day_minutes) < DAY_MINUTES;
+}
+// Ajoute TICK_MINUTES au compteur et renvoie les nouveaux totaux.
+// Utilise mr_talkie_add (supabase/talkie-quota-v2.sql) ; si ce script n'est pas encore appliqué (fonction absente),
+// repli sur l'ancienne mr_talkie_tick (+1) appelée TICK_MINUTES fois, pour que le comptage reste juste.
+// deno-lint-ignore no-explicit-any
+async function addMinutes(admin: any, me: string): Promise<{ month_minutes: number; day_minutes: number } | null> {
+  const r = await admin.rpc("mr_talkie_add", { p_user: me, p_minutes: TICK_MINUTES });
+  let res = r;
+  if (r.error && (r.error.code === "PGRST202" || r.error.code === "42883")) {
+    for (let i = 0; i < TICK_MINUTES; i++) {
+      res = await admin.rpc("mr_talkie_tick", { p_user: me });
+      if (res.error) break;
+    }
+  }
+  if (res.error) { console.error("talkie tick", res.error.message); return null; }
+  const row = Array.isArray(res.data) ? res.data[0] : res.data;
+  return row ? { month_minutes: Number(row.month_minutes), day_minutes: Number(row.day_minutes) } : null;
+}
+// Réponse « quota atteint » (code 200, pour que l'app la lise) : l'app coupe le direct et repasse en messages vocaux.
+const quotaStop = () => json({ ok: false, why: "quota", stop: true });
 
 let lastPurge = 0;
 // Efface physiquement les messages de plus de 24 h : fichiers (API Storage), puis lignes. Sans Cloudflare.
@@ -157,12 +188,8 @@ Deno.serve(async (req) => {
     if (action === "join") {
       if (!configured) return json({ ok: true, configured: false });
       // Quota : si le compteur est illisible (script non appliqué…), on refuse le direct par prudence (pas de facture surprise)
-      const { data: u, error: qe } = await admin.rpc("mr_talkie_usage", { p_user: me });
-      const row = Array.isArray(u) ? u[0] : u;
-      if (qe || !row || Number(row.month_minutes) >= MONTH_MINUTES || Number(row.day_minutes) >= DAY_MINUTES) {
-        return json({ ok: true, configured: false, quota: true });
-      }
-      return json({ ok: true, configured: true, iceServers: await iceServers() });
+      if (!(await quotaOk(admin, me))) return json({ ok: true, configured: false, quota: true });
+      return json({ ok: true, configured: true, tickMs: TICK_MINUTES * 60000, iceServers: await iceServers() }); // test-71 : le téléphone compte au rythme du serveur
     }
     if (!configured) return json({ ok: false, why: "nocf" });
 
@@ -172,6 +199,8 @@ Deno.serve(async (req) => {
       const { count } = await admin.from("talkie_live").select("session_id", { count: "exact", head: true })
         .eq("user_id", me).gt("created_at", since);
       if ((count || 0) >= MAX_SESSIONS_PER_HOUR) return json({ ok: false, why: "limite" });
+      // A5 : quota revérifié à la création de la session (le « join » a pu être fait longtemps avant)
+      if (!(await quotaOk(admin, me))) return quotaStop();
       const j = await cf("POST", "/sessions/new");
       if (j.errorCode || typeof j.sessionId !== "string") return cfFail(j);
       await admin.from("talkie_live").insert({ session_id: j.sessionId, channel, user_id: me });
@@ -185,12 +214,12 @@ Deno.serve(async (req) => {
       .eq("session_id", sid).eq("user_id", me).eq("channel", channel).maybeSingle();
     if (!own) return json({ ok: false, why: "session" }, 403);
 
-    // Une minute de direct de plus (appelé chaque minute par le téléphone tant que le direct est connecté)
+    // TICK_MINUTES (5) minutes de direct de plus : appelé dès la connexion puis toutes les 5 minutes par le téléphone
+    // tant que le direct est connecté. Compteur illisible = stop (prudence).
     if (action === "tick") {
-      const { data: u, error: te } = await admin.rpc("mr_talkie_tick", { p_user: me });
-      const row = Array.isArray(u) ? u[0] : u;
-      const stop = !!te || !row || Number(row.month_minutes) >= MONTH_MINUTES || Number(row.day_minutes) >= DAY_MINUTES;
-      return json({ ok: true, stop });
+      const row = await addMinutes(admin, me);
+      const stop = !row || row.month_minutes >= MONTH_MINUTES || row.day_minutes >= DAY_MINUTES;
+      return json({ ok: true, stop, every: TICK_MINUTES });
     }
 
     if (action === "push") {                 // publier SA piste micro
@@ -213,6 +242,8 @@ Deno.serve(async (req) => {
       const { data: tgt } = await admin.from("talkie_live").select("session_id")
         .eq("session_id", rsid).eq("channel", channel).gt("created_at", since).maybeSingle();
       if (!tgt) return json({ ok: false, why: "cible" });
+      // A5 : quota revérifié à chaque écoute d'un autre membre (chaque piste écoutée consomme du trafic Cloudflare)
+      if (!(await quotaOk(admin, me))) return quotaStop();
       const j = await cf("POST", `/sessions/${sid}/tracks/new`, { tracks: [{ location: "remote", sessionId: rsid, trackName: rtn }] });
       if (j.errorCode) return cfFail(j);
       return json({ ok: true, sessionDescription: j.sessionDescription, tracks: j.tracks, requiresImmediateRenegotiation: !!j.requiresImmediateRenegotiation });

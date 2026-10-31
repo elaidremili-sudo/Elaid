@@ -395,8 +395,11 @@
     if (weakNet()) { note(t('weak'), 5000); return; }
     try {
       const j = await fn('join'); if (gen !== D.gen || key !== ST.key) return;
+      D.tickMs = j.tickMs >= 60000 && j.tickMs <= 600000 ? j.tickMs : 60000; // test-71 : ancien serveur (1 min par comptage) → toutes les minutes
       if (!j.ok || !j.configured) { if (j.ok) D.configured = false; return; } // pas configuré ou quota atteint : mode B, plus d'essais
-      const s = await fn('session'); if (gen !== D.gen || !s.ok || !s.sessionId) throw new Error('session');
+      const s = await fn('session'); if (gen !== D.gen) return;
+      if (s && s.why === 'quota') { quotaStop(); return; }        // A5 : quota revérifié par le serveur à la création de session
+      if (!s.ok || !s.sessionId) throw new Error('session');
       D.sid = s.sessionId;
       const pc = new RTCPeerConnection({ iceServers: j.iceServers || [{ urls: 'stun:stun.cloudflare.com:3478' }], bundlePolicy: 'max-bundle' });
       D.pc = pc;
@@ -424,16 +427,31 @@
       setTimeout(() => { if (D.pc === pc && !D.ready) directDown('timeout'); }, 8000);
     } catch (e) { warn('direct indisponible, messages vocaux', e && e.message); directDown('erreur'); }
   }
-  /* Coupe-circuit : chaque minute de direct est comptée par le serveur ; au-delà du quota, retour aux messages vocaux */
+  /* Coupe-circuit (A5, 31/10) : le serveur compte 5 minutes de direct à chaque « tick ».
+     - premier tick dès la connexion (minutes comptées d'avance), puis un toutes les 5 minutes ;
+     - quota atteint (stop) : retour aux messages vocaux, plus d'essais du direct dans ce canal ;
+     - 2 ticks ratés d'affilée (réseau, serveur) : on coupe aussi le direct, car on ne sait plus compter ce qu'il consomme.
+       Le direct sera retenté plus tard (directDown), et la reprise repasse par « join » qui revérifie le quota. */
+  const TICK_MS = 5 * 60000, TICK_FAILS_MAX = 2;
+  function quotaStop() { D.configured = false; directDown('quota'); }
+  function tickOnce() {
+    if (!D.ready || !D.sid) return Promise.resolve();
+    const gen = D.gen;
+    const fail = () => { if (gen !== D.gen) return; D.tickFails = (D.tickFails || 0) + 1; if (D.tickFails >= TICK_FAILS_MAX) directDown('tick-echec'); };
+    return fn('tick', { sessionId: D.sid }).then(r => {
+      if (gen !== D.gen) return;
+      if (r && (r.stop || r.why === 'quota')) { quotaStop(); return; }
+      if (!r || !r.ok) { fail(); return; }
+      D.tickFails = 0;
+    }).catch(fail);
+  }
   function startTicks() {
-    clearInterval(D.tick);
-    D.tick = setInterval(() => {
-      if (!D.ready || !D.sid) return;
-      fn('tick', { sessionId: D.sid }).then(r => { if (r && r.stop) { D.configured = false; directDown('quota'); } }).catch(() => {});
-    }, 60000);
+    clearInterval(D.tick); D.tickFails = 0;
+    tickOnce();
+    D.tick = setInterval(tickOnce, D.tickMs || TICK_MS);
   }
   function directDown(why) {
-    clearInterval(D.tick);
+    clearInterval(D.tick); D.tick = null; D.tickFails = 0;
     const was = D.ready; D.ready = false; D.gen++;
     try { D.pc && D.pc.close(); } catch (e) {}
     Object.keys(D.peers).forEach(k => { try { D.peers[k].el && D.peers[k].el.remove(); } catch (e) {} }); D.peers = {};
@@ -456,6 +474,7 @@
     serial(async () => {
       if (D.pc !== pc) return;
       const r = await fn('pull', { sessionId: D.sid, remote: { sessionId: p.sid, trackName: p.tn || 'mic' } });
+      if (r && r.why === 'quota') { if (D.pc === pc) quotaStop(); return; } // A5 : quota revérifié à chaque écoute
       if (!r.ok) throw new Error('pull');
       peer.mid = r.tracks && r.tracks[0] && r.tracks[0].mid;
       if (r.requiresImmediateRenegotiation && r.sessionDescription) {

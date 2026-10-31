@@ -82,14 +82,10 @@
     });
   }
   async function upload(dataUrl) {
-    const c = sbc(), u = me(), b = await (await fetch(dataUrl)).blob();
-    const path = u.id + '/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.jpg';
-    const r = await c.storage.from('place-photos').upload(path, b, { contentType: 'image/jpeg', upsert: false });
-    if (r.error) throw r.error;
-    return c.storage.from('place-photos').getPublicUrl(path).data.publicUrl;
+    return window.mrUploadPhoto(sbc(), 'place-photos', me().id, dataUrl); /* test-71 : photo + miniature */
   }
   function rmPhotos(urls) {
-    const paths = (urls || []).map(u => String(u).split('/place-photos/')[1]).filter(Boolean).map(decodeURIComponent);
+    const paths = window.mrPhotoPaths(urls, 'place-photos');
     if (paths.length && sbc()) sbc().storage.from('place-photos').remove(paths).then(() => {}, () => {});
   }
 
@@ -132,7 +128,7 @@
 
   function itemHtml(o) {
     const p = o.p, k = K(p.kind), u = me(), mine = u && p.user_id == u.id, lk = liked.has(p.id);
-    const ph = (p.photos || []).length ? `<div class="pl-ph">${p.photos.map((s, i) => `<img loading="lazy" src="${esc(s)}" data-plbig="${esc(p.id)}:${i}" alt="">`).join('')}</div>` : '';
+    const ph = (p.photos || []).length ? `<div class="pl-ph">${p.photos.map((s, i) => window.mrThumbImg(s, `data-plbig="${esc(p.id)}:${i}"`)).join('')}</div>` : '';
     const tel = p.phone ? `<a class="g" href="tel:${esc(String(p.phone).replace(/[^\d+]/g, ''))}">📞 ${W('Appeler', 'اتصال', 'Call')}</a>` : '';
     return `<div class="pl-it${p.hidden ? ' pl-hid' : ''}">${ph}<div class="pl-b">
 <div class="pl-t">${k[1]} ${esc(p.name)}</div>
