@@ -73,7 +73,7 @@
     const wa = telWa(a.phone), msg = W('Bonjour, je suis intéressé par votre annonce « {t} » sur MotoRoute.', 'مرحبًا، أنا مهتم بإعلانك «{t}» على MotoRoute.', 'Hello, I am interested in your ad “{t}” on MotoRoute.').replace('{t}', a.title);
     const left = daysLeft(a);
     return `<div class="card ad-card${a.sold ? ' ad-sold' : ''}">
-    ${ph.length ? `<div class="ad-phs">${ph.map((p, i) => `<img src="${esc(p)}" alt="" loading="lazy" data-adbig="${esc(a.id)}|${i}">`).join('')}</div>` : ''}
+    ${ph.length ? `<div class="ad-phs">${ph.map((p, i) => window.mrThumbImg(p, `data-adbig="${esc(a.id)}|${i}"`)).join('')}</div>` : ''}
     <span class="tag ${a.ty == 'sell' ? 'v' : 'a'}">${a.ty == 'sell' ? t.forsale : t.wanted}</span><span class="tag">${esc(catLab(a.cat))}</span>
     ${a.sold ? `<span class="tag" style="background:#3fb950;color:#06130a">✅ ${W('Vendu', 'تم البيع', 'Sold')}</span>` : ''}
     ${a.hidden ? `<span class="tag" style="background:#ff6b6b;color:#fff">🚩 ${W('Masquée (signalements)', 'مخفي (بلاغات)', 'Hidden (reports)')}</span>` : ''}
@@ -132,13 +132,9 @@
   }
   window.mrAdsOpenForm = openForm;
 
-  async function upload(dataUrl, uid) {
-    const c = sbc(), b = await (await fetch(dataUrl)).blob(), path = uid + '/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.jpg';
-    const r = await c.storage.from(BUCKET).upload(path, b, { contentType: 'image/jpeg', upsert: false }); if (r.error) throw r.error;
-    return c.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  }
+  async function upload(dataUrl, uid) { return window.mrUploadPhoto(sbc(), BUCKET, uid, dataUrl); } /* test-71 : photo + miniature */
   function rmPhotos(urls) {
-    const paths = (urls || []).map(u => String(u).split('/' + BUCKET + '/')[1]).filter(Boolean).map(decodeURIComponent);
+    const paths = window.mrPhotoPaths(urls, BUCKET);
     if (paths.length && sbc()) sbc().storage.from(BUCKET).remove(paths).then(() => {}, () => {});
   }
 

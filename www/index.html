@@ -489,13 +489,17 @@ const FS=()=>S.fall=S.fall||{on:false};let lastLL='',sm=[],imp=0,busy=false,wid=
 /* test-66 : sur un support, une vibration ou un nid-de-poule dépasse parfois 3 g, puis la moto s'arrête au feu → fausse alerte.
    Maintenant il faut aussi : téléphone basculé de plus de 35° par rapport à juste avant le choc (moto couchée, téléphone éjecté)
    ou choc énorme (> 6 g), et le GPS ne doit pas voir la moto rouler encore (> 11 km/h). */
-let pre=[],post=[],peak=0,spdG=null,spdT=0;const ang=(u,v)=>{const a=Math.hypot(...u),b=Math.hypot(...v);if(a<4||b<4)return 0;return Math.acos(Math.max(-1,Math.min(1,(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(a*b))))*180/Math.PI},avg=L=>[0,1,2].map(i=>L.reduce((p,q)=>p+q[i],0)/(L.length||1));
+/* test-71 (retour d'Elaid 31/10) : un simple geste brusque de la main déclenchait l'alerte.
+   Désormais une chute n'est retenue que si la moto ROULAIT vraiment juste avant (GPS ≥ 15 km/h dans les 90 s avant le choc) :
+   à pied, téléphone en main, plus d'alerte possible. Choc plus fort exigé (> 4 g au lieu de 3 g), téléphone immobile 3,5 s après.
+   Sans aucune vitesse GPS récente (tunnel, GPS coupé) : seulement un choc énorme (> 8 g) ET téléphone basculé. */
+let pre=[],post=[],peak=0,spdG=null,spdT=0,rodeT=0;const ang=(u,v)=>{const a=Math.hypot(...u),b=Math.hypot(...v);if(a<4||b<4)return 0;return Math.acos(Math.max(-1,Math.min(1,(u[0]*v[0]+u[1]*v[1]+u[2]*v[2])/(a*b))))*180/Math.PI},avg=L=>[0,1,2].map(i=>L.reduce((p,q)=>p+q[i],0)/(L.length||1));
 function mot(e){if(busy)return;const a=e.accelerationIncludingGravity;if(!a)return;const v=[a.x||0,a.y||0,a.z||0],m=Math.hypot(...v),n=Date.now();
- if(!imp){pre.push([n,v]);while(pre.length&&n-pre[0][0]>2000)pre.shift();if(m>30){imp=n;sm=[];post=[];peak=m}return}
+ if(!imp){pre.push([n,v]);while(pre.length&&n-pre[0][0]>2000)pre.shift();if(m>40){imp=n;sm=[];post=[];peak=m}return}
  peak=Math.max(peak,m);sm.push(Math.abs(m-9.8));if(n-imp>2000)post.push(v);
  if(n-imp>3500){const av=sm.reduce((p,q)=>p+q,0)/(sm.length||1),still=sm.length>10&&av<2,before=pre.filter(q=>imp-q[0]>300).map(q=>q[1]),tilt=before.length>5&&post.length>5?ang(avg(before),avg(post)):90,
-  moving=spdG!=null&&n-spdT<5000&&spdG>3;imp=0;sm=[];post=[];pre=[];if(still&&!moving&&(tilt>35||peak>60))alarm()}}
-async function fstart(){if(!('DeviceMotionEvent' in window)){alert(xx().fns);return false}try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(xx().fperm);return false}}catch(e){}addEventListener('devicemotion',mot);try{wid=navigator.geolocation.watchPosition(p=>{lastLL=p.coords.latitude+','+p.coords.longitude;const sp=p.coords.speed;if(sp!=null&&!isNaN(sp)){spdG=sp;spdT=Date.now()}},()=>{},{enableHighAccuracy:true,maximumAge:10000})}catch(e){}return true}
+  moving=spdG!=null&&n-spdT<5000&&spdG>3,rode=n-rodeT<90000,noGps=n-spdT>90000;imp=0;sm=[];post=[];pre=[];if(still&&!moving&&((rode&&(tilt>35||peak>60))||(noGps&&tilt>35&&peak>80)))alarm()}}
+async function fstart(){if(!('DeviceMotionEvent' in window)){alert(xx().fns);return false}try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(xx().fperm);return false}}catch(e){}addEventListener('devicemotion',mot);try{wid=navigator.geolocation.watchPosition(p=>{lastLL=p.coords.latitude+','+p.coords.longitude;const sp=p.coords.speed;if(sp!=null&&!isNaN(sp)){spdG=sp;spdT=Date.now();if(sp*3.6>=15)rodeT=spdT}},()=>{},{enableHighAccuracy:true,maximumAge:10000})}catch(e){}return true}
 function fstop(){removeEventListener('devicemotion',mot);try{if(wid!=null)navigator.geolocation.clearWatch(wid)}catch(e){}wid=null}
 const A=document.createElement('dialog');A.style.border='3px solid #d7263d';document.body.appendChild(A);
 function beep(){try{au=au||new (window.AudioContext||window.webkitAudioContext)();const o=au.createOscillator(),g=au.createGain();o.connect(g);g.connect(au.destination);o.frequency.value=880;g.gain.value=.3;o.start();o.stop(au.currentTime+.25)}catch(e){}try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}}
@@ -688,7 +692,7 @@ const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.si
    un seul conseil à l'arrêt, dans le résumé du trajet. Historique : test-41, test-47, test-50 (voir REPRISE.md). */
 let leanU=0,rdStat=null,bigImp=0;const VS=()=>(S.vibSens&&['faible','normale','forte'].includes(S.vibSens))?S.vibSens:'normale';
 const est=window.MrLean?MrLean.create({U,rollAx:S.rollAx,sens:VS()}):null;
-function mot(e){const a=e.accelerationIncludingGravity;if(!a)return;let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);{const hm=Math.hypot(x,y,z);if(hm>25)lastImp=Date.now();if(hm>60)bigImp=Date.now()}
+function mot(e){const a=e.accelerationIncludingGravity;if(!a)return;let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);{const hm=Math.hypot(x,y,z);if(hm>40)lastImp=Date.now();if(hm>80)bigImp=Date.now()} /* test-71 : seuils relevés (4 g / 8 g) */
  const r=e.rotationRate;if(!est||!r)return;est.motion(x,y,z,r.alpha||0,r.beta||0,r.gamma||0,Date.now());
  if(on){lean=est.display();leanU=est.leanU}}
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
@@ -707,7 +711,7 @@ function tick(){const n=Date.now(),al=Math.abs(lean),au=Math.abs(leanU);
  hs.push([n,spd,Math.max(al,au)]);while(hs.length&&n-hs[0][0]>3500)hs.shift();
  const mx=hs.reduce((p,h)=>Math.max(p,h[1]),0),ml=hs.reduce((p,h)=>Math.max(p,h[2]),0);
  const tl=est&&U?est.tilt():90; /* test-66 : moto couchée ou téléphone éjecté (> 35° de la position calibrée) */
- if(mx>=25&&spd<5&&((n-lastImp<4000&&tl>35)||n-bigImp<4000||ml>=50)&&n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
+ if(mx>=25&&spd<5&&((n-lastImp<4000&&(tl>35||ml>=50))||n-bigImp<4000)&& /* test-71 : une forte inclinaison seule (calcul faussé en voiture) ne suffit plus, il faut aussi un choc */n-lastFall>30000&&S.fall&&S.fall.on&&window.mrAlarm){lastFall=n;window.mrAlarm()}
  paint();if(on&&n-svT>15000)saveRun(n)}
 /* test-67 : sauvegarde du trajet en cours toutes les 15 s (avant 4 s) + dès que l'appli passe en arrière-plan ; à l'arrêt, le trajet est calculé avec le dernier point en mémoire */
 function saveRun(n){svT=n=n||Date.now();try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk,ts:n}))}catch(e){}}
@@ -767,7 +771,11 @@ function gpsHtml(){const ar=lang=='ar',en=lang=='en',w=(a,f,e)=>ar?a:en?e:f;
  else body=`<div class="meta">${gpE==1?w('الوصول إلى الموقع مرفوض. اسمح به في إعدادات المتصفح.','Accès à la position refusé. Autorisez la localisation dans les réglages du navigateur.','Location access denied. Allow location in your browser settings.'):gpE==2?w('GPS غير متاح.','GPS indisponible ou signal introuvable.','GPS unavailable or no signal.'):w('جارٍ البحث عن موقعك…','Recherche de votre position…','Finding your position…')}</div>`;
  return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div></div>`}
 $('main').addEventListener('click',e=>{if(e.target.closest('[data-gpon]')){gpE=0;gpOff();gpOn();render()}});
-let mpTry=false;setInterval(()=>{try{if(!ls&&window.DeviceMotionEvent){if(!DeviceMotionEvent.requestPermission){addEventListener('devicemotion',mot);ls=true}else if(!mpTry){mpTry=true;DeviceMotionEvent.requestPermission().then(r=>{if(r=='granted'&&!ls){addEventListener('devicemotion',mot);ls=true}},()=>{})}}}catch(e){}},500);
+/* test-71 (bilan A4) : le capteur de mouvement de Conduite n'est plus allumé en permanence (batterie) :
+   seulement pendant un trajet ou un calibrage. La détection de chute a son propre capteur, allumé seulement quand elle est cochée. */
+let mpTry=false;setInterval(()=>{try{const need=on||calOn;
+ if(!need){if(ls){removeEventListener('devicemotion',mot);ls=false}return}
+ if(!ls&&window.DeviceMotionEvent){if(!DeviceMotionEvent.requestPermission){addEventListener('devicemotion',mot);ls=true}else if(!mpTry){mpTry=true;DeviceMotionEvent.requestPermission().then(r=>{if(r=='granted'&&!ls&&(on||calOn)){addEventListener('devicemotion',mot);ls=true}},()=>{})}}}catch(e){}},2000);
 })();
 statics();render();
 </script>
@@ -969,7 +977,7 @@ let noUserAt=0,hadUser=false;
 function enforce(){if(!ready)return;if(user){hadUser=true;noUserAt=0;if(gate){gate=false;d.classList.remove('gate');if(d.open)draw()}return}
 /* test-59 : si la session disparaît un court instant (réseau), on attend 3 s avant de tout fermer */if(hadUser&&!gate){if(!noUserAt)noUserAt=Date.now();if(Date.now()-noUserAt<3000)return}if(document.getElementById('mr_onb'))return;try{window.mrMusicAudio&&window.mrMusicAudio.pause()}catch(e){}if(!gate){gate=true;d.classList.add('gate');if(d.open)draw()}if(!d.open){document.querySelectorAll('dialog[open]').forEach(o=>{if(o!==d)try{o.close()}catch(e){}});draw();d.showModal()}}
 d.addEventListener('cancel',e=>{if(gate&&!user)e.preventDefault()});
-setInterval(enforce,800);window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
+setInterval(enforce,1500); /* test-71 : 1,5 s au lieu de 0,8 s */window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
 window.mrSb=sb;window.mrUser=()=>user;
 if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;try{lastUid=user?user.id:null}catch(e){}mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
 let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
@@ -1010,8 +1018,19 @@ async function pull(){
  if(!u){if(S.groups.some(g=>g.srv)||S.sorties.some(s=>s.srv)){S.groups=S.groups.filter(g=>!g.srv);S.sorties=S.sorties.filter(s=>!s.srv);sig='';save();render()}return}
  if(busy)return;busy=true;lastPull=Date.now();
  try{
-  const R=await Promise.all([c.from('groups').select('*'),c.from('group_members').select('group_id,user_id,status'),c.from('rides').select('*'),c.from('ride_participants').select('ride_id,user_id'),c.from('profiles').select('id,first_name')]);
-  if(R[0].error)throw R[0].error;
+  /* test-71 (bilan A3) : on ne télécharge plus tout l'historique à chaque fois.
+     Sorties : seulement celles des 30 derniers jours et à venir (au plus 200) ; participants et prénoms : seulement ceux utiles. */
+  const since=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+  const R0=await Promise.all([c.from('groups').select('id,name,city,whatsapp_link,invite_code,is_private,owner_id,requires_approval').limit(500),c.from('group_members').select('group_id,user_id,status').limit(5000),c.from('rides').select('id,group_id,creator_id,title,ride_date,start_place,destination,km,level').gte('ride_date',since).order('ride_date',{ascending:true}).limit(200)]);
+  if(R0[0].error)throw R0[0].error;if(R0[2].error)throw R0[2].error;
+  const chunk=(L,f)=>{const o=[];for(let i=0;i<L.length;i+=80)o.push(f(L.slice(i,i+80)));return Promise.all(o)};
+  const rid=(R0[2].data||[]).map(r=>r.id);
+  const RP=rid.length?await chunk(rid,x=>c.from('ride_participants').select('ride_id,user_id').in('ride_id',x)):[];
+  const parts=[].concat(...RP.map(r=>r.data||[]));
+  const owned=new Set((R0[0].data||[]).filter(g=>g.owner_id==u.id).map(g=>g.id));
+  const need=[...new Set(parts.map(x=>x.user_id).concat((R0[1].data||[]).filter(x=>owned.has(x.group_id)&&x.status=='pending').map(x=>x.user_id)))];
+  const PR=need.length?await chunk(need,x=>c.from('profiles').select('id,first_name').in('id',x)):[];
+  const R=[R0[0],R0[1],R0[2],{data:parts},{data:[].concat(...PR.map(r=>r.data||[]))}];
   const nm={};(R[4].data||[]).forEach(x=>nm[x.id]=x.first_name||'');
   const ok=s=>s!='pending'&&s!='rejected'&&s!='refused';
   const cnt={},mine={};
@@ -1361,7 +1380,7 @@ function lvDraw(keep){
 }
 async function lvLoad(){
  const c=sbc();if(!c||!me()||!lvR)return;
- try{const r=await c.from('ride_positions').select('*').eq('ride_id',lvR);if(r.error)throw r.error;
+ try{const r=await c.from('ride_positions').select('user_id,first_name,lat,lng,speed,heading,updated_at').eq('ride_id',lvR).gte('updated_at',new Date(Date.now()-6*3600e3).toISOString());if(r.error)throw r.error;
   const n={};(r.data||[]).forEach(x=>{if(Date.now()-new Date(x.updated_at)<6*3600e3)n[x.user_id]=x});lvPos=n;if(!lvErr.includes('GPS'))lvErr=''}catch(e){lvErr=errTxt(e)}
  chkFar();if(dl.open)lvDraw(true);
 }
@@ -1370,7 +1389,8 @@ function lvOpen(rideUid,title){
  lvR=rideUid;lvT=title;lvDraw();if(!dl.open)dl.showModal();
  const c=sbc();if(!c||!me())return;
  lvLoad();
- if(!lvCh){try{lvCh=c.channel('rp-'+lvR).on('postgres_changes',{event:'*',schema:'public',table:'ride_positions',filter:'ride_id=eq.'+lvR},p=>{if(p.eventType=='DELETE'){const o=p.old||{};if(o.user_id)delete lvPos[o.user_id]}else if(p.new)lvPos[p.new.user_id]=p.new;chkFar();if(dl.open)lvDraw(true)}).subscribe()}catch(e){}}
+ /* test-71 (bilan A1) : plus d'abonnement en direct à ride_positions — chaque position arrivait deux fois (direct + relecture).
+    On garde seulement la relecture toutes les 20 s, largement suffisante (les positions sont envoyées au plus toutes les 15 s). */
  clearInterval(lvPoll);lvPoll=setInterval(()=>{if(dl.open||(sh.on&&sh.ride==lvR))lvLoad();else lvDraw(true)},20000);
 }
 function lvLeave(){try{if(lvCh&&sbc())sbc().removeChannel(lvCh)}catch(e){}lvCh=null;clearInterval(lvPoll);lvPoll=null}
@@ -1509,7 +1529,7 @@ async function sync(){
 }
 try{A().addListener('bannerAdSizeChanged',i=>{adH=(i&&i.height)||0;document.documentElement.style.setProperty('--mu-ad',adH+'px');setB()})}catch(e){}
 addEventListener('resize',()=>setTimeout(sync,350));
-setInterval(sync,700); // test-65 : suit l'ouverture/fermeture des fenêtres
+setInterval(sync,1000); // test-71 : 1 s au lieu de 0,7 s ; test-65 : suit l'ouverture/fermeture des fenêtres
 A().initialize({initializeForTesting:TESTING}).then(()=>{ready=true;sync()}).catch(e=>console.error('admob init',e));
 const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(sync,0);return r};
 /* ===== test-62 : publicité plein écran (interstitiel), rare et seulement aux moments calmes =====
@@ -1767,7 +1787,7 @@ const promoOn=i=>i.kind=='promo'&&(!i.until||i.until>=new Date().toISOString().s
 const pct=i=>i.old&&i.price&&+i.old>+i.price?Math.round((1-i.price/i.old)*100):0;
 const fdate=s=>{try{return new Date(s+'T12:00').toLocaleDateString(lang=='ar'?'ar-DZ':lang=='en'?'en-GB':'fr-FR',{day:'numeric',month:'long'})}catch(e){return s}};
 const ICO={prod:'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',promo:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',news:'<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'};
-const pic=(i,cls)=>i.img?`<img class="${cls}" src="${h(i.img)}" alt="" loading="lazy">`:`<div class="${cls} vt-ph vt-${i.kind}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICO[i.kind]||ICO.prod}</svg></div>`;
+const pic=(i,cls)=>i.img?window.mrThumbImg(i.img,`class="${cls}"`):`<div class="${cls} vt-ph vt-${i.kind}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICO[i.kind]||ICO.prod}</svg></div>`;
 function waLink(p,item){
  const ph=(p.phone||'').replace(/\D/g,'');if(!ph)return'';
  const msg=item?D().wamsg.replace('{p}',p.name).replace('{i}',item.title):'';
@@ -1918,12 +1938,8 @@ function setKind(k){
  const pr=vaD.querySelector('#va_p');if(pr)pr.closest('div').style.display=k=='news'?'none':'';
 }
 function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
-async function upload(pid,dataUrl){
- const c=sbc(),b=await (await fetch(dataUrl)).blob(),path=pid+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
- const r=await c.storage.from('partner-photos').upload(path,b,{contentType:'image/jpeg',upsert:false});if(r.error)throw r.error;
- return c.storage.from('partner-photos').getPublicUrl(path).data.publicUrl;
-}
-function rmPhoto(url){try{const m=String(url||'').split('/partner-photos/')[1];if(m)sbc().storage.from('partner-photos').remove([decodeURIComponent(m)]).then(()=>{},()=>{})}catch(e){}}
+async function upload(pid,dataUrl){return window.mrUploadPhoto(sbc(),'partner-photos',pid,dataUrl)} /* test-71 : photo + miniature, gardées 1 an en mémoire */
+function rmPhoto(url){try{const m=window.mrPhotoPaths([url],'partner-photos');if(m.length)sbc().storage.from('partner-photos').remove(m).then(()=>{},()=>{})}catch(e){}}
 const refresh=()=>{try{if(tab==2)render()}catch(e){}};
 
 /* test-57 : app Android → vrai sélecteur de photos du téléphone (js/photos.js) */
