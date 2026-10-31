@@ -1,5 +1,12 @@
 # MotoRoute – Point du 29-30 octobre 2026 (test-67) — LIRE EN PREMIER
 
+> **Point de reprise 31/10, 11 h (talkie-walkie → test-68)**
+> - ✅ **test-68 publiée** (APK + AAB signés, onglet Releases) : talkie-walkie de groupe fusionné sur main ; APK vérifiée (talkie.js présent et identique, service MrTalkieService, micro déclaré).
+> - ✅ Relecture : défaut corrigé, le bouton du casque déclenchait deux fois « parler » (natif + page) → micro ouvert puis refermé aussitôt. La page signale aussi au service Android quand elle parle / écoute (focus audio) et quitte le canal si on touche « Arrêter » dans la notification. Module branché dans index.html (il ne l'était pas). Version iPhone (docs/app) remise à jour.
+> - ✅ Banc d'essai navigateur à 2 membres (faux serveur, faux micro) : 14 contrôles OK (envoi, réception, « X parle », casque, arrêt, arabe) ; l'ancienne version échoue bien sur le casque.
+> - ⏭️ **Elaid** : coller `supabase/talkie.sql` dans Supabase → SQL Editor → Run (sans lui, le talkie ne peut rien envoyer) ; puis dire « déploie talkie » pour que Claude mette en ligne la fonction serveur `talkie`.
+> - ⏭️ Plus tard (Elaid) : tests test-67 + talkie sur les 2 téléphones (casque, écran éteint) ; compte Cloudflare + app Realtime (secrets CF_REALTIME_APP_ID / CF_REALTIME_APP_SECRET) pour le mode direct, sinon le talkie reste en messages vocaux ; clé Firebase à régénérer.
+
 > **Point de reprise 30/10, 10 h 40 (demandé par Elaid)**
 > - ✅ `supabase/test-67.sql` collé par Elaid dans le SQL Editor (succès) et vérifié par Claude : groups.city, sos_alerts.client_id, sos_push_log.client_id/recipients/done, déclencheur sos_alert_guard, table mr_storage_purge, delete_my_account avec purge des photos.
 > - ✅ Fonctions serveur en ligne (verify JWT) : `sos-push` v9 (anti-doublon de sirène) et `delete-account` v1 (efface aussi les photos) ; code en ligne relu = code du dépôt. Pas encore appelées pour de vrai.
