@@ -1053,6 +1053,8 @@ public class MrMusicService extends Service {
             release();
             h.postDelayed(idle, 10 * 60 * 1000L);
         }
+        // talkie-walkie actif : il garde les boutons du casque (la session média qui vient de changer d'état les a repris)
+        MrTalkieService.reclaimButtons();
     }
 
     void set(String t, String a, boolean p, boolean l) {
@@ -1125,6 +1127,730 @@ public class MrMusicService extends Service {
     fs.writeFileSync(gradlePath, gr);
   }
   console.log('Musique : service MrMusicService (lecture écran éteint, notification, boutons du casque)');
+}
+
+// ---------------------------------------------------------------------------------------------
+// test-68 (29/10) : TALKIE-WALKIE de groupe (push-to-talk) — partie Android.
+// La page web (www/js/talkie.js, window.MrTalkie) fait la voix (micro, réseau, lecture) ; le natif sert à :
+//  1. tenir un service au premier plan de type « microphone » : sans lui, Android coupe le micro (silence, sans erreur)
+//     dès que l'écran s'éteint ou que l'appli passe en arrière-plan ;
+//  2. donner au bouton du casque Bluetooth le rôle de bouton « parler » (session média dédiée) ;
+//  3. gérer le son : focus audio « baisser les autres applis » (MAY_DUCK) et routage vers le micro/écouteur du casque (SCO) ;
+//  4. afficher la notification « 📻 Talkie-walkie — canal X » avec les boutons Parler / Arrêter.
+//
+// Règles Android respectées (à re-vérifier sur la doc officielle, voir play-store/declaration-micro-talkie.md) :
+//  - Android 14+ (cible 34+) : type de service obligatoire dans le manifeste (foregroundServiceType="microphone"),
+//    permissions FOREGROUND_SERVICE + FOREGROUND_SERVICE_MICROPHONE, et RECORD_AUDIO DÉJÀ accordée avant startForeground
+//    (sinon SecurityException).
+//  - Un service « microphone » ne peut être lancé que quand l'appli est visible (ou exceptions prévues par Android :
+//    appui sur un bouton de notification, etc.). start() est donc à appeler depuis la page ouverte, par un geste du
+//    motard. Si Android refuse, start() est REJETÉ avec un code clair (jamais de plantage) :
+//      no-permission-micro | micro-refuse | demarrage-interdit-arriere-plan | service-refuse | service-sans-reponse.
+//    Une fois lancé appli visible, le service garde l'accès au micro écran éteint.
+//  - Le service ne se lance jamais tout seul (ni au démarrage du téléphone, ni depuis un message push) : toujours un geste.
+//
+// Écran éteint / WebView en arrière-plan :
+//  - Capacitor garde la WebView active par défaut (préférence KeepRunning = true, jamais changée ici) : ni
+//    WebView.onPause() ni pauseTimers() ne sont appelés. Le plugin refait en plus onResume()/resumeTimers() quand
+//    l'activité passe en pause/arrêt avec le talkie actif (ceinture et bretelles).
+//  - Le service est un service au premier plan (processus protégé) + verrou CPU partiel : le réseau et le JavaScript
+//    continuent écran éteint. Chromium ralentit seulement les minuteries (setTimeout) d'une page cachée ; la capture
+//    micro et la lecture audio d'une page ne sont pas gelées. La page doit éviter de dépendre de minuteries précises.
+//  - Conseil pour talkie.js : ouvrir le micro (getUserMedia) pendant que l'appli est visible, au moment de start(),
+//    puis couper/rouvrir la piste (track.enabled) à chaque prise de parole, au lieu de rouvrir getUserMedia en arrière-plan.
+//
+// Bouton du casque → page web : méthode choisie = bridge.eval() (JavaScript évalué directement dans la WebView).
+//  Raison : notifyListeners() passe par la file de messages de Capacitor et exige que la page ait déjà fait
+//  addListener() ; eval ne dépend de rien, arrive tout de suite, et marche écran éteint tant que la WebView existe.
+//  Le service tient son propre état « je parle » (un appui = on/off), indépendamment de la page.
+//  Pour chaque appui : window.dispatchEvent(new CustomEvent('mr-talkie-native', {detail:{type:'button', source, talking, channel}}))
+//  puis window.MrTalkie.toggle(). Autres événements (detail.type) : 'timeout' (30 s max de parole : pttUp() ou toggle()),
+//  'focus' (un appel téléphonique ou une autre appli a pris le son : fin de parole), 'stop' (service arrêté ;
+//  detail.source = notification | plugin | task-removed | activity-destroyed | system).
+//
+// Boutons du casque : MrTalkieService crée sa propre MediaSession. Tant qu'il tourne, elle est « en lecture » et Android lui
+// envoie les boutons (dernière session passée en lecture) ; MrMusicService reprend la main dès que le talkie s'arrête.
+// Si la musique change d'état pendant le talkie, MrMusicService appelle MrTalkieService.reclaimButtons() pour les reprendre.
+// Suivant/Précédent du casque restent envoyés au lecteur de musique (s'il tourne).
+//
+// Son : focus AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK demandé tant que le motard parle ou reçoit (la page l'indique avec
+//  MrTalkie.state({receiving:true/false}) ; talking est connu du natif par le bouton, ou via state({talking})).
+//  Les autres applis baissent leur volume. La musique de MotoRoute elle-même (WebView) n'est pas concernée par le focus
+//  Android : c'est à la page de baisser son lecteur.
+//  Casque Bluetooth : mode MODE_IN_COMMUNICATION + setCommunicationDevice (Android 12+) ou startBluetoothSco (avant),
+//  pendant TOUTE la durée du talkie, uniquement si un casque Bluetooth est connecté. Limite connue : le profil
+//  téléphone (SCO/HFP) est en qualité « voix » : la musique du casque devient étroite/mono tant que le talkie est actif,
+//  et le volume suit le volume « appel ». Sans casque, rien n'est modifié (haut-parleur/écouteur filaire habituel).
+// ---------------------------------------------------------------------------------------------
+fs.writeFileSync(javaDir + '/MrTalkiePlugin.java', `package com.motoroute.app;
+
+import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import java.util.ArrayList;
+import org.json.JSONObject;
+
+// Plugin « MrTalkie » : start({channel, lang?, bluetooth?}) · stop() · isRunning() · state({talking?, receiving?})
+@CapacitorPlugin(
+    name = "MrTalkie",
+    permissions = {
+        @Permission(alias = "micro", strings = { Manifest.permission.RECORD_AUDIO }),
+        @Permission(alias = "bluetooth", strings = { Manifest.permission.BLUETOOTH_CONNECT })
+    }
+)
+public class MrTalkiePlugin extends Plugin {
+    static volatile MrTalkiePlugin inst = null;
+    private final Handler h = new Handler(Looper.getMainLooper());
+    private PluginCall pendingStart = null;
+    private final Runnable startTimeout = new Runnable() {
+        public void run() { finishStart(false, "service-sans-reponse", "", "none"); }
+    };
+
+    @Override
+    public void load() { inst = this; }
+
+    // Écran qui s'éteint / appli en arrière-plan : on s'assure que la WebView ne dort pas tant que le talkie tourne
+    @Override
+    protected void handleOnPause() { keepWebViewAwake(); }
+
+    @Override
+    protected void handleOnStop() { keepWebViewAwake(); }
+
+    private void keepWebViewAwake() {
+        if (MrTalkieService.inst == null || getBridge() == null) return;
+        getBridge().executeOnMainThread(new Runnable() {
+            public void run() {
+                try {
+                    android.webkit.WebView w = getBridge().getWebView();
+                    if (w != null) { w.onResume(); w.resumeTimers(); }
+                } catch (Throwable e) {}
+            }
+        });
+    }
+
+    // La page (qui fait la voix) disparaît : micro ouvert sans page = inutile et gênant (voyant micro). On arrête le service.
+    @Override
+    protected void handleOnDestroy() {
+        MrTalkieService s = MrTalkieService.inst;
+        if (s != null) {
+            s.stopReason = "activity-destroyed";
+            try { getContext().stopService(new Intent(getContext(), MrTalkieService.class)); } catch (Exception e) {}
+        }
+        if (inst == this) inst = null;
+    }
+
+    // JavaScript évalué dans la WebView (voir le commentaire de patch-android.js : choisi plutôt que notifyListeners)
+    static void js(final String code) {
+        final MrTalkiePlugin p = inst;
+        if (p == null) return;
+        try { if (p.getBridge() != null) p.getBridge().eval(code, null); } catch (Throwable e) {}
+    }
+
+    // Construit le JavaScript : événement 'mr-talkie-native' puis, si demandé, appel de window.MrTalkie.<fn>()
+    static String eventJs(String type, String source, boolean talking, String channel, String fn) {
+        StringBuilder b = new StringBuilder();
+        b.append("(function(){var d={type:'").append(type).append("',source:'").append(source)
+         .append("',talking:").append(talking).append(",channel:").append(JSONObject.quote(channel == null ? "" : channel)).append("};");
+        b.append("try{window.dispatchEvent(new CustomEvent('mr-talkie-native',{detail:d}));}catch(e){}");
+        if (fn != null) {
+            b.append("try{var T=window.MrTalkie;");
+            if ("pttUp".equals(fn)) b.append("if(T&&typeof T.pttUp==='function')T.pttUp();else if(T&&typeof T.toggle==='function')T.toggle();");
+            else b.append("if(T&&typeof T.").append(fn).append("==='function')T.").append(fn).append("();");
+            b.append("}catch(e){}");
+        }
+        b.append("})();");
+        return b.toString();
+    }
+
+    @PluginMethod
+    public void start(final PluginCall call) {
+        if (pendingStart != null) { call.reject("deja-en-cours"); return; }
+        boolean wantBt = !Boolean.FALSE.equals(call.getBoolean("bluetooth", true));
+        ArrayList<String> need = new ArrayList<>();
+        if (getPermissionState("micro") != PermissionState.GRANTED) need.add("micro");
+        if (wantBt && Build.VERSION.SDK_INT >= 31) {
+            PermissionState b = getPermissionState("bluetooth");
+            if (b == PermissionState.PROMPT || b == PermissionState.PROMPT_WITH_RATIONALE) need.add("bluetooth");
+        }
+        if (!need.isEmpty()) { requestPermissionForAliases(need.toArray(new String[0]), call, "permDone"); return; }
+        launch(call);
+    }
+
+    // Le micro est obligatoire (Android 14 : sans lui startForeground lève une SecurityException) ; le Bluetooth est facultatif
+    @PermissionCallback
+    private void permDone(PluginCall call) {
+        if (getPermissionState("micro") != PermissionState.GRANTED) { call.reject("no-permission-micro"); return; }
+        launch(call);
+    }
+
+    private void launch(PluginCall call) {
+        Context c = getContext();
+        Intent i = new Intent(c, MrTalkieService.class).setAction(MrTalkieService.START)
+            .putExtra("channel", call.getString("channel", ""))
+            .putExtra("lang", call.getString("lang", ""))
+            .putExtra("bluetooth", !Boolean.FALSE.equals(call.getBoolean("bluetooth", true)));
+        synchronized (this) { pendingStart = call; }
+        h.postDelayed(startTimeout, 6000);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+        } catch (Exception e) {
+            // Android 12+ : ForegroundServiceStartNotAllowedException quand l'appli n'est pas visible
+            String n = e.getClass().getSimpleName();
+            finishStart(false, n.contains("NotAllowed") ? "demarrage-interdit-arriere-plan" : "service-refuse", "", "none");
+        }
+    }
+
+    private synchronized PluginCall takePending() {
+        PluginCall c = pendingStart;
+        pendingStart = null;
+        return c;
+    }
+
+    private void finishStart(boolean ok, String code, String channel, String route) {
+        h.removeCallbacks(startTimeout);
+        PluginCall call = takePending();
+        if (call == null) return;
+        if (!ok) { call.reject(code); return; }
+        JSObject r = new JSObject();
+        r.put("running", true);
+        r.put("channel", channel);
+        r.put("audioRoute", route);
+        call.resolve(r);
+    }
+
+    // Réponse du service : lancé (ok) ou refusé par Android (code)
+    static void startResult(final boolean ok, final String code, final String channel, final String route) {
+        final MrTalkiePlugin p = inst;
+        if (p == null) return;
+        p.h.post(new Runnable() { public void run() { p.finishStart(ok, code, channel, route); } });
+    }
+
+    @PluginMethod
+    public void stop(PluginCall call) {
+        MrTalkieService s = MrTalkieService.inst;
+        if (s != null) s.stopReason = "plugin";
+        try { getContext().stopService(new Intent(getContext(), MrTalkieService.class)); } catch (Exception e) {}
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void isRunning(PluginCall call) {
+        MrTalkieService s = MrTalkieService.inst;
+        JSObject r = new JSObject();
+        boolean on = s != null && s.active;
+        r.put("running", on);
+        r.put("talking", on && s.talking);
+        r.put("channel", on ? s.channel : "");
+        r.put("audioRoute", on ? s.audioRoute : "none");
+        call.resolve(r);
+    }
+
+    // Facultatif : la page dit au natif où elle en est (sert au focus audio, à la notification et au délai de 30 s)
+    @PluginMethod
+    public void state(PluginCall call) {
+        final MrTalkieService s = MrTalkieService.inst;
+        JSObject r = new JSObject();
+        r.put("running", s != null && s.active);
+        if (s != null) {
+            final Boolean t = call.getBoolean("talking");
+            final Boolean rc = call.getBoolean("receiving");
+            h.post(new Runnable() { public void run() { s.applyState(t, rc); } });
+        }
+        call.resolve(r);
+    }
+}
+`);
+
+fs.writeFileSync(javaDir + '/MrTalkieService.java', `package com.motoroute.app;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ServiceInfo;
+import android.media.AudioAttributes;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.os.SystemClock;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
+import android.view.KeyEvent;
+import androidx.core.app.NotificationCompat;
+import java.util.Locale;
+
+// Service au premier plan de type « microphone » du talkie-walkie (voir le long commentaire de patch-android.js)
+public class MrTalkieService extends Service {
+    static volatile MrTalkieService inst = null;
+    static final String START = "com.motoroute.app.TALKIE_START";
+    static final String CH = "mr_talkie_v1";
+    private static final int NID = 12001;
+    static final long TALK_MAX_MS = 30000L;       // sécurité : une prise de parole ne dépasse jamais 30 s
+    private static final long RECEIVE_MAX_MS = 45000L; // « réception » non renouvelée par la page : on rend le son
+
+    volatile boolean active = false;
+    volatile boolean talking = false;
+    volatile String channel = "";
+    volatile String audioRoute = "none";           // none | off | bt-sco | bt-refuse | bt-erreur
+    volatile String stopReason = "system";
+    private boolean receiving = false, useBt = true, hasFocus = false, routed = false, modeSaved = false;
+    private int savedMode = AudioManager.MODE_NORMAL;
+    private String lang = "fr", lastWhy = "service-refuse";
+    private long lastPress = 0;
+    private MediaSessionCompat session;
+    private PowerManager.WakeLock cpu;
+    private AudioManager am;
+    private AudioFocusRequest focusReq;
+    private AudioDeviceCallback devCb;
+    private final Handler h = new Handler(Looper.getMainLooper());
+
+    @Override
+    public IBinder onBind(Intent intent) { return null; }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        inst = this;
+        am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+    }
+
+    // ---------- textes (langue du téléphone, ou lang={fr|ar|en} donné par la page) ----------
+    private String L(String fr, String ar, String en) { return "ar".equals(lang) ? ar : "en".equals(lang) ? en : fr; }
+
+    private static String pickLang(String wanted) {
+        String l = wanted == null ? "" : wanted.trim().toLowerCase(Locale.ROOT);
+        if (l.length() < 2) l = Locale.getDefault().getLanguage();
+        if (l.startsWith("ar")) return "ar";
+        if (l.startsWith("en")) return "en";
+        return "fr";
+    }
+
+    private static String clean(String s) {
+        if (s == null) return "";
+        StringBuilder b = new StringBuilder();
+        for (int k = 0; k < s.length() && b.length() < 40; k++) {
+            char c = s.charAt(k);
+            b.append(Character.isISOControl(c) ? ' ' : c);
+        }
+        return b.toString().trim();
+    }
+
+    private String title() {
+        if (channel.isEmpty()) return L("📻 Talkie-walkie", "📻 جهاز اللاسلكي", "📻 Walkie-talkie");
+        return L("📻 Talkie-walkie — canal ", "📻 جهاز اللاسلكي — القناة ", "📻 Walkie-talkie — channel ") + channel;
+    }
+
+    private PendingIntent act(String a, int code) {
+        Intent i = new Intent(this, MrTalkieService.class).setAction(a);
+        return PendingIntent.getService(this, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private void makeChannel() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null || nm.getNotificationChannel(CH) != null) return;
+        NotificationChannel ch = new NotificationChannel(CH, L("Talkie-walkie MotoRoute", "جهاز اللاسلكي - موتوروت", "MotoRoute walkie-talkie"), NotificationManager.IMPORTANCE_LOW);
+        ch.setDescription(L("Affichée tant que le talkie-walkie est actif (micro ouvert).", "تظهر طالما كان جهاز اللاسلكي يعمل (الميكروفون مفتوح).", "Shown while the walkie-talkie is on (microphone open)."));
+        ch.setShowBadge(false);
+        ch.setSound(null, null);
+        ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.createNotificationChannel(ch);
+    }
+
+    private Notification build() {
+        Intent o = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent open = PendingIntent.getActivity(this, NID, o, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String text = talking ? L("🎙 Tu parles…", "🎙 أنت تتحدّث…", "🎙 You are talking…")
+            : receiving ? L("🔊 Réception…", "🔊 استقبال…", "🔊 Receiving…")
+            : L("Prêt — appuie sur le bouton du casque pour parler", "جاهز — اضغط زر الخوذة للتحدّث", "Ready — press your headset button to talk");
+        return new NotificationCompat.Builder(this, CH)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle(title())
+            .setContentText(text)
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .addAction(android.R.drawable.ic_btn_speak_now, talking ? L("Fin de parole", "انتهيت", "Done") : L("Parler", "تحدّث", "Talk"), act("mr.talkie.ptt", 1))
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, L("Arrêter", "إيقاف", "Stop"), act("mr.talkie.stop", 2))
+            .build();
+    }
+
+    private void refresh() {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.notify(NID, build());
+        } catch (Exception e) {}
+    }
+
+    // Code d'erreur donné à la page quand Android refuse le service
+    private static String why(Exception e) {
+        if (e.getClass().getSimpleName().contains("NotAllowed")) return "demarrage-interdit-arriere-plan";
+        if (e instanceof SecurityException) return "micro-refuse"; // autorisation micro absente, ou appli pas visible (Android 14+)
+        return "service-refuse";
+    }
+
+    private boolean goForeground() {
+        try {
+            Notification n = build();
+            if (Build.VERSION.SDK_INT >= 30) startForeground(NID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+            else startForeground(NID, n);
+            return true;
+        } catch (Exception e) {
+            lastWhy = why(e);
+            return false;
+        }
+    }
+
+    // ---------- démarrage / arrêt ----------
+    @Override
+    public int onStartCommand(Intent i, int flags, int startId) {
+        String a = i == null ? null : i.getAction();
+        if (START.equals(a)) { begin(i); return START_NOT_STICKY; }
+        // bouton de notification arrivé alors que le talkie n'est plus actif : on ne reste pas là pour rien
+        if (!active) { stopSelf(); return START_NOT_STICKY; }
+        if ("mr.talkie.ptt".equals(a)) toggleTalking("notification");
+        else if ("mr.talkie.stop".equals(a)) { stopReason = "notification"; stopSelf(); }
+        return START_NOT_STICKY;
+    }
+
+    private void begin(Intent i) {
+        channel = clean(i.getStringExtra("channel"));
+        lang = pickLang(i.getStringExtra("lang"));
+        useBt = i.getBooleanExtra("bluetooth", true);
+        makeChannel();
+        if (active) { refresh(); route(); MrTalkiePlugin.startResult(true, null, channel, audioRoute); return; }
+        if (!goForeground()) {
+            // Android refuse (micro non accordé, appli pas visible…) : on le dit à la page, sans planter
+            MrTalkiePlugin.startResult(false, lastWhy, channel, "none");
+            stopSelf();
+            return;
+        }
+        active = true;
+        stopReason = "system";
+        talking = false;
+        receiving = false;
+        startSession();
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MotoRoute:talkie");
+            cpu.setReferenceCounted(false);
+            cpu.acquire(4 * 60 * 60 * 1000L);
+        } catch (Exception e) {}
+        watchDevices();
+        route();
+        MrTalkiePlugin.startResult(true, null, channel, audioRoute);
+    }
+
+    // ---------- boutons du casque (session média dédiée) ----------
+    private PlaybackStateCompat pb(int st) {
+        return new PlaybackStateCompat.Builder()
+            .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            .setState(st, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, st == PlaybackStateCompat.STATE_PLAYING ? 1f : 0f).build();
+    }
+
+    private void startSession() {
+        session = new MediaSessionCompat(this, "MotoRoute-Talkie");
+        session.setCallback(new MediaSessionCompat.Callback() {
+            @Override
+            @SuppressWarnings("deprecation")
+            public boolean onMediaButtonEvent(Intent e) {
+                KeyEvent ke = e == null ? null : (KeyEvent) e.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                if (ke == null) return false;
+                int k = ke.getKeyCode();
+                boolean down = ke.getAction() == KeyEvent.ACTION_DOWN && ke.getRepeatCount() == 0;
+                if (k == KeyEvent.KEYCODE_HEADSETHOOK || k == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                    || k == KeyEvent.KEYCODE_MEDIA_PLAY || k == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+                    if (down) toggleTalking("headset");
+                    return true;
+                }
+                if (k == KeyEvent.KEYCODE_MEDIA_NEXT) { if (down) toMusic("next"); return true; }
+                if (k == KeyEvent.KEYCODE_MEDIA_PREVIOUS) { if (down) toMusic("prev"); return true; }
+                return super.onMediaButtonEvent(e);
+            }
+            // certains casques envoient play/pause par commande de transport et non par touche : même effet (anti-doublon dans toggleTalking)
+            @Override public void onPlay() { toggleTalking("headset"); }
+            @Override public void onPause() { toggleTalking("headset"); }
+            @Override public void onSkipToNext() { toMusic("next"); }
+            @Override public void onSkipToPrevious() { toMusic("prev"); }
+        });
+        session.setMetadata(new MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title())
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "MotoRoute").build());
+        session.setPlaybackState(pb(PlaybackStateCompat.STATE_PLAYING));
+        session.setActive(true);
+    }
+
+    // Les pistes suivant/précédent restent à la musique si elle tourne
+    private void toMusic(String action) { if (MrMusicService.inst != null) MrMusicPlugin.emit(action); }
+
+    // Appelé par MrMusicService quand sa session change d'état : repasser PAUSED puis PLAYING redonne la priorité aux boutons
+    static void reclaimButtons() {
+        final MrTalkieService s = inst;
+        if (s == null || !s.active) return;
+        s.h.post(new Runnable() { public void run() {
+            if (!s.active || s.session == null) return;
+            try {
+                s.session.setPlaybackState(s.pb(PlaybackStateCompat.STATE_PAUSED));
+                s.session.setPlaybackState(s.pb(PlaybackStateCompat.STATE_PLAYING));
+            } catch (Exception e) {}
+        }});
+    }
+
+    // ---------- prise de parole ----------
+    private void toggleTalking(String source) {
+        if (!active) return;
+        long now = SystemClock.uptimeMillis();
+        if (now - lastPress < 400) return; // un appui = un seul basculement (touche + commande de transport, rebonds)
+        lastPress = now;
+        setTalking(!talking);
+        MrTalkiePlugin.js(MrTalkiePlugin.eventJs("button", source, talking, channel, "toggle"));
+    }
+
+    private final Runnable talkTimeout = new Runnable() {
+        public void run() {
+            if (!talking) return;
+            setTalking(false);
+            MrTalkiePlugin.js(MrTalkiePlugin.eventJs("timeout", "timer", false, channel, "pttUp"));
+        }
+    };
+
+    private final Runnable recvTimeout = new Runnable() {
+        public void run() { receiving = false; updateFocus(); refresh(); }
+    };
+
+    private void setTalking(boolean t) {
+        talking = t;
+        h.removeCallbacks(talkTimeout);
+        if (t) h.postDelayed(talkTimeout, TALK_MAX_MS);
+        updateFocus();
+        refresh();
+    }
+
+    // état annoncé par la page (facultatif)
+    void applyState(Boolean t, Boolean r) {
+        if (!active) return;
+        if (t != null && t.booleanValue() != talking) setTalking(t.booleanValue());
+        if (r != null) {
+            receiving = r.booleanValue();
+            h.removeCallbacks(recvTimeout);
+            if (receiving) h.postDelayed(recvTimeout, RECEIVE_MAX_MS);
+            updateFocus();
+            refresh();
+        }
+    }
+
+    // ---------- focus audio : baisser les autres applis pendant qu'on parle ou qu'on reçoit ----------
+    private final AudioManager.OnAudioFocusChangeListener focusListener = new AudioManager.OnAudioFocusChangeListener() {
+        public void onAudioFocusChange(int change) {
+            if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                // appel téléphonique ou autre appli qui prend tout le son : on arrête la prise de parole
+                hasFocus = false;
+                if (talking) {
+                    setTalking(false);
+                    MrTalkiePlugin.js(MrTalkiePlugin.eventJs("focus", "system", false, channel, "pttUp"));
+                }
+            }
+        }
+    };
+
+    private final Runnable abandonFocus = new Runnable() {
+        public void run() { if (!(talking || receiving)) dropFocus(); }
+    };
+
+    private void updateFocus() {
+        h.removeCallbacks(abandonFocus);
+        if (talking || receiving) { if (!hasFocus) takeFocus(); }
+        else if (hasFocus) h.postDelayed(abandonFocus, 800); // petit délai : pas de « pompage » entre deux messages rapprochés
+    }
+
+    private void takeFocus() {
+        if (am == null) return;
+        try {
+            int r;
+            if (Build.VERSION.SDK_INT >= 26) {
+                focusReq = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                    .setOnAudioFocusChangeListener(focusListener, h)
+                    .build();
+                r = am.requestAudioFocus(focusReq);
+            } else {
+                r = am.requestAudioFocus(focusListener, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+            }
+            hasFocus = r == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        } catch (Exception e) { hasFocus = false; }
+    }
+
+    private void dropFocus() {
+        if (am == null) return;
+        try {
+            if (Build.VERSION.SDK_INT >= 26) { if (focusReq != null) am.abandonAudioFocusRequest(focusReq); }
+            else am.abandonAudioFocus(focusListener);
+        } catch (Exception e) {}
+        hasFocus = false;
+    }
+
+    // ---------- casque Bluetooth : micro et son par la voie « téléphone » (SCO) ----------
+    private final Runnable reroute = new Runnable() { public void run() { if (active) route(); } };
+
+    private void watchDevices() {
+        if (am == null) return;
+        try {
+            devCb = new AudioDeviceCallback() {
+                @Override public void onAudioDevicesAdded(AudioDeviceInfo[] d) { h.removeCallbacks(reroute); h.postDelayed(reroute, 400); }
+                @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] d) { h.removeCallbacks(reroute); h.postDelayed(reroute, 400); }
+            };
+            am.registerAudioDeviceCallback(devCb, h);
+        } catch (Exception e) { devCb = null; }
+    }
+
+    private void saveMode() {
+        if (!modeSaved) { savedMode = am.getMode(); modeSaved = true; }
+    }
+
+    private void route() {
+        if (am == null) return;
+        try {
+            if (!useBt) { releaseRoute(); audioRoute = "off"; return; }
+            if (Build.VERSION.SDK_INT >= 31) {
+                AudioDeviceInfo bt = null;
+                for (AudioDeviceInfo d : am.getAvailableCommunicationDevices()) {
+                    int t = d.getType();
+                    if (t == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || t == AudioDeviceInfo.TYPE_BLE_HEADSET) { bt = d; break; }
+                }
+                if (bt == null) { releaseRoute(); audioRoute = "none"; return; }
+                AudioDeviceInfo cur = am.getCommunicationDevice();
+                if (routed && cur != null && cur.getId() == bt.getId()) { audioRoute = "bt-sco"; return; }
+                saveMode();
+                am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                if (am.setCommunicationDevice(bt)) { routed = true; audioRoute = "bt-sco"; }
+                else { releaseRoute(); audioRoute = "bt-refuse"; }
+            } else {
+                boolean bt = false;
+                for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                    int t = d.getType();
+                    if (t == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) bt = true;
+                }
+                if (!bt) { releaseRoute(); audioRoute = "none"; return; }
+                if (routed) { audioRoute = "bt-sco"; return; }
+                saveMode();
+                am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                am.startBluetoothSco();
+                am.setBluetoothScoOn(true);
+                routed = true;
+                audioRoute = "bt-sco";
+            }
+        } catch (Throwable e) {
+            releaseRoute();
+            audioRoute = "bt-erreur"; // ex. autorisation Bluetooth refusée : le talkie marche quand même avec le micro du téléphone
+        }
+    }
+
+    private void releaseRoute() {
+        if (am == null || !(routed || modeSaved)) return;
+        try {
+            if (routed) {
+                if (Build.VERSION.SDK_INT >= 31) am.clearCommunicationDevice();
+                else { am.stopBluetoothSco(); am.setBluetoothScoOn(false); }
+            }
+        } catch (Throwable e) {}
+        // on ne remet pas le mode si un appel téléphonique l'a changé entre-temps
+        try { if (modeSaved && am.getMode() == AudioManager.MODE_IN_COMMUNICATION) am.setMode(savedMode); } catch (Throwable e) {}
+        routed = false;
+        modeSaved = false;
+    }
+
+    // ---------- fin ----------
+    // Android 15+ : si un type de service reçoit une limite de durée, on s'arrête proprement au lieu de provoquer une erreur
+    public void onTimeout(int startId) { stopReason = "timeout"; stopSelf(); }
+    public void onTimeout(int startId, int type) { stopReason = "timeout"; stopSelf(); }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // l'appli est balayée de l'écran des applis récentes : la page n'existe plus, le micro doit se fermer
+        stopReason = "task-removed";
+        stopSelf();
+        super.onTaskRemoved(rootIntent);
+    }
+
+    @Override
+    public void onDestroy() {
+        boolean was = active;
+        active = false;
+        talking = false;
+        receiving = false;
+        if (inst == this) inst = null;
+        h.removeCallbacksAndMessages(null);
+        dropFocus();
+        releaseRoute();
+        try { if (devCb != null && am != null) am.unregisterAudioDeviceCallback(devCb); } catch (Exception e) {}
+        devCb = null;
+        try { if (session != null) { session.setActive(false); session.release(); } } catch (Exception e) {}
+        try { if (cpu != null && cpu.isHeld()) cpu.release(); } catch (Exception e) {}
+        try {
+            if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true);
+        } catch (Exception e) {}
+        if (was) MrTalkiePlugin.js(MrTalkiePlugin.eventJs("stop", stopReason, false, channel, null));
+        super.onDestroy();
+    }
+}
+`);
+
+{
+  // MainActivity : enregistrement du plugin MrTalkie (à côté de MrSms et MrMusic)
+  const mp = javaDir + '/MainActivity.java';
+  let ma = fs.readFileSync(mp, 'utf8');
+  if (!ma.includes('MrTalkiePlugin')) ma = ma.replace('registerPlugin(MrMusicPlugin.class);', 'registerPlugin(MrMusicPlugin.class);\n        registerPlugin(MrTalkiePlugin.class);');
+  if (!ma.includes('MrTalkiePlugin')) throw new Error('patch-android : MainActivity sans MrTalkiePlugin');
+  fs.writeFileSync(mp, ma);
+
+  // Manifeste : service « microphone » + autorisations (RECORD_AUDIO et MODIFY_AUDIO_SETTINGS existent déjà plus haut)
+  const talkiePerms = ['android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_MICROPHONE', 'android.permission.RECORD_AUDIO',
+    'android.permission.MODIFY_AUDIO_SETTINGS', 'android.permission.WAKE_LOCK', 'android.permission.BLUETOOTH_CONNECT'];
+  let m = fs.readFileSync(path, 'utf8');
+  for (const p of talkiePerms) {
+    if (!m.includes(`"${p}"`)) m = m.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
+  }
+  // sans ces lignes, RECORD_AUDIO rend le micro « obligatoire » et Google Play cacherait l'appli aux tablettes sans micro
+  for (const f of ['android.hardware.microphone', 'android.hardware.bluetooth']) {
+    if (!m.includes(`"${f}"`)) m = m.replace('</manifest>', `    <uses-feature android:name="${f}" android:required="false" />\n</manifest>`);
+  }
+  if (!m.includes('MrTalkieService')) m = m.replace('</application>', '        <service android:name=".MrTalkieService" android:exported="false" android:foregroundServiceType="microphone" />\n    </application>');
+  fs.writeFileSync(path, m);
+
+  // contrôle : si le manifeste n'est pas conforme Android 14+, la fabrication s'arrête ici
+  const svc = m.match(/<service[^>]*\.MrTalkieService[^>]*>/);
+  if (!svc || !svc[0].includes('android:foregroundServiceType="microphone"')) throw new Error('patch-android : MrTalkieService sans foregroundServiceType="microphone"');
+  for (const p of talkiePerms) if (!m.includes(`"${p}"`)) throw new Error('patch-android : autorisation talkie manquante : ' + p);
+  console.log('Talkie-walkie : plugin MrTalkie + service MrTalkieService (micro au premier plan, bouton du casque, focus audio, Bluetooth)');
 }
 
 // ---------------------------------------------------------------------------------------------

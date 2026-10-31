@@ -99,6 +99,11 @@ jobs:
           for P in SEND_SMS CALL_PHONE; do
             grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le SOS automatique ne marcherait plus."; exit 1; }
           done
+          # 29/10 : talkie-walkie de groupe. Android 14+ refuse un service « microphone » sans ces deux autorisations
+          # (le service est déclaré avec foregroundServiceType="microphone" : contrôle fait par scripts/patch-android.js).
+          for P in RECORD_AUDIO FOREGROUND_SERVICE_MICROPHONE; do
+            grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le talkie-walkie (micro au premier plan) ne marcherait plus."; exit 1; }
+          done
           rm -f badging.txt
 
       - name: Garder les fichiers (onglet Actions)
