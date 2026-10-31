@@ -1,5 +1,22 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **Point du 31/10, 21 h 30 : test-71.** Fait :
+> - A1 à A9, A11, A12 : suivi en direct sans doublon, miniatures photos (400 px, cache 1 an), synchro limitée (30 derniers jours + à venir), capteurs seulement en trajet, SOS rouge fixe en haut de tous les onglets, barre du haut regroupée dans « ☰ Menu » (Mode gants en premier), libellés du mode gants, « + » en arabe, cartes de sortie allégées, aide réécrite (Conduite, Talkie, tutoiement).
+> - A5 talkie : comptage toutes les 5 min, 2 ratés = coupure, quota revérifié à la session et à l'écoute. Le téléphone suit le rythme donné par le serveur (compatible avec l'ancienne fonction).
+> - **Détection de chute** (retour d'Elaid : un geste de la main la déclenchait) : alerte seulement si la moto roulait (≥ 15 km/h dans les 90 s avant le choc), choc > 4 g, immobilité mesurée après le choc ; vitesse calculée si le téléphone ne la donne pas. Vérifié en simulation (8 scénarios).
+> - **Inclinaison** (retour d'Elaid : 46° dans l'app, 37° max sur le tableau de bord de sa Z H2) : calcul corrigé dans www/js/lean.js (angle de la MOTO et non de l'ensemble moto + pilote, lacet autour de la gravité instantanée, lissage avant l'arcsinus). Nouveau banc scripts/banc/banc-realiste.js (retard GPS, freinage, pilote penché, angle MAX) : pire cas 28° vrai → 41° app avant, → 35° maintenant.
+> - **Inclinaison colorée déplacée dans Conduite** (www/js/inclinaison.js) : 5 couleurs, virages numérotés, plein écran avec zoom, détail de chaque virage, profil, et réglage « Ma moto affichait un autre angle ? » (coefficient S.leanK).
+> - B1 à B9 préparés : supabase/securite-31-10.sql (testé 2 fois sur une base locale, non appliqué) + politique de confidentialité à jour ; app déjà adaptée (code ange gardien protégé + « Changer mon code », sirène SOS anti-spam dans sos-push).
+>
+> **À faire par Elaid (refusé depuis la session de Claude) :**
+> 1. Coller dans le SQL Editor : https://elaidremili-sudo.github.io/Elaid/sql/talkie-quota-v2.html puis https://elaidremili-sudo.github.io/Elaid/sql/securite-31-10.html (si pg_cron est refusé : Database → Extensions → pg_cron, puis relancer).
+> 2. Remettre en ligne les fonctions **talkie** et **sos-push** (depuis un PC avec Claude, ou dire « déploie » dans une session qui en a le droit).
+> 3. Tester test-71 : secouer le téléphone à la main (aucune alerte), un trajet en virages en comparant avec le tableau de bord, puis « Ma moto affichait un autre angle ? ».
+>
+> **Décisions en attente :** SOS des nouveaux membres dans les groupes publics ouverts bloqué 24 h (B3) : garder ? Fiche d'urgence : synchroniser de nouveau avec le compte ou la laisser sur le téléphone ? Cases « Partager ma position avec mon groupe » / « Prévenir quand un motard est proche » de Route sans effet : retirer la carte ?
+>
+> **Reste dans la liste :** A10 (TESTING=false le jour de Google Play), B5 (SMS/appel limités aux numéros d'urgence, module Android), B10 (supprimer fcm-check), puis C, D, E ci-dessous.
+
 **Règle décidée par Elaid :** à la prochaine reprise, on termine cette liste dans l'ordre avant d'ajouter quoi que ce soit.
 
 ## Résumé

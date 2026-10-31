@@ -14,7 +14,7 @@
 --  B3) sirène SOS : dans un groupe PUBLIC et OUVERT À TOUS, il faut être membre depuis plus de 24 h
 --      (le chef, les groupes privés et les groupes « sur validation » ne sont pas concernés) ;
 --      la date d'adhésion (joined_at) ne peut plus être truquée par le téléphone ;
---  B4) quotas par membre et par 24 h : 20 photos de bonnes adresses, 24 photos d'annonces (chaque photo = 2 fichiers,
+--  B4) quotas par membre et par 24 h : 60 photos de bonnes adresses, 40 photos d'annonces (chaque photo = 2 fichiers,
 --      la photo + sa miniature « -t.jpg »), 300 messages vocaux ;
 --  B6) code ange gardien : 5 essais ratés par 15 minutes et 20 par 24 h au maximum, et possibilité de le changer ;
 --  B7) effacements automatiques réels (pg_cron, toutes les 30 min) : positions en direct après 8 h, alertes SOS
