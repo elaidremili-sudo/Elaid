@@ -91,6 +91,12 @@
   try {
     if (typeof routeView != 'function') return;
     var _rv = routeView;
-    routeView = function (t) { var h = _rv(t), s = window.mrSupportHtml ? window.mrSupportHtml() : ''; return s ? h + '<div class="card"><div class="row" style="justify-content:center">' + s + '</div></div>' : h; };
+    routeView = function (t) {
+      var h = _rv(t), s = window.mrSupportHtml ? window.mrSupportHtml() : '';
+      if (s) h += '<div class="card"><div class="row" style="justify-content:center">' + s + '</div></div>';
+      /* test-67 : gros bouton SOS rouge tout en haut de l'onglet Route (ce fichier est chargé en dernier : son ajout passe devant toutes les autres cartes) */
+      var sos = ''; try { sos = window.mrSosTopHtml ? window.mrSosTopHtml(t) : ''; } catch (e) {}
+      return sos + h;
+    };
   } catch (e) {}
 })();
