@@ -40,6 +40,11 @@ const SID_RE = /^[A-Za-z0-9_-]{8,128}$/;
 const TRACK_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const MID_RE = /^[A-Za-z0-9_-]{1,16}$/;
 const MAX_SESSIONS_PER_HOUR = 30; // anti-abus : sessions Cloudflare créées par un même membre
+// COUPE-CIRCUIT (supabase/talkie-quota.sql) : minutes de CONNEXION au direct (surestime la vraie consommation,
+// le son ne part que quand quelqu'un parle). 1 000 Go gratuits/mois ≈ 1,2 million de minutes d'écoute : on s'arrête bien avant.
+// Au-delà, le direct est refusé et l'app repasse toute seule en messages vocaux (rien n'est facturé par Cloudflare).
+const MONTH_MINUTES = Number(Deno.env.get("TALKIE_MONTH_MINUTES") || 300000); // tout le club, par mois
+const DAY_MINUTES = Number(Deno.env.get("TALKIE_DAY_MINUTES") || 240);        // par membre et par jour (4 h)
 const STUN = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.cloudflare.com:53"] }];
 
 type Obj = Record<string, unknown>;
@@ -151,6 +156,12 @@ Deno.serve(async (req) => {
     // « join » : l'app demande si le direct est disponible. Pas configuré = réponse normale (mode B).
     if (action === "join") {
       if (!configured) return json({ ok: true, configured: false });
+      // Quota : si le compteur est illisible (script non appliqué…), on refuse le direct par prudence (pas de facture surprise)
+      const { data: u, error: qe } = await admin.rpc("mr_talkie_usage", { p_user: me });
+      const row = Array.isArray(u) ? u[0] : u;
+      if (qe || !row || Number(row.month_minutes) >= MONTH_MINUTES || Number(row.day_minutes) >= DAY_MINUTES) {
+        return json({ ok: true, configured: false, quota: true });
+      }
       return json({ ok: true, configured: true, iceServers: await iceServers() });
     }
     if (!configured) return json({ ok: false, why: "nocf" });
@@ -173,6 +184,14 @@ Deno.serve(async (req) => {
     const { data: own } = await admin.from("talkie_live").select("session_id")
       .eq("session_id", sid).eq("user_id", me).eq("channel", channel).maybeSingle();
     if (!own) return json({ ok: false, why: "session" }, 403);
+
+    // Une minute de direct de plus (appelé chaque minute par le téléphone tant que le direct est connecté)
+    if (action === "tick") {
+      const { data: u, error: te } = await admin.rpc("mr_talkie_tick", { p_user: me });
+      const row = Array.isArray(u) ? u[0] : u;
+      const stop = !!te || !row || Number(row.month_minutes) >= MONTH_MINUTES || Number(row.day_minutes) >= DAY_MINUTES;
+      return json({ ok: true, stop });
+    }
 
     if (action === "push") {                 // publier SA piste micro
       const offer = sdp(b.offer, "offer");

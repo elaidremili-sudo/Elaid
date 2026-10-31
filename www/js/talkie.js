@@ -395,7 +395,7 @@
     if (weakNet()) { note(t('weak'), 5000); return; }
     try {
       const j = await fn('join'); if (gen !== D.gen || key !== ST.key) return;
-      if (!j.ok || !j.configured) return;                    // Cloudflare pas configuré : mode B, rien à signaler
+      if (!j.ok || !j.configured) { if (j.ok) D.configured = false; return; } // pas configuré ou quota atteint : mode B, plus d'essais
       const s = await fn('session'); if (gen !== D.gen || !s.ok || !s.sessionId) throw new Error('session');
       D.sid = s.sessionId;
       const pc = new RTCPeerConnection({ iceServers: j.iceServers || [{ urls: 'stun:stun.cloudflare.com:3478' }], bundlePolicy: 'max-bundle' });
@@ -403,7 +403,7 @@
       pc.ontrack = onRemoteTrack;
       pc.onconnectionstatechange = () => {
         if (D.pc !== pc) return;
-        if (pc.connectionState === 'connected') { D.ready = true; D.tries = 0; track(); calcStatus(); }
+        if (pc.connectionState === 'connected') { D.ready = true; D.tries = 0; track(); calcStatus(); startTicks(); }
         else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') directDown('pc-' + pc.connectionState);
         else if (pc.connectionState === 'disconnected') setTimeout(() => { if (D.pc === pc && pc.connectionState === 'disconnected') directDown('pc-disconnected'); }, 4000);
       };
@@ -424,7 +424,16 @@
       setTimeout(() => { if (D.pc === pc && !D.ready) directDown('timeout'); }, 8000);
     } catch (e) { warn('direct indisponible, messages vocaux', e && e.message); directDown('erreur'); }
   }
+  /* Coupe-circuit : chaque minute de direct est comptée par le serveur ; au-delà du quota, retour aux messages vocaux */
+  function startTicks() {
+    clearInterval(D.tick);
+    D.tick = setInterval(() => {
+      if (!D.ready || !D.sid) return;
+      fn('tick', { sessionId: D.sid }).then(r => { if (r && r.stop) { D.configured = false; directDown('quota'); } }).catch(() => {});
+    }, 60000);
+  }
   function directDown(why) {
+    clearInterval(D.tick);
     const was = D.ready; D.ready = false; D.gen++;
     try { D.pc && D.pc.close(); } catch (e) {}
     Object.keys(D.peers).forEach(k => { try { D.peers[k].el && D.peers[k].el.remove(); } catch (e) {} }); D.peers = {};
@@ -513,7 +522,7 @@
     unlock();
     if (ST.key === key) return true;
     if (ST.key) leave(true);
-    ST.key = key; ST.sel = key; lsSet('mr_tk_ch', key); ST.connectedOnce = false; D.tries = 0;
+    ST.key = key; ST.sel = key; lsSet('mr_tk_ch', key); ST.connectedOnce = false; D.tries = 0; D.configured = undefined;
     seen.clear(); queue.length = 0; pending.length = 0; lastMsg = null; lastSeenAt = 0;
     setStatus('connecting'); loadName(); ensureChannels(); natCall('start', { channel: key }); purgeMaybe();
     emit('state', API.state()); return true;
