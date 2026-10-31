@@ -5,7 +5,7 @@
 ## Résumé
 
 - **Dernière version : test-70.** Elle contient le talkie-walkie, les messages vocaux et le direct Cloudflare activé, avec un coupe-circuit qui limite le direct à 300 000 minutes par mois pour le club et à 4 heures par jour et par membre.
-- **Audit du 31/10.** 6 agents ont fait le tour de l'application. 3 rapports sont arrivés : écrans (25 constats), sécurité (21 constats, aucun critique), performance et serveur (18 constats). Les 3 autres audits (bugs, Google Play, SOS/talkie/capteurs) n'étaient pas finis à 15 h 55 : leurs tâches seront ajoutées ici dès qu'ils seront terminés.
+- **Audit du 31/10.** 6 agents ont fait le tour de l'application. Rapports intégrés : écrans (25 constats), sécurité (21 constats, aucun critique), performance et serveur (18 constats), Google Play (8 points bloquants, 31 à faire). Les audits bugs et SOS/talkie/capteurs seront ajoutés dès qu'ils seront terminés.
 - **Ce qui va bien :**
   - les données sont bien protégées sur le serveur (règles d'accès sur toutes les tables, auteur imposé par le serveur) ;
   - aucun secret n'est écrit dans le code ;
@@ -72,7 +72,32 @@
 5. **Sur la moto :** inclinaison, résumé du trajet, musique écran éteint, absence de fausse alerte de chute.
 
 ### E. Publication Google Play (en dernier)
-- Le résultat de l'audit Google Play détaillé sera ajouté ici. Déjà connu : 12 testeurs pendant 14 jours de test fermé, fiche Play Console (confidentialité, sécurité des données, déclaration SMS, compte de test pour l'examen, classification), AAB signé, AdMob approuvé.
+**Déjà en ordre :** Android 16 (API 36) visé, AAB signé (version 170), autorisations refusées retirées, pas de localisation en arrière-plan, suppression du compte qui marche, bannière conforme.
+
+**BLOQUANT – Claude (code) :**
+1. Politique de confidentialité : ajouter le talkie (voix, messages vocaux gardés 24 h, Cloudflare). La page dit encore que le micro ne sert qu'à filmer. *(Même tâche que B1.)*
+2. **Conditions d'utilisation** à créer, et à faire accepter avant toute publication par un membre.
+3. **Signaler et bloquer** : pouvoir signaler un message de la discussion de groupe et bloquer un membre.
+4. **Avertissement avant la demande d'accès au micro** : un texte qui explique à quoi sert le micro, affiché avant la fenêtre d'Android.
+
+**BLOQUANT – Elaid (console Play), avec l'aide de Claude :**
+5. **Compte de test** réservé à l'équipe d'examen de Google.
+6. Formulaire **« Sécurité des données »** à refaire. Il faut déclarer la voix, le groupe sanguin, les messages, les photos et l'identifiant publicitaire. Claude prépare la grille.
+7. **Déclaration SMS** : c'est le point le plus risqué. Google accepte l'envoi automatique de SMS seulement au cas par cas, au titre des « alertes d'urgence ». Prévoir un plan B : SMS prérempli, que le motard envoie lui-même, ou SMS envoyé par un serveur.
+8. **Services qui tournent écran éteint** (musique, micro du talkie) : à déclarer, avec 2 vidéos de démonstration à filmer.
+9. Dès le premier envoi : ajouter dans Firebase les **empreintes de la clé de signature de Google**. Sans ça, la sirène SOS ne marchera pas chez les testeurs.
+
+**À FAIRE aussi :**
+- Refaire les 5 captures d'écran sur test-70.
+- Refaire l'icône 512 px en PNG avec transparence.
+- Déclarations « applis de santé » et « fonctions financières », obligatoires pour toutes les applis.
+- Créer le fichier **app-ads.txt** : il faut un dépôt GitHub `elaidremili-sudo.github.io`.
+- Supprimer le vieux code AdMob de `scripts/patch-android.js` (variables ADMOB_*), qui ne sert plus.
+- Passer `TESTING=false` le jour de la production. AdMob n'examinera l'app qu'une fois publique.
+- Prévenir les testeurs : ils devront **désinstaller l'APK** avant d'installer la version Play, et ils perdront le carnet, la fiche d'urgence et les souvenirs gardés seulement sur le téléphone.
+- Ne jamais relancer une fabrication GitHub telle quelle : elle garde le même numéro de version, et Google le refuserait. Toujours repartir d'un nouvel envoi de code.
+- Ensuite : 12 testeurs pendant 14 jours d'affilée, puis demande de production (réponse en 7 jours ou moins).
+- Europe : un module de consentement AdMob serait nécessaire. Si l'app est diffusée en Algérie seulement, rien à faire.
 
 ## Déjà fait (rappel)
 - test-67 à test-70 : corrections de l'audit du 26/10, talkie-walkie (messages vocaux et direct), icône talkie, coupe-circuit.
