@@ -1,5 +1,7 @@
 # MotoRoute – Point du 29-30 octobre 2026 (test-67) — LIRE EN PREMIER
 
+> **31/10, 11 h 20 : test-69 publiée** : vraie icône talkie-walkie (au trait, antenne + bouton de côté) à la place de la radio 📻, dans le titre et le gros bouton ; boutons « Activer le son / Réécouter / Quitter » qui s'affichaient à tort désormais cachés. APK vérifiée.
+>
 > **Point de reprise 31/10, 11 h (talkie-walkie → test-68)**
 > - ✅ **test-68 publiée** (APK + AAB signés, onglet Releases) : talkie-walkie de groupe fusionné sur main ; APK vérifiée (talkie.js présent et identique, service MrTalkieService, micro déclaré).
 > - ✅ Relecture : défaut corrigé, le bouton du casque déclenchait deux fois « parler » (natif + page) → micro ouvert puis refermé aussitôt. La page signale aussi au service Android quand elle parle / écoute (focus audio) et quitte le canal si on touche « Arrêter » dans la notification. Module branché dans index.html (il ne l'était pas). Version iPhone (docs/app) remise à jour.
