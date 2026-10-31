@@ -529,8 +529,11 @@
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && ST.key) { ensureChannels(); catchUp(); } });
 
-  /* ------------------------------------------------------------------ Interface : carte « 📻 Talkie-walkie » ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ Interface : carte « Talkie-walkie » (icône talkie dessinée) ------------------------------------------------------------------ */
   const CSS = `
+  .mr-tk [hidden]{display:none!important}
+  .mr-tk .tk-h{display:flex;align-items:center;gap:8px}
+  .mr-tk .tk-h .tk-ico{color:var(--acc);flex:none}
   .mr-tk .tk-st{display:flex;align-items:center;gap:8px;font-weight:600;margin:2px 0 6px}
   .mr-tk .tk-dot{width:10px;height:10px;border-radius:50%;background:var(--mute);flex:none}
   .mr-tk[data-st=direct] .tk-dot{background:#3cc4b6;box-shadow:0 0 0 3px rgba(60,196,182,.28)}
@@ -543,7 +546,8 @@
     border:2px solid var(--acc);border-radius:18px;background:linear-gradient(180deg,rgba(242,183,5,.18),rgba(242,183,5,.05));color:var(--ink);
     font:700 24px/1.15 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.4px;text-align:center;touch-action:none;-webkit-user-select:none;user-select:none;
     -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
-  .mr-tk .tk-ptt .tk-pi{font-size:34px;line-height:1}
+  .mr-tk .tk-ptt .tk-pi{line-height:0;color:var(--acc)}
+  .mr-tk .tk-ptt.on .tk-pi{color:inherit}
   .mr-tk .tk-ptt.on{background:var(--acc);color:var(--on-acc);box-shadow:0 0 0 4px rgba(242,183,5,.35),0 0 26px rgba(242,183,5,.4);animation:tkpulse 1.4s ease-in-out infinite}
   .mr-tk .tk-ptt.busy,.mr-tk .tk-ptt.play{border-style:dashed;opacity:.7}
   .mr-tk .tk-ptt.join{background:none}
@@ -562,6 +566,8 @@
   @keyframes tkpulse{0%,100%{box-shadow:0 0 0 4px rgba(242,183,5,.35),0 0 18px rgba(242,183,5,.3)}50%{box-shadow:0 0 0 8px rgba(242,183,5,.18),0 0 32px rgba(242,183,5,.5)}}
   @keyframes tkblink{50%{opacity:.25}}
   @media (prefers-reduced-motion:reduce){.mr-tk .tk-ptt.on,.mr-tk[data-st=connecting] .tk-dot{animation:none}}`;
+  /* Icône talkie-walkie (antenne, bouton de côté, grille du haut-parleur), même style au trait que la barre du bas */
+  const ICON = '<svg class="tk-ico" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 7V1.8"/><rect x="7" y="7" width="10" height="15" rx="2.2"/><path d="M7 10.5H5.8v4.5H7"/><path d="M10 11h4M10 13.2h4M10 15.4h4"/><circle cx="12" cy="19" r="0.9"/></svg>';
   function injectCss() { if (document.getElementById('mr_tk_css')) return; const s = document.createElement('style'); s.id = 'mr_tk_css'; s.textContent = CSS; document.head.appendChild(s); }
 
   function mkCard(ctx) { const el = document.createElement('div'); el.className = 'card mr-tk'; el.dataset.ctx = ctx.kind; el.dataset.key = ctx.key || ''; el.dataset.reason = ctx.reason || ''; paint(el, true); return el; }
@@ -579,7 +585,7 @@
       const opts = ch.map(c => `<option value="${esc(c.key)}">${c.kind === 'g' ? '🏍 ' : '🚩 '}${esc(c.label)}${c.now ? ' · ' + esc(t('today')) : ''}</option>`).join('');
       body = `<div class="tk-st"><span class="tk-dot"></span><span class="tk-stt"></span></div>
 <label class="tk-lb">${esc(t('chan'))}</label><select class="tk-sel" aria-label="${esc(t('chan'))}">${opts}</select>
-<button type="button" class="tk-ptt" aria-pressed="false"><span class="tk-pi">🎙</span><span class="tk-pt"></span></button>
+<button type="button" class="tk-ptt" aria-pressed="false"><span class="tk-pi">${ICON.replace('width="24" height="24"', 'width="44" height="44"')}</span><span class="tk-pt"></span></button>
 <div class="tk-who" role="status" aria-live="polite"></div>
 <div class="tk-pend"></div>
 <button type="button" class="g tk-unl" hidden>${esc(t('unlock'))}</button>
@@ -589,7 +595,7 @@
 <div class="meta tk-note"></div>
 <div class="meta">${esc(t('hint'))}${nat() ? ' ' + esc(t('native_note')) : ''}</div>`;
     }
-    el.innerHTML = `<h3>📻 ${esc(t('title'))}</h3>${body}`;
+    el.innerHTML = `<h3 class="tk-h">${ICON}<span>${esc(t('title'))}</span></h3>${body}`;
   }
   function paint(el, force) {
     const sig = structSig(el);
