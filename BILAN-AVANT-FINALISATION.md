@@ -1,10 +1,16 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **REPRISE (01/11, 8 h 51) — ordre à suivre :**
+> 1. Elaid installe test-73 sur ses 2 téléphones et ouvre l'app une fois (enregistre les numéros d'urgence du SOS).
+> 2. Essais 2 téléphones : carte Route (2 comptes du même groupe, 2 cases cochées → « Motards proches » + alerte), fiche d'urgence reprise du compte, SOS de test (SMS + appel vers le contact), secouer le téléphone (aucune alerte de chute), inclinaison vs tableau de bord Z H2, talkie en direct.
+> 3. Depuis un PC : remettre en ligne les fonctions talkie et sos-push, supprimer fcm-check (refusé depuis les sessions mobiles de Claude).
+> 4. Ensuite dans la liste : C (consoles Elaid), puis E côté Claude : conditions d'utilisation, signaler / bloquer un membre, avertissement avant l'accès au micro.
+>
 > **Point du 01/11, 8 h 40 : test-73.** Décisions d'Elaid : blocage de 24 h du SOS **gardé** ; fiche d'urgence **synchronisée avec le compte** ; carte Route « Position et motards proches » **à faire marcher** (pas à retirer).
 > - Fiche d'urgence (www/js/fiche-sync.js) : enregistrée sur le compte à chaque modification ; reprise du compte sur un nouveau téléphone ; la plus récente gagne. Politique de confidentialité déjà conforme.
 > - « Partager ma position avec mon groupe » et « Prévenir quand un motard est proche » marchent (www/js/proches.js + supabase/proches.sql) : position envoyée au plus 1 fois/min tant que l'app est ouverte, approximative ~2 km si choisie, visible 30 min par les membres de ses groupes seulement, effacée au décochage ; alerte (vibration, bip, bandeau) si un membre est à moins de 3 km, 1 fois par motard toutes les 2 h. Politique de confidentialité complétée (FR, AR, EN).
 > - Essayé dans un navigateur avec un faux serveur : fiche reprise et renvoyée, position envoyée et effacée, alerte pour un membre à 1,1 km, rien pour un membre à Oran. SQL essayé sur une base locale (prénom et compte imposés, autres groupes invisibles, 1 envoi / 20 s).
-> - **À faire par Elaid :** coller https://elaidremili-sudo.github.io/Elaid/sql/proches.html dans le SQL Editor (Run → Success). Sans ce script, la carte affiche « Serveur pas encore prêt ».
+> - ~~Coller proches.sql~~ : **fait par Elaid à 8 h 49, vérifié sur le serveur** (4 règles d'accès, contrôle d'écriture, effacement mr-purge-member-positions toutes les 30 min, aucun accès sans compte).
 > - **À essayer avec 2 téléphones :** 2 comptes dans le même groupe, cocher les 2 cases sur chacun, ouvrir Route : chacun doit voir l'autre dans « Motards proches » et recevoir l'alerte.
 >
 > **Point du 01/11, matin : test-72.**
