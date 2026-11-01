@@ -2787,11 +2787,18 @@ nav button{min-height:52px}
 /* A6 : en arabe, le bouton « + » restait accroché aux deux bords (left posé par [dir=rtl], right reposé par la règle test-24) */
 :root[dir=rtl] .fab,:root[dir=rtl][data-ui=futur] .fab{right:auto;left:max(16px,env(safe-area-inset-left,0px))}
 /* A7 : bouton SOS fixe en haut, visible sur tous les onglets */
-.mr-sostop{position:fixed;z-index:40;top:calc(env(safe-area-inset-top,0px) + 14px);inset-inline-start:max(12px,env(safe-area-inset-left,0px));
+.mr-sostop{position:fixed;z-index:40;top:calc(env(safe-area-inset-top,0px) + 14px);inset-inline-end:max(12px,env(safe-area-inset-right,0px));
  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:46px!important;height:46px!important;min-height:46px!important;min-width:46px!important;padding:0!important;border-radius:50%;
  border:1.5px solid rgba(255,255,255,.6);background:#c8102e;color:#fff;font:800 11px/1 'Barlow Condensed',Barlow,sans-serif;letter-spacing:1px;
  box-shadow:0 4px 12px -4px rgba(200,16,46,.85);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .mr-sostop svg{width:17px;height:17px;flex:0 0 auto}
+/* le rond flottant n'apparaît que lorsque le SOS de la barre du haut n'est plus visible (page défilée) */
+.mr-sostop:not(.mr-on){display:none}
+/* SOS dans la barre du haut : même forme que « FR » et « Menu », en rouge, tout à droite */
+.tools .mr-sosb{display:inline-flex;align-items:center;gap:6px;padding:6px 13px!important;font-weight:800;letter-spacing:1.5px;white-space:nowrap}
+.tools .mr-sosb svg{width:18px;height:18px;flex:0 0 auto}
+.tools .mr-sosb,:root[data-ui=futur] .tools .mr-sosb{background:#c8102e!important;border:1px solid rgba(255,255,255,.6)!important;color:#fff!important;box-shadow:0 0 14px -3px rgba(200,16,46,.8)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.tools .mr-sosb:active,:root[data-ui=futur] .tools .mr-sosb:active{background:#a30d25!important}
 /* SOS compact : petit rond en haut ; en Mode gants il reprend sa grande taille */
 :root.gl .mr-sostop{flex-direction:row;gap:7px;width:auto!important;height:auto!important;min-height:54px!important;min-width:84px!important;padding:0 16px!important;border-radius:14px;font-size:19px;letter-spacing:2.5px}
 :root.gl .mr-sostop svg{width:20px;height:20px}
@@ -2871,18 +2878,25 @@ const IC={
 /* ---------- A7 : bouton SOS fixe, même SOS que le gros bouton rouge de Route (doSos) ---------- */
 const sosB=document.createElement('button');
 sosB.type='button';sosB.className='mr-sostop';sosB.id='mr_sostop';
-const sosLab=()=>{sosB.innerHTML=svg(IC.sos)+'<span>SOS</span>';sosB.setAttribute('aria-label',W('SOS : envoyer mon SOS','نداء استغاثة: إرسال نداء الاستغاثة','SOS: send my SOS'))};
-sosB.onclick=()=>{
+const sosLab=()=>{const al=W('SOS : envoyer mon SOS','نداء استغاثة: إرسال نداء الاستغاثة','SOS: send my SOS');[sosB,sosT].forEach(b=>{b.innerHTML=svg(IC.sos)+'<span>SOS</span>';b.setAttribute('aria-label',al)})};
+const goSos=()=>{
  try{tab=4;render()}catch(e){}
  try{window.scrollTo(0,0);const c=document.querySelector('#main .card.mr-sos');if(c)c.scrollIntoView({block:'start'})}catch(e){}
  try{doSos()}catch(e){try{const b=document.querySelector('#main [data-sos]');if(b)b.click()}catch(x){}}
 };
+sosB.onclick=goSos;
 document.body.appendChild(sosB);
+/* SOS dans la barre du haut, tout à droite, à côté de « Menu » (même forme, en rouge) */
+const sosT=document.createElement('button');sosT.type='button';sosT.className='lang mr-sosb';sosT.id='mr_sostool';sosT.onclick=goSos;
 
 /* ---------- A9 : un bouton « Menu » remplace les 4 boutons emoji (?, 🎨, 🪪, 🎬), cachés mais toujours là ---------- */
 const mb=document.createElement('button');mb.type='button';mb.className='lang mr-menub';mb.id='mr_menu_btn';mb.setAttribute('aria-haspopup','dialog');
 const mbLab=()=>{mb.innerHTML=svg(IC.menu)+'<span>'+W('Menu','القائمة','Menu')+'</span>'};
 if(tl)tl.appendChild(mb);
+if(tl){tl.appendChild(sosT);
+ /* page défilée (barre hors écran) : le petit SOS rond flotte en haut à droite, pour que le SOS reste toujours atteignable */
+ try{if(window.IntersectionObserver)new IntersectionObserver(es=>{sosB.classList.toggle('mr-on',!es[es.length-1].isIntersecting)},{threshold:0.01}).observe(sosT);else sosB.classList.add('mr-on')}catch(e){sosB.classList.add('mr-on')}
+}else sosB.classList.add('mr-on');
 const D=document.createElement('dialog');D.id='mr_menu';D.className='mr-menu';D.setAttribute('aria-labelledby','mr_menu_h');document.body.appendChild(D);
 const glOn=()=>document.documentElement.classList.contains('gl');
 function setGl(v){
