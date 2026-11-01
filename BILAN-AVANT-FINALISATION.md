@@ -1,5 +1,10 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **Point du 01/11, matin : test-72.**
+> - Vérifié sur le serveur : talkie-quota-v2.sql et securite-31-10.sql sont bien appliqués (fonctions présentes, effacement automatique « mr-purge-auto » actif toutes les 30 min).
+> - **B5 fait** : le module Android n'envoie de SMS et n'appelle QUE les numéros d'urgence enregistrés (fiche d'urgence / numéro SOS, 3 au plus), plus les numéros de secours publics pour l'appel (14, 17, 1548, 112, 115, 1021). La liste est gardée par Android et ne peut être changée que quand l'app est à l'écran. Au plus 6 SMS par 10 minutes. Après installation de test-72 : **ouvrir l'app une fois** pour enregistrer les numéros.
+> - Toujours refusé depuis la session de Claude : remise en ligne des fonctions **talkie** et **sos-push**, suppression de **fcm-check** (B10). À faire depuis un PC, ou dans le tableau de bord Supabase (Edge Functions → fcm-check → Delete).
+>
 > **Point du 31/10, 21 h 30 : test-71.** Fait :
 > - A1 à A9, A11, A12 : suivi en direct sans doublon, miniatures photos (400 px, cache 1 an), synchro limitée (30 derniers jours + à venir), capteurs seulement en trajet, SOS rouge fixe en haut de tous les onglets, barre du haut regroupée dans « ☰ Menu » (Mode gants en premier), libellés du mode gants, « + » en arabe, cartes de sortie allégées, aide réécrite (Conduite, Talkie, tutoiement).
 > - A5 talkie : comptage toutes les 5 min, 2 ratés = coupure, quota revérifié à la session et à l'écoute. Le téléphone suit le rythme donné par le serveur (compatible avec l'ancienne fonction).
@@ -9,13 +14,13 @@
 > - B1 à B9 préparés : supabase/securite-31-10.sql (testé 2 fois sur une base locale, non appliqué) + politique de confidentialité à jour ; app déjà adaptée (code ange gardien protégé + « Changer mon code », sirène SOS anti-spam dans sos-push).
 >
 > **À faire par Elaid (refusé depuis la session de Claude) :**
-> 1. Coller dans le SQL Editor : https://elaidremili-sudo.github.io/Elaid/sql/talkie-quota-v2.html puis https://elaidremili-sudo.github.io/Elaid/sql/securite-31-10.html (si pg_cron est refusé : Database → Extensions → pg_cron, puis relancer).
+> 1. ~~Coller dans le SQL Editor~~ (fait, vérifié le 01/11) : https://elaidremili-sudo.github.io/Elaid/sql/talkie-quota-v2.html puis https://elaidremili-sudo.github.io/Elaid/sql/securite-31-10.html (si pg_cron est refusé : Database → Extensions → pg_cron, puis relancer).
 > 2. Remettre en ligne les fonctions **talkie** et **sos-push** (depuis un PC avec Claude, ou dire « déploie » dans une session qui en a le droit).
 > 3. Tester test-71 : secouer le téléphone à la main (aucune alerte), un trajet en virages en comparant avec le tableau de bord, puis « Ma moto affichait un autre angle ? ».
 >
 > **Décisions en attente :** SOS des nouveaux membres dans les groupes publics ouverts bloqué 24 h (B3) : garder ? Fiche d'urgence : synchroniser de nouveau avec le compte ou la laisser sur le téléphone ? Cases « Partager ma position avec mon groupe » / « Prévenir quand un motard est proche » de Route sans effet : retirer la carte ?
 >
-> **Reste dans la liste :** A10 (TESTING=false le jour de Google Play), B5 (SMS/appel limités aux numéros d'urgence, module Android), B10 (supprimer fcm-check), puis C, D, E ci-dessous.
+> **Reste dans la liste :** A10 (TESTING=false le jour de Google Play), ~~B5~~ (fait en test-72), B10 (supprimer fcm-check), puis C, D, E ci-dessous.
 
 **Règle décidée par Elaid :** à la prochaine reprise, on termine cette liste dans l'ordre avant d'ajouter quoi que ce soit.
 

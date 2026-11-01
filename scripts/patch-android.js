@@ -162,6 +162,77 @@ public class MrSmsPlugin extends Plugin {
         } catch (Throwable e) { return ""; }
     }
 
+    // B5 (01/11) : le module n'envoie de SMS et n'appelle QUE les numéros d'urgence enregistrés par le motard
+    // (fiche d'urgence / numéro SOS), plus les numéros de secours publics pour l'appel. La liste est gardée par
+    // Android (SharedPreferences) et ne peut être changée que quand l'app est à l'écran (pas en arrière-plan).
+    private static final String PREFS = "mr_sos";
+    private static final String[] PUBLIC_CALL = { "14", "17", "1548", "112", "115", "1021" };
+    private static final int SMS_MAX = 6;            // SMS au plus…
+    private static final long SMS_WINDOW = 600000L;  // …par tranche de 10 minutes
+
+    // Forme comparable d'un numéro : chiffres seuls, préfixe international ramené au format local (0…)
+    static String norm(String s) {
+        if (s == null) return "";
+        String d = s.replaceAll("[^0-9+]", "");
+        if (d.startsWith("+")) d = "00" + d.substring(1);
+        if (d.startsWith("00213")) d = "0" + d.substring(5);
+        else if (d.startsWith("213") && d.length() == 12) d = "0" + d.substring(3);
+        return d.replaceAll("[^0-9]", "");
+    }
+
+    private android.content.SharedPreferences prefs() {
+        return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    private boolean allowed(String to, boolean forCall) {
+        String n = norm(to);
+        if (n.length() < 2) return false;
+        if (forCall) for (String p : PUBLIC_CALL) if (p.equals(n)) return true;
+        if (n.length() < 8) return false;
+        String list = prefs().getString("nums", "");
+        for (String x : list.split(",")) if (!x.isEmpty() && x.equals(n)) return true;
+        return false;
+    }
+
+    private boolean foreground() {
+        try {
+            androidx.appcompat.app.AppCompatActivity a = getBridge().getActivity();
+            return a != null && a.getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
+        } catch (Throwable e) { return false; }
+    }
+
+    // Anti-abus : au plus SMS_MAX SMS par tranche de 10 minutes (un vrai SOS n'en envoie que 1 à 3)
+    private synchronized boolean smsQuota() {
+        long now = System.currentTimeMillis();
+        String[] old = prefs().getString("sms_at", "").split(",");
+        StringBuilder keep = new StringBuilder();
+        int c = 0;
+        for (String t : old) {
+            try { long v = Long.parseLong(t); if (now - v < SMS_WINDOW) { keep.append(v).append(','); c++; } } catch (Exception e) {}
+        }
+        if (c >= SMS_MAX) return false;
+        keep.append(now);
+        prefs().edit().putString("sms_at", keep.toString()).apply();
+        return true;
+    }
+
+    // Enregistre les numéros d'urgence (3 au plus). Refusé si l'app n'est pas à l'écran.
+    @PluginMethod
+    public void setNumbers(PluginCall call) {
+        if (!foreground()) { call.reject("app-pas-a-l-ecran"); return; }
+        com.getcapacitor.JSArray arr = call.getArray("numbers");
+        StringBuilder sb = new StringBuilder();
+        int k = 0;
+        try {
+            if (arr != null) for (int i = 0; i < arr.length() && k < 3; i++) {
+                String n = norm(arr.getString(i));
+                if (n.length() >= 8 && n.length() <= 15) { if (k > 0) sb.append(','); sb.append(n); k++; }
+            }
+        } catch (Exception e) { call.reject("liste-invalide"); return; }
+        prefs().edit().putString("nums", sb.toString()).apply();
+        JSObject r = new JSObject(); r.put("count", k); call.resolve(r);
+    }
+
     private SmsManager managerFor(int sub) {
         SmsManager base = Build.VERSION.SDK_INT >= 31 ? getContext().getSystemService(SmsManager.class) : SmsManager.getDefault();
         if (sub == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return base;
@@ -174,6 +245,9 @@ public class MrSmsPlugin extends Plugin {
         String msg = call.getString("msg");
         if (to == null || to.isEmpty() || msg == null) { call.reject("numero-manquant"); return; }
         if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
+        if (!allowed(to, false)) { call.reject("numero-non-autorise"); return; }
+        if (msg.length() > 640) { call.reject("message-trop-long"); return; }
+        if (!smsQuota()) { call.reject("trop-de-sms"); return; }
         final Context ctx = getContext();
         final int sub = pickSub();
         final SmsManager sm;
@@ -365,7 +439,8 @@ public class MrSmsPlugin extends Plugin {
         String lang = call.getString("lang", "fr");
         int seconds = call.getInt("seconds", 90);
         if (to == null || to.isEmpty()) { call.reject("numero-manquant"); return; }
-        boolean direct = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        if (!allowed(to, true)) { call.reject("numero-non-autorise"); return; }
+        boolean direct =ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
         try {
             Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + to));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
