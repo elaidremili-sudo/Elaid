@@ -1,5 +1,12 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **Point du 01/11, 8 h 40 : test-73.** Décisions d'Elaid : blocage de 24 h du SOS **gardé** ; fiche d'urgence **synchronisée avec le compte** ; carte Route « Position et motards proches » **à faire marcher** (pas à retirer).
+> - Fiche d'urgence (www/js/fiche-sync.js) : enregistrée sur le compte à chaque modification ; reprise du compte sur un nouveau téléphone ; la plus récente gagne. Politique de confidentialité déjà conforme.
+> - « Partager ma position avec mon groupe » et « Prévenir quand un motard est proche » marchent (www/js/proches.js + supabase/proches.sql) : position envoyée au plus 1 fois/min tant que l'app est ouverte, approximative ~2 km si choisie, visible 30 min par les membres de ses groupes seulement, effacée au décochage ; alerte (vibration, bip, bandeau) si un membre est à moins de 3 km, 1 fois par motard toutes les 2 h. Politique de confidentialité complétée (FR, AR, EN).
+> - Essayé dans un navigateur avec un faux serveur : fiche reprise et renvoyée, position envoyée et effacée, alerte pour un membre à 1,1 km, rien pour un membre à Oran. SQL essayé sur une base locale (prénom et compte imposés, autres groupes invisibles, 1 envoi / 20 s).
+> - **À faire par Elaid :** coller https://elaidremili-sudo.github.io/Elaid/sql/proches.html dans le SQL Editor (Run → Success). Sans ce script, la carte affiche « Serveur pas encore prêt ».
+> - **À essayer avec 2 téléphones :** 2 comptes dans le même groupe, cocher les 2 cases sur chacun, ouvrir Route : chacun doit voir l'autre dans « Motards proches » et recevoir l'alerte.
+>
 > **Point du 01/11, matin : test-72.**
 > - Vérifié sur le serveur : talkie-quota-v2.sql et securite-31-10.sql sont bien appliqués (fonctions présentes, effacement automatique « mr-purge-auto » actif toutes les 30 min).
 > - **B5 fait** : le module Android n'envoie de SMS et n'appelle QUE les numéros d'urgence enregistrés (fiche d'urgence / numéro SOS, 3 au plus), plus les numéros de secours publics pour l'appel (14, 17, 1548, 112, 115, 1021). La liste est gardée par Android et ne peut être changée que quand l'app est à l'écran. Au plus 6 SMS par 10 minutes. Après installation de test-72 : **ouvrir l'app une fois** pour enregistrer les numéros.
@@ -18,7 +25,7 @@
 > 2. Remettre en ligne les fonctions **talkie** et **sos-push** (depuis un PC avec Claude, ou dire « déploie » dans une session qui en a le droit).
 > 3. Tester test-71 : secouer le téléphone à la main (aucune alerte), un trajet en virages en comparant avec le tableau de bord, puis « Ma moto affichait un autre angle ? ».
 >
-> **Décisions en attente :** SOS des nouveaux membres dans les groupes publics ouverts bloqué 24 h (B3) : garder ? Fiche d'urgence : synchroniser de nouveau avec le compte ou la laisser sur le téléphone ? Cases « Partager ma position avec mon groupe » / « Prévenir quand un motard est proche » de Route sans effet : retirer la carte ?
+> **Décisions (réglées le 01/11, voir test-73) :** SOS des nouveaux membres dans les groupes publics ouverts bloqué 24 h (B3) : garder ? Fiche d'urgence : synchroniser de nouveau avec le compte ou la laisser sur le téléphone ? Cases « Partager ma position avec mon groupe » / « Prévenir quand un motard est proche » de Route sans effet : retirer la carte ?
 >
 > **Reste dans la liste :** A10 (TESTING=false le jour de Google Play), ~~B5~~ (fait en test-72), B10 (supprimer fcm-check), puis C, D, E ci-dessous.
 
