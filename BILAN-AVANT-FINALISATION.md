@@ -1,5 +1,11 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **REPRISE (02/11, 11 h 50) — après test-75 :**
+> - **SOS (demandé par Elaid, trop grand) :** SOS de la barre du haut réduit (34 px, zone de toucher ~44 px) ; **le petit SOS rond flottant au défilement est supprimé** (remplace la mention du 01/11) ; SOS de Route : plus de grand bloc rouge, carte sombre avec bouton en contour (40 px). Mode gants : grandes tailles conservées. Version iPhone (docs/app) synchronisée. Publié sur main (la version Android se fabrique automatiquement).
+> - **Talkie-walkie : essayé par Elaid, il marche** (sans casque Bluetooth).
+> - **À FAIRE (ajouté le 02/11) : tester le talkie-walkie avec le casque Bluetooth** : le bouton du casque doit déclencher « parler » une seule fois (double déclenchement corrigé en test-68, jamais essayé avec un vrai casque) ; la voix doit sortir dans le casque et le micro du casque doit capter la voix. En cas d'échec : Claude corrige (`www/js/talkie.js`, bouton casque).
+> - Elaid voit maintenant son dépôt dans l'appli GitHub du téléphone (Actions → Releases pour suivre et télécharger les versions).
+
 > **REPRISE (01/11, soir, 17 h) — test-75 publiée (APK + AAB) :**
 > - **SOS dans la barre du haut** (demandé par Elaid) : bouton rouge de même forme que « FR » et « Menu », tout à droite (à gauche en arabe), grand en Mode gants. Un petit SOS rond (46 px) n'apparaît en haut à droite que lorsque la page est défilée et que la barre est sortie de l'écran. Même action que le grand bouton SOS de Route (`goSos`). Fichiers : `www/index.html` et `docs/app/index.html` (identiques). test-74 avait seulement rétréci l'ancien bouton flottant.
 > - **À faire par Elaid :** installer `MotoRoute-test-75.apk` sur ses 2 téléphones et regarder le SOS (taille et place sur le Reno 12 Pro) ; il peut redemander un ajustement.
@@ -108,6 +114,7 @@
 6. **Google Play :** l'autorisation `SEND_SMS` devra être déclarée. Préparer la justification « SOS après chute ». La réponse de Google est incertaine.
 
 ### D. Tests sur les 2 téléphones (Elaid, après les corrections A)
+- [ ] **Talkie-walkie avec casque Bluetooth** (ajouté le 02/11) : bouton du casque = un seul déclenchement, voix dans le casque, micro du casque.
 1. **Talkie en direct** (2 comptes du même groupe, Conduite → Rejoindre) : le point turquoise « Direct » doit s'afficher et on doit s'entendre pendant qu'on parle.
 2. **Messages vocaux**, puis le bouton du casque Bluetooth, puis l'écran éteint.
 3. **SOS :** bouton rouge, Mes urgences, SOS avec le réseau coupé puis rétabli (la sirène doit sonner une seule fois).
