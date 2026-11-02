@@ -2750,6 +2750,15 @@ button.mr-sosbig:focus-visible{outline:3px solid #fff;outline-offset:3px}
 :root.gl .mr-sosic{font-size:34px}
 :root.gl .mr-sost b{font-size:32px;letter-spacing:3px}
 :root.gl .mr-sost small{font-size:15px}
+/* test-76 : SOS de Route discret (plus de grand bloc rouge en haut de page) ; Mode gants inchangé */
+:root:not(.gl) .card.mr-sos,:root:not(.gl)[data-ui=futur] .card.mr-sos{border:1px solid rgba(224,24,45,.5)!important;background:rgba(18,18,22,.78)!important;padding:10px 12px!important}
+:root:not(.gl) button.mr-sosbig{min-height:40px;padding:4px 12px;background:transparent;border:1.5px solid #e0182d;box-shadow:none;gap:8px;justify-content:flex-start}
+:root:not(.gl) button.mr-sosbig:active{background:rgba(224,24,45,.25)}
+:root:not(.gl) .mr-sosic{font-size:18px}
+:root:not(.gl) .mr-sost{flex-direction:row;align-items:baseline;gap:8px}
+:root:not(.gl) .mr-sost b{font-size:17px;letter-spacing:2px;color:#ff5a68}
+:root:not(.gl) .mr-sost small{font-size:12px;opacity:.85}
+:root:not(.gl) .card.mr-sos .meta{font-size:12px}
 /* Écran Mes urgences */
 dialog.mr-urg{width:min(94vw,480px)}
 .urg-s{border-top:1px solid var(--line);padding:12px 0 6px;margin-top:10px}
