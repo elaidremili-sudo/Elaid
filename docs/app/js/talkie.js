@@ -177,10 +177,32 @@
   const chanLabel = key => { const c = channels().find(x => x.key === key); return c ? c.label : ''; };
 
   /* ------------------------------------------------------------------ Micro ------------------------------------------------------------------ */
+  /* Avertissement avant la fenêtre d'Android : à quoi sert le micro (une seule fois par téléphone, puis on ne le redemande plus). */
+  const MIC_TXT = {
+    fr: { h: 'Autoriser le micro ?', b: 'MotoRoute utilise le micro seulement quand tu appuies pour parler (talkie-walkie) ou pour enregistrer le son de ta moto. Rien n’est écouté en continu. Ta voix part vers les membres du groupe choisi et les messages vocaux sont effacés après 24 h. Android va maintenant te demander l’autorisation.', ok: 'Continuer', no: 'Plus tard' },
+    ar: { h: 'السماح بالميكروفون؟', b: 'يستعمل MotoRoute الميكروفون فقط عندما تضغط للتحدث (الاتصال اللاسلكي) أو لتسجيل صوت دراجتك. لا يتم الاستماع إليك باستمرار. يصل صوتك إلى أعضاء المجموعة التي اخترتها وتُحذف الرسائل الصوتية بعد 24 ساعة. سيطلب منك أندرويد الإذن الآن.', ok: 'متابعة', no: 'لاحقًا' },
+    en: { h: 'Allow the microphone?', b: 'MotoRoute uses the microphone only when you press to talk (walkie-talkie) or to record your bike’s sound. Nothing is listened to continuously. Your voice goes to the members of the group you chose and voice messages are deleted after 24 h. Android will now ask for your permission.', ok: 'Continue', no: 'Later' }
+  };
+  function micIntro() {
+    if (lsGet('mr_mic_intro', '') === '1') return Promise.resolve(true);
+    return new Promise(res => {
+      const m = MIC_TXT[LG()] || MIC_TXT.fr, dlg = document.createElement('dialog');
+      dlg.setAttribute('dir', LG() === 'ar' ? 'rtl' : 'ltr');
+      dlg.style.cssText = 'max-width:min(92vw,420px);border:0;border-radius:16px;padding:20px;background:#1b2026;color:#eef0f2;font:16px/1.5 system-ui,sans-serif';
+      dlg.innerHTML = '<h3 style="margin:0 0 8px;font-size:19px">🎙 ' + esc(m.h) + '</h3><p style="margin:0 0 16px">' + esc(m.b) + '</p><div style="display:flex;gap:10px;justify-content:flex-end"><button data-n style="min-height:48px;padding:0 16px;border-radius:12px;border:1px solid #444;background:none;color:inherit;font:inherit">' + esc(m.no) + '</button><button data-y style="min-height:48px;padding:0 18px;border-radius:12px;border:0;background:#ffd33d;color:#111;font:700 16px system-ui">' + esc(m.ok) + '</button></div>';
+      const end = v => { if (v) lsSet('mr_mic_intro', '1'); try { dlg.close(); } catch (e) {} dlg.remove(); res(v); };
+      dlg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) end(b.hasAttribute('data-y')); });
+      dlg.addEventListener('cancel', e => { e.preventDefault(); end(false); });
+      document.body.appendChild(dlg);
+      try { dlg.showModal(); } catch (e) { end(true); }
+    });
+  }
+  window.mrMicIntro = micIntro;
   let micStream = null, micIdle = null;
   async function getMic() {
     clearTimeout(micIdle);
     if (micStream && micStream.getAudioTracks().some(x => x.readyState === 'live')) return micStream;
+    if (!(await micIntro())) { const e = new Error('mic-later'); e.name = 'NotAllowedError'; throw e; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nomic');
     try { micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
     catch (e) { if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) throw e; micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }

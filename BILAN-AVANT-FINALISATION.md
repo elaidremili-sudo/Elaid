@@ -1,5 +1,13 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **REPRISE (05/11, matin) — partie E côté code faite :**
+> - **E2 Conditions d'utilisation** : page `docs/conditions.html` (FR/AR/EN, https://elaidremili-sudo.github.io/Elaid/conditions.html), liée depuis la politique de confidentialité. À la création d'un compte : case « J'accepte les conditions d'utilisation et j'ai 16 ans ou plus » obligatoire ; comptes déjà existants : écran d'acceptation une fois au prochain lancement (enregistré dans le compte, `terms_version` 2026-11-05, et sur le téléphone). Texte rédigé par Claude, **pas par un juriste** : à relire par Elaid.
+> - **E3 Signaler / bloquer** : dans la discussion de groupe, 🚩 (signaler un message, 2 touchers pour confirmer) et 🚫 (bloquer le membre : ses messages disparaissent chez toi). **Il faut coller `supabase/signalements.sql` dans le SQL Editor** (page à copier : https://elaidremili-sudo.github.io/Elaid/sql/signalements.html). Les signalements se lisent dans Supabase → Table Editor → `message_reports`. Sans ce script, l'app n'affiche pas d'erreur au blocage mais ne le garde pas.
+> - **E4 Avertissement micro** : une fenêtre explique à quoi sert le micro avant la demande d'Android (talkie-walkie et son moteur), une seule fois par téléphone.
+> - Politique de confidentialité complétée (signalements et blocages).
+> - Vérifié : essai navigateur avec faux serveur (conditions, inscription refusée sans case, signalement, blocage, avertissement micro), SQL rejoué 2 fois et règles d'accès essayées sur une base locale (auteur imposé, doublon refusé, 20 signalements par jour, blocage pour autrui refusé, lecture par un autre membre ou anonyme refusée). **Pas essayé sur un vrai téléphone.**
+> - **Reste pour Elaid :** coller signalements.sql ; installer la nouvelle version sur ses 2 téléphones ; essais de la partie D ; partie C (consoles) ; partie E côté Google Play (5 à 9).
+
 > **REPRISE (02/11, 11 h 50) — après test-75 :**
 > - **SOS (demandé par Elaid, trop grand) :** SOS de la barre du haut réduit (34 px, zone de toucher ~44 px) ; **le petit SOS rond flottant au défilement est supprimé** (remplace la mention du 01/11) ; SOS de Route : plus de grand bloc rouge, carte sombre avec bouton en contour (40 px). Mode gants : grandes tailles conservées. Version iPhone (docs/app) synchronisée. Publié sur main (la version Android se fabrique automatiquement).
 > - **Talkie-walkie : essayé par Elaid, il marche** (sans casque Bluetooth).
@@ -126,9 +134,9 @@
 
 **BLOQUANT – Claude (code) :**
 1. Politique de confidentialité : ajouter le talkie (voix, messages vocaux gardés 24 h, Cloudflare). La page dit encore que le micro ne sert qu'à filmer. *(Même tâche que B1.)*
-2. **Conditions d'utilisation** à créer, et à faire accepter avant toute publication par un membre.
-3. **Signaler et bloquer** : pouvoir signaler un message de la discussion de groupe et bloquer un membre.
-4. **Avertissement avant la demande d'accès au micro** : un texte qui explique à quoi sert le micro, affiché avant la fenêtre d'Android.
+2. ~~**Conditions d'utilisation**~~ **fait le 05/11** (page + acceptation à l'inscription et au prochain lancement).
+3. ~~**Signaler et bloquer**~~ **fait le 05/11** (reste : coller `supabase/signalements.sql`).
+4. ~~**Avertissement avant la demande d'accès au micro**~~ **fait le 05/11**.
 
 **BLOQUANT – Elaid (console Play), avec l'aide de Claude :**
 5. **Compte de test** réservé à l'équipe d'examen de Google.
