@@ -1,5 +1,12 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **SERVEUR (05/11, 9 h) — fait par Claude avec l'accord d'Elaid :**
+> - `supabase/signalements.sql` **appliqué** sur Motoroute (tables `message_reports` et `user_blocks`, règles d'accès vérifiées).
+> - Fonction **talkie** remise en ligne (v2 = version du dépôt : coupe-circuit toutes les 5 min, quota revérifié à la session et à l'écoute).
+> - Fonction **sos-push** remise en ligne (v11 = version du dépôt : anti-spam de la sirène `mr_sos_siren_groups`).
+> - Les deux démarrent et refusent un appel sans compte (401). **fcm-check** répond déjà « 410 désactivé » (neutralisée) ; reste à la supprimer d'un clic si voulu (Edge Functions → fcm-check → Delete).
+> - Donc **B10 et la remise en ligne talkie / sos-push sont réglées** ; pas encore essayées depuis un vrai téléphone (talkie direct, SOS de test).
+
 > **REPRISE (05/11, matin) — partie E côté code faite :**
 > - **E2 Conditions d'utilisation** : page `docs/conditions.html` (FR/AR/EN, https://elaidremili-sudo.github.io/Elaid/conditions.html), liée depuis la politique de confidentialité. À la création d'un compte : case « J'accepte les conditions d'utilisation et j'ai 16 ans ou plus » obligatoire ; comptes déjà existants : écran d'acceptation une fois au prochain lancement (enregistré dans le compte, `terms_version` 2026-11-05, et sur le téléphone). Texte rédigé par Claude, **pas par un juriste** : à relire par Elaid.
 > - **E3 Signaler / bloquer** : dans la discussion de groupe, 🚩 (signaler un message, 2 touchers pour confirmer) et 🚫 (bloquer le membre : ses messages disparaissent chez toi). **Il faut coller `supabase/signalements.sql` dans le SQL Editor** (page à copier : https://elaidremili-sudo.github.io/Elaid/sql/signalements.html). Les signalements se lisent dans Supabase → Table Editor → `message_reports`. Sans ce script, l'app n'affiche pas d'erreur au blocage mais ne le garde pas.
