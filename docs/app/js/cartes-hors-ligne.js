@@ -12,7 +12,15 @@
 (function () {
   'use strict';
   // Adresse du fichier de carte (Cloudflare R2, accès public, CORS https://localhost + GitHub Pages).
-  var PM_URL = window.MR_PMTILES || '';
+  // MR_PMTILES : une adresse, ou une liste de morceaux [{url, bbox:[ouest, sud, est, nord]}] (fichier découpé
+  // pour rester sous la limite d'envoi de Cloudflare). Pour une tuile, on prend le 1er morceau qui la touche :
+  // chaque morceau contient en entier toutes les tuiles qui touchent sa zone.
+  var PARTS = (function (v) {
+    if (!v) return [];
+    if (typeof v === 'string') return [{ url: v, bbox: [-180, -85, 180, 85] }];
+    return (Array.isArray(v) ? v : []).filter(function (p) { return p && p.url && p.bbox && p.bbox.length === 4; });
+  })(window.MR_PMTILES);
+  var PM_URL = PARTS.length ? PARTS[0].url : '';
   var SRC_MAX = 14, DL_MAX = 14, MAX_TILES = 20000, CONC = 6, AVG_KB = 9;
   var DB = 'mr_cartes', T = 'tiles', Z = 'zones', V = 'vues', MAX_SEEN = 3000;
   var LIB = function (p) { return new URL('lib/carte/' + p, location.href).href; };
@@ -103,20 +111,30 @@
 
   /* ---------- chargement des bibliothèques embarquées ---------- */
   function script(src) { return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
-  var libp = null, pm = null;
+  var libp = null;
+  function tileBox(z, x, y) { var n = Math.pow(2, z), lon = function (v) { return v / n * 360 - 180; },
+      lat = function (v) { var r = Math.PI - 2 * Math.PI * v / n; return 180 / Math.PI * Math.atan(0.5 * (Math.exp(r) - Math.exp(-r))); };
+    return [lon(x), lat(y + 1), lon(x + 1), lat(y)]; }
+  function pmFor(z, x, y) {
+    var b = tileBox(z, x, y);
+    for (var i = 0; i < PARTS.length; i++) { var q = PARTS[i].bbox;
+      if (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1]) {
+        if (!PARTS[i].pm) PARTS[i].pm = new window.pmtiles.PMTiles(PARTS[i].url); return PARTS[i].pm; } }
+    return null;
+  }
   function libs() {
     if (libp) return libp;
     var c = document.createElement('link'); c.rel = 'stylesheet'; c.href = LIB('maplibre-gl.css'); document.head.appendChild(c);
     libp = Promise.all([script(LIB('maplibre-gl.js')), script(LIB('pmtiles.js')), script(LIB('basemaps.js'))]).then(function () {
       var ml = window.maplibregl;
       try { if (ml.getRTLTextPluginStatus && ml.getRTLTextPluginStatus() === 'unavailable') { var rp = ml.setRTLTextPlugin(LIB('rtl-text.js'), true); if (rp && rp.catch) rp.catch(function () {}); } } catch (e) {}
-      if (PM_URL) pm = new window.pmtiles.PMTiles(PM_URL);
       // Tuiles : téléphone d'abord, réseau ensuite (et on garde ce qui a été vu).
       ml.addProtocol('mrpm', function (p) {
         var m = /mrpm:\/\/(\d+)\/(\d+)\/(\d+)/.exec(p.url); if (!m) return Promise.reject(new Error('url'));
         var z = +m[1], x = +m[2], y = +m[3];
         return getTile(z, x, y).catch(function () { return null; }).then(function (have) {
           if (have) return { data: have };
+          var pm = pmFor(z, x, y);
           if (!pm || navigator.onLine === false) return { data: new ArrayBuffer(0) };
           return pm.getZxy(z, x, y).then(function (r) {
             var d = r && r.data ? r.data : new ArrayBuffer(0);
@@ -210,6 +228,7 @@
         var t = list[i++];
         return getTile(t[0], t[1], t[2]).then(function (have) {
           if (have) { ok++; bytes += have.byteLength || 0; return; }
+          var pm = pmFor(t[0], t[1], t[2]); if (!pm) { ok++; return putTile(t[0], t[1], t[2], new ArrayBuffer(0)); }
           return pm.getZxy(t[0], t[1], t[2]).then(function (r) {
             var d = r && r.data ? r.data : new ArrayBuffer(0); ok++; bytes += d.byteLength; return putTile(t[0], t[1], t[2], d);
           });
