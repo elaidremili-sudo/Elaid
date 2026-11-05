@@ -123,8 +123,8 @@
 ### C. À faire par Elaid (consoles)
 1. **Régénérer le jeton Cloudflare** (il a été montré dans la conversation) et la **clé Firebase**. Le dépôt GitHub est **public**.
 2. **Cloudflare :** créer une alerte budget à 1 $ (Billing → Billable Usage).
-3. **Supabase Auth :** rendre la confirmation par e-mail obligatoire et activer un CAPTCHA à l'inscription.
-4. **Supabase Realtime :** couper l'accès public aux canaux (Settings), pour ne garder que les canaux privés.
+3. **Supabase Auth :** ~~confirmation par e-mail obligatoire~~ **déjà active** (vérifié le 05/11 : e-mail de confirmation envoyé aux 6 derniers comptes, aucun confirmé automatiquement). **CAPTCHA : NE PAS l'activer pour l'instant** : l'app n'envoie pas de jeton CAPTCHA à l'inscription, toute inscription serait refusée. Il faut d'abord un compte Cloudflare Turnstile (clé du site) et une modification de l'écran d'inscription.
+4. **Supabase Realtime :** couper l'accès public aux canaux. **NE PAS le faire tout de suite** (vérifié le 05/11) : la discussion de groupe (`gm-…`), l'alerte SOS en direct (`mr-sos-…`) et `talkie-db:…` utilisent encore des canaux publics ; seul le canal `talkie:` est privé. Les passer en privé dans l'app (et ajouter les règles d'accès sur `realtime.messages`) avant de couper.
 5. **Google Cloud :** vérifier que la clé Android est bien limitée à com.motoroute.app.
 6. **Google Play :** l'autorisation `SEND_SMS` devra être déclarée. Préparer la justification « SOS après chute ». La réponse de Google est incertaine.
 
