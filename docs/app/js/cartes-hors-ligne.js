@@ -72,12 +72,16 @@
       });
     }).catch(function () {});
   }
-  function clearAll() {
-    unmount();
-    return db().then(function (d) { return new Promise(function (res) {
-      var t = d.transaction([T, Z, V], 'readwrite'); [T, Z, V].forEach(function (n) { t.objectStore(n).clear(); });
-      t.oncomplete = t.onerror = t.onabort = function () { res(); };
-    }); }).catch(function () {});
+  function clearSeen() {
+    return zones().then(function (all) {
+      var inZone = function (k) { var p = String(k).split('/').map(Number); return all.some(function (zn) { return p[0] <= zn.zmax &&
+        p[1] >= lon2x(zn.bb[1], p[0]) && p[1] <= lon2x(zn.bb[3], p[0]) && p[2] >= lat2y(zn.bb[2], p[0]) && p[2] <= lat2y(zn.bb[0], p[0]); }); };
+      return db().then(function (d) { return new Promise(function (res) {
+        var t = d.transaction([V, T], 'readwrite'), sv = t.objectStore(V), st = t.objectStore(T);
+        sv.openCursor().onsuccess = function (ev) { var c = ev.target.result; if (!c) return; if (!inZone(c.primaryKey)) st.delete(c.primaryKey); c.delete(); c.continue(); };
+        t.oncomplete = t.onerror = t.onabort = function () { res(); };
+      }); });
+    }).catch(function () {});
   }
 
   /* ---------- géométrie des tuiles ---------- */
@@ -105,7 +109,7 @@
     var c = document.createElement('link'); c.rel = 'stylesheet'; c.href = LIB('maplibre-gl.css'); document.head.appendChild(c);
     libp = Promise.all([script(LIB('maplibre-gl.js')), script(LIB('pmtiles.js')), script(LIB('basemaps.js'))]).then(function () {
       var ml = window.maplibregl;
-      try { if (ml.getRTLTextPluginStatus && ml.getRTLTextPluginStatus() === 'unavailable') ml.setRTLTextPlugin(LIB('rtl-text.js'), true); } catch (e) {}
+      try { if (ml.getRTLTextPluginStatus && ml.getRTLTextPluginStatus() === 'unavailable') { var rp = ml.setRTLTextPlugin(LIB('rtl-text.js'), true); if (rp && rp.catch) rp.catch(function () {}); } } catch (e) {}
       if (PM_URL) pm = new window.pmtiles.PMTiles(PM_URL);
       // Tuiles : téléphone d'abord, réseau ensuite (et on garde ce qui a été vu).
       ml.addProtocol('mrpm', function (p) {
@@ -151,6 +155,11 @@
     if (!el || !PM_URL) return Promise.reject(new Error('nomap'));
     return libs().then(function (ml) {
       if (M && M.getContainer() === el) { move(lat, lng, acc); return M; }
+      if (M && !document.body.contains(M.getContainer())) {
+        // l'écran a été redessiné : on remet la même carte à la place du nouveau cadre (pas de clignotement, zoom gardé)
+        el.replaceWith(M.getContainer()); try { M.resize(); } catch (e) {}
+        if (last) move(last[0], last[1], last[2]); return M;
+      }
       unmount();
       M = new ml.Map({ container: el, style: style(), center: [lng, lat], zoom: 14, maxZoom: 18, attributionControl: { compact: false }, pitchWithRotate: false, dragRotate: false });
       M.touchZoomRotate.disableRotation();
@@ -167,7 +176,7 @@
       btn.style.cssText = 'position:absolute;right:10px;bottom:34px;z-index:2;width:40px;height:40px;border-radius:10px;border:0;background:#fff;color:#111;font-size:20px;box-shadow:0 1px 4px rgba(0,0,0,.4)';
       btn.onclick = function () { follow = true; if (last) M.easeTo({ center: [last[1], last[0]], zoom: Math.max(M.getZoom(), 14) }); };
       el.appendChild(btn);
-      last = [lat, lng, acc];
+      if (!last) last = [lat, lng, acc]; else move(last[0], last[1], last[2]);
       return M;
     });
   }
@@ -178,6 +187,8 @@
     if (follow) M.jumpTo({ center: [lng, lat] });
   }
   function unmount() { try { if (M) M.remove(); } catch (e) {} M = mk = null; follow = true; }
+  // retour du réseau : les endroits restés vides sont redemandés
+  window.addEventListener('online', function () { try { if (M && M.style && M.style.sourceCaches && M.style.sourceCaches.pm) M.style.sourceCaches.pm.reload(); } catch (e) {} });
 
   /* ---------- zones téléchargées ---------- */
   var zones = function () { return req(Z, 'readonly', function (s) { return s.getAll(); }).catch(function () { return []; }); };
@@ -188,10 +199,10 @@
     var km = Math.min(Math.max(+o.km || 30, 5), 100), zmax = Math.min(+o.zmax || 14, DL_MAX);
     var bb = bboxOf(o.lat, o.lng, km), list = tilesFor(bb, 0, zmax);
     if (list.length > MAX_TILES) return Promise.reject(new Error('toobig'));
-    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
     var zone = { id: 'z' + Date.now(), name: String(o.name || '').trim().slice(0, 60) || W('Zone', 'منطقة', 'Area'),
       lat: o.lat, lng: o.lng, km: km, bb: bb, zmax: zmax, n: list.length, bytes: 0, at: Date.now(), done: false };
-    var stop = false; job = { cancel: function () { stop = true; } };
+    var stop = false; job = { cancel: function () { stop = true; }, onProgress: o.onProgress, zone: zone };
     return libs().then(function () {
       var i = 0, ok = 0, bytes = 0, errs = 0;
       function one() {
@@ -203,7 +214,7 @@
             var d = r && r.data ? r.data : new ArrayBuffer(0); ok++; bytes += d.byteLength; return putTile(t[0], t[1], t[2], d);
           });
         }).catch(function () { errs++; }).then(function () {
-          if (o.onProgress && (i % 20 === 0 || i >= list.length)) o.onProgress(ok, list.length, bytes, errs);
+          if (job && job.onProgress && (i % 20 === 0 || i >= list.length)) { try { job.onProgress(ok, list.length, bytes, errs); } catch (e) {} }
           return one();
         });
       }
@@ -263,12 +274,22 @@
           (u && u.quota ? '<div class="meta" style="opacity:.7">' + W('Espace utilisé par l’appli', 'المساحة المستعملة', 'Space used by the app') + ' : ' + mo(u.usage || 0) + ' / ' + mo(u.quota) + '</div>' : '');
       });
     }
+    function track(pr) {
+      var b = q('[data-mroffdl]'), prog = q('[data-mroffprog]');
+      b.textContent = '⏹ ' + W('Arrêter', 'إيقاف', 'Stop');
+      if (job) job.onProgress = function (ok, n, by, er) {
+        prog.textContent = '⬇️ ' + Math.floor(ok / n * 100) + ' % · ' + mo(by) + (er ? ' · ' + er + ' ' + W('échecs', 'فشل', 'failed') : ''); };
+      pr.then(function (z) { prog.textContent = z.done ? '✅ ' + W('Zone prête hors ligne', 'المنطقة جاهزة دون اتصال', 'Area ready offline') + ' (' + mo(z.bytes) + ')'
+          : '⚠️ ' + W('Téléchargement incomplet : relance-le avec du réseau, le reste sera repris.', 'تحميل غير مكتمل: أعده مع الشبكة وسيُستكمل الباقي.', 'Incomplete download: run it again with a connection, it resumes.'); list(); },
+        function (e2) { prog.textContent = '⚠️ ' + (e2 && e2.message === 'toobig' ? W('Zone trop grande.', 'المنطقة كبيرة جدًا.', 'Area too big.') : W('Téléchargement impossible pour le moment.', 'تعذّر التحميل حاليًا.', 'Download not possible right now.')); })
+        .then(function () { b.textContent = btnTxt(); });
+    }
     box.addEventListener('change', est);
     box.addEventListener('click', function (e) {
       var d = e.target.closest('[data-mroffdel]');
       if (d) { if (confirm(W('Supprimer cette zone du téléphone ?', 'حذف هذه المنطقة من الهاتف؟', 'Delete this area from the phone?'))) remove(d.getAttribute('data-mroffdel')).then(list); return; }
       var b = e.target.closest('[data-mroffdl]'); if (!b) return;
-      if (job) { job.cancel(); return; }
+      if (job) { if (confirm(W('Arrêter le téléchargement ? Ce qui est déjà téléchargé est gardé.', 'إيقاف التحميل؟ ما تم تحميله يبقى محفوظًا.', 'Stop the download? What is already downloaded is kept.'))) job.cancel(); return; }
       var prog = q('[data-mroffprog]');
       if (navigator.onLine === false) { prog.textContent = '📴 ' + W('Il faut du réseau (le Wi-Fi de préférence) pour télécharger.', 'تحتاج إلى شبكة (يفضل Wi-Fi) للتحميل.', 'You need a connection (Wi-Fi preferred) to download.'); return; }
       var km = +q('[data-mroffkm]').value, zmax = +q('[data-mroffz]').value;
@@ -276,13 +297,9 @@
       var go = function (lat, lng) {
         var name = prompt(W('Nom de cette zone (ex. Tikjda) :', 'اسم هذه المنطقة (مثلاً تيكجدة):', 'Name of this area (e.g. Tikjda):'), '');
         if (name === null) { prog.textContent = ''; return; }
-        b.textContent = '⏹ ' + W('Arrêter', 'إيقاف', 'Stop');
-        download({ lat: lat, lng: lng, km: km, zmax: zmax, name: name, onProgress: function (ok, n, by, er) {
-          prog.textContent = '⬇️ ' + Math.floor(ok / n * 100) + ' % · ' + mo(by) + (er ? ' · ' + er + ' ' + W('échecs', 'فشل', 'failed') : ''); } })
-          .then(function (z) { prog.textContent = z.done ? '✅ ' + W('Zone prête hors ligne', 'المنطقة جاهزة دون اتصال', 'Area ready offline') + ' (' + mo(z.bytes) + ')'
-              : '⚠️ ' + W('Téléchargement incomplet : relance-le avec du réseau, le reste sera repris.', 'تحميل غير مكتمل: أعده مع الشبكة وسيُستكمل الباقي.', 'Incomplete download: run it again with a connection, it resumes.'); list(); },
-            function (e2) { prog.textContent = '⚠️ ' + (e2 && e2.message === 'toobig' ? W('Zone trop grande.', 'المنطقة كبيرة جدًا.', 'Area too big.') : W('Téléchargement impossible pour le moment.', 'تعذّر التحميل حاليًا.', 'Download not possible right now.')); })
-          .then(function () { b.textContent = btnTxt(); });
+        var pr = download({ lat: lat, lng: lng, km: km, zmax: zmax, name: name });
+        if (job) job.promise = pr;
+        track(pr);
       };
       if (last) { go(last[0], last[1]); return; }
       prog.textContent = W('Recherche de ta position…', 'جارٍ تحديد موقعك…', 'Finding your position…');
@@ -290,8 +307,9 @@
         function () { prog.textContent = '⚠️ ' + W('Position introuvable : active le GPS.', 'الموقع غير متاح: فعّل GPS.', 'Position not found: turn on GPS.'); }, { enableHighAccuracy: true, timeout: 20000 });
     });
     est(); list();
+    if (job && job.promise) track(job.promise); // téléchargement en cours lancé avant le rafraîchissement de l'écran
   }
 
   window.MrMaps = { ready: function () { return !!PM_URL; }, mount: mount, move: move, unmount: unmount, zones: zones, download: download,
-    remove: remove, plan: plan, managerHtml: managerHtml, bindManager: bindManager, clearAll: clearAll };
+    remove: remove, plan: plan, managerHtml: managerHtml, bindManager: bindManager, clearSeen: clearSeen };
 })();

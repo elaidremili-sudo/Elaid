@@ -779,7 +779,7 @@ function gpsHtml(){const ar=lang=='ar',en=lang=='en',w=(a,f,e)=>ar?a:en?e:f;
  if(gpP){body=(mm?`<div id="gps_f" role="application" aria-label="${w('خريطة','Carte','Map')}" style="position:relative;width:100%;height:300px;border-radius:12px;margin-top:8px;overflow:hidden;background:#1d2126"></div>`:`<iframe id="gps_f" title="map" src="${gpUrl(gpP)}" style="width:100%;height:280px;border:0;border-radius:12px;margin-top:8px"></iframe>`)+`<div class="meta" id="gps_c">${gpP[0].toFixed(5)}, ${gpP[1].toFixed(5)} · ±${Math.round(gpP[2])} m</div><a id="gps_l" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${gpP[0]},${gpP[1]}" style="display:block;text-align:center;padding:12px;margin:8px 0;border-radius:14px;font-weight:700;border:2px solid var(--line);text-decoration:none;color:inherit">🗺️ ${w('فتح في خرائط Google','Ouvrir dans Google Maps','Open in Google Maps')}</a>`}
  else body=`<div class="meta">${gpE==1?w('الوصول إلى الموقع مرفوض. اسمح به في إعدادات المتصفح.','Accès à la position refusé. Autorise la localisation dans les réglages du navigateur.','Location access denied. Allow location in your browser settings.'):gpE==2?w('GPS غير متاح.','GPS indisponible ou signal introuvable.','GPS unavailable or no signal.'):w('جارٍ البحث عن موقعك…','Recherche de ta position…','Finding your position…')}</div>`;
  if(mm)setTimeout(()=>{const r=g('gps_off');if(r&&!r.firstChild){r.innerHTML=MrMaps.managerHtml();MrMaps.bindManager(r)}},0);
- return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div>${mm?`<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">📴 ${w('خرائط بدون اتصال','Cartes hors ligne','Offline maps')}</summary><div id="gps_off"></div></details>`:''}</div>`}
+ return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div>${mm?`<details style="margin-top:8px" ${window.mrOffOpen?'open':''} ontoggle="window.mrOffOpen=this.open"><summary style="cursor:pointer;font-weight:700">📴 ${w('خرائط بدون اتصال','Cartes hors ligne','Offline maps')}</summary><div id="gps_off"></div></details>`:''}</div>`}
 $('main').addEventListener('click',e=>{if(e.target.closest('[data-gpon]')){gpE=0;gpOff();gpOn();render()}});
 /* test-71 (bilan A4) : le capteur de mouvement de Conduite n'est plus allumé en permanence (batterie) :
    seulement pendant un trajet ou un calibrage. La détection de chute a son propre capteur, allumé seulement quand elle est cochée. */
@@ -951,10 +951,17 @@ const SKEY='sb-ixtqlxltwuktpdznbhnx-auth-token';
 const storedSess=()=>{try{const o=JSON.parse(localStorage.getItem(SKEY)||'null');return o&&o.user&&o.access_token?o:null}catch(e){return null}};
 window.mrStoredUser=()=>{const o=storedSess();return o?o.user:null};
 const netDown=()=>navigator.onLine===false;
-const isNetErr=e=>!!e&&/fetch|network|retryable|timeout|load failed/i.test(String((e.name||'')+' '+(e.message||'')));
+/* vraie coupure réseau seulement (auth-js met status 0) ; une panne 502/503 du serveur n'en est pas une */
+const isNetErr=e=>!!e&&(e.status===0||(e.status==null&&/fetch|network|load failed/i.test(String((e.name||'')+' '+(e.message||'')))));
+const stExpired=st=>!!(st&&st.expires_at&&st.expires_at*1000<Date.now()+5000);
 if(sb&&sb.auth&&sb.auth.getSession){const gs0=sb.auth.getSession.bind(sb.auth);
  sb.auth.getSession=function(){const st=storedSess();if(st&&netDown())return Promise.resolve({data:{session:st},error:null});
-  return gs0().then(r=>{if(r&&r.data&&!r.data.session&&st&&(netDown()||isNetErr(r.error)))return {data:{session:st},error:null};return r},e=>{if(st&&isNetErr(e))return {data:{session:st},error:null};throw e})}}
+  /* jeton expiré + réseau « connecté sans données » (montagne) : au bout de 4 s on continue avec la session gardée ;
+     le vrai renouvellement continue en arrière-plan et sert aux requêtes suivantes */
+  const main=gs0();if(st&&stExpired(st))return Promise.race([main.then(r=>r,e=>({data:{session:null},error:e})),new Promise(res=>setTimeout(()=>res(null),4000))]).then(r=>{if(r===null)return {data:{session:st},error:null};return fix(r)});
+  return main.then(r=>fix(r),e=>{if(st&&isNetErr(e))return {data:{session:st},error:null};throw e});
+  function fix(r){const st2=storedSess();if(r&&r.data&&!r.data.session&&st2&&(netDown()||isNetErr(r.error)))return {data:{session:st2},error:null};return r}
+  }}
 const d=document.getElementById('dA'),b=document.createElement('button');
 b.className='lang';b.id='acct';b.setAttribute('aria-label','Compte');
 document.querySelector('.tools').insertBefore(b,document.getElementById('help'));
@@ -985,7 +992,7 @@ if(x.hasAttribute('data-dl')){
 if(x.hasAttribute('data-x')){if(gate&&!user){quitApp();return}d.close();return}
 if(x.hasAttribute('data-sw')){mode=mode=='in'?'up':'in';msg='';draw();return}
 if(!sb){msg=t('off');draw();return}
-if(x.hasAttribute('data-o')){let so=null;try{so=await sb.auth.signOut()}catch(e){so={error:e}}if(so&&so.error){try{await sb.auth.signOut({scope:'local'})}catch(e){}}try{localStorage.removeItem(SKEY)}catch(e){}try{window.MrOffline&&MrOffline.clear()}catch(e){}user=null;mark();d.close();return}
+if(x.hasAttribute('data-o')){const st0=storedSess();let srvOk=false;if(!netDown()&&!(st0&&stExpired(st0))){try{const so=await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:'lent'}),6000))]);srvOk=!(so&&so.error)}catch(e){}}[SKEY,SKEY+'-code-verifier',SKEY+'-user'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});try{window.MrOffline&&MrOffline.clear()}catch(e){}user=null;mark();d.close();try{window.mrSync&&window.mrSync()}catch(e){}if(!srvOk)alert(lang=='ar'?'تم تسجيل الخروج من هذا الهاتف. بدون شبكة تعذّر إغلاق الجلسة على الخادم: ستنتهي من تلقاء نفسها.':lang=='en'?'Logged out on this phone. Without a connection the server session could not be closed: it will expire by itself.':'Déconnecté sur ce téléphone. Sans réseau, la session n’a pas pu être fermée sur le serveur : elle expirera d’elle-même.');return}
 const em=d.querySelector('#a_e').value.trim(),pw=d.querySelector('#a_p').value,n=mode=='up'?d.querySelector('#a_n').value.trim():'x';
 if(!em||!pw||!n){msg=t('need');draw();return}
 if(mode=='up'&&!(d.querySelector('#a_c')||{}).checked){msg=t('cgn');draw();return}

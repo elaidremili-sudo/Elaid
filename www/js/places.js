@@ -46,7 +46,7 @@
     ? W('Le serveur n’est pas encore prêt : exécute le script supabase/bonnes-adresses.sql dans Supabase (SQL Editor).',
         'الخادم غير جاهز بعد: نفّذ السكربت supabase/bonnes-adresses.sql في Supabase.',
         'The server is not ready yet: run supabase/bonnes-adresses.sql in Supabase (SQL Editor).')
-    : (/fetch|network|load failed|timeout/i.test(String((e && (e.name + ' ' + e.message)) || e))
+    : (/fetch|network|load failed|timeout/i.test(String((e && ((e.name || '') + ' ' + (e.message || ''))) || e))
       ? '📴 ' + W('Pas de réseau : adresses indisponibles pour le moment.', 'لا توجد شبكة: العناوين غير متاحة حاليًا.', 'No network: places unavailable for now.')
       : String((e && e.message) || e || W('Erreur réseau.', 'خطأ في الشبكة.', 'Network error.')));
 

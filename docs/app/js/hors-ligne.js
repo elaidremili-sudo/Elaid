@@ -4,7 +4,7 @@
       réponse connue au lieu d'une erreur : sorties, groupes, membres, annonces, bonnes adresses, fiche…
    2) Photos publiques (Supabase Storage, /object/public/) gardées aussi (nombre limité).
    3) Bandeau discret « Hors ligne · données du … » en haut de l'écran, et retour automatique au réseau.
-   4) Écriture sans réseau (créer, modifier, supprimer) : message clair au lieu d'un échec silencieux.
+   4) Après une écriture réussie, les lectures gardées de la table concernée sont effacées (jamais de copie périmée).
    Rien ne quitte le téléphone : le cache est local, effacé à la déconnexion du compte.
    API : window.MrOffline.{online(), lastSync(), clear(), stats(), onChange(fn)} */
 (function () {
@@ -84,6 +84,11 @@
   var READ_RPC = /^(mr_is_admin|trajets_comparables)$/; // anges gardiens et code secret : jamais en cache
   function tableOf(url) { var m = /\/rest\/v1\/([a-z0-9_]+)/i.exec(url); return m ? m[1] : ''; }
   function rpcOf(url) { var m = /\/rest\/v1\/rpc\/([a-z0-9_]+)/i.exec(url); return m ? m[1] : ''; }
+  function tokExpired(headers) {
+    try { var t = String(hget(headers, 'Authorization')).replace(/^Bearer\s+/i, '').split('.'); if (t.length !== 3) return false;
+      var b = t[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+      var p = JSON.parse(atob(b)); return !!(p.exp && p.exp * 1000 < Date.now()); } catch (e) { return false; }
+  }
   function hget(h, n) { try { return h ? (typeof h.get === 'function' ? h.get(n) : (h[n] || h[n.toLowerCase()] || '')) : ''; } catch (e) { return ''; } }
 
   /* ---------- État réseau + bandeau ---------- */
@@ -127,7 +132,7 @@
   function alertInfo() {
     var m = W('Pas de réseau. Tu vois les données de ta dernière connexion (' + ago(state.last) + ').\n\n' +
       '• Le SOS reste utilisable : le SMS part sans internet, l\'alerte au groupe partira dès le retour du réseau.\n' +
-      '• Les cartes hors ligne téléchargées s\'affichent avec ta position GPS.\n' +
+      (window.MrMaps && MrMaps.ready() ? '• Les cartes hors ligne téléchargées s\'affichent avec ta position GPS.\n' : '') +
       '• Créer ou modifier (sortie, message, annonce…) demande le réseau.',
       'لا توجد شبكة. ترى بيانات آخر اتصال (' + ago(state.last) + ').\n\n• نداء الاستغاثة يبقى متاحًا: الرسالة القصيرة تُرسل بدون إنترنت، وتنبيه المجموعة يُرسل عند عودة الشبكة.\n• الخرائط المحمّلة تظهر مع موقعك.\n• الإنشاء أو التعديل يحتاج إلى الشبكة.',
       'No network. You are seeing data from your last connection (' + ago(state.last) + ').\n\n• SOS still works: the SMS goes without internet, the group alert is sent when the network returns.\n• Downloaded offline maps show with your GPS position.\n• Creating or editing needs the network.');
@@ -174,10 +179,12 @@
       }, function () { throw err; });
     };
     if (navigator.onLine === false) return fromCache(new TypeError('Failed to fetch (hors ligne)'));
+    var settled = false, tmr = null;
     var net = nativeFetch(input, init).then(function (r) {
-      setOff(false);
+      settled = true; clearTimeout(tmr);
+      setOff(false); if (state.cached) { state.cached = false; emit(); }
       // Accès retiré (session révoquée, exclu du groupe…) : la copie gardée ne doit plus être montrée.
-      if (r.status === 401 || r.status === 403) tx(ST_REST, 'readwrite', function (s) { s.delete(key); }).catch(function () {});
+      if (r.status === 403 || (r.status === 401 && !tokExpired(headers))) tx(ST_REST, 'readwrite', function (s) { s.delete(key); }).catch(function () {});
       if (r.ok && r.status === 200 && g0 === gen) {
         r.clone().text().then(function (b) {
           if (b.length > MAX_BODY) return;
@@ -188,10 +195,10 @@
         }).catch(function () {});
       }
       return r;
-    }, function (e) { if (netErr(e)) return fromCache(e); throw e; });
+    }, function (e) { settled = true; clearTimeout(tmr); if (netErr(e)) return fromCache(e); throw e; });
     // Réseau très lent (montagne) : si rien après 7 s et qu'une réponse est gardée, on la montre tout de suite.
     var slow = new Promise(function (res) {
-      setTimeout(function () { get(ST_REST, key).then(function (c) { if (c) res(fromCache(new Error('lent'), true)); }, function () {}); }, SLOW_MS);
+      tmr = setTimeout(function () { if (settled) return; get(ST_REST, key).then(function (c) { if (c && !settled) res(fromCache(new Error('lent'), true)); }, function () {}); }, SLOW_MS);
     });
     return Promise.race([net, slow]);
   }
@@ -228,7 +235,7 @@
       try { localStorage.removeItem('mr_off_last'); } catch (e) {}
       state.last = 0;
       tx(ST_IMG, 'readwrite', function (s) { s.clear(); }).catch(function () {});
-      try { if (window.MrMaps && MrMaps.clearAll) MrMaps.clearAll(); } catch (e) {}
+      try { if (window.MrMaps && MrMaps.clearSeen) MrMaps.clearSeen(); } catch (e) {}
     }
     return tx(ST_REST, 'readwrite', function (s) {
       s.openCursor().onsuccess = function (ev) {
