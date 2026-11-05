@@ -2,6 +2,8 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
+**➡️ Dernier point : 06/11, 00 h 15 — test-81 : bouton « Renvoyer l'e-mail de confirmation » sous « Mot de passe oublié ? » (FR/AR/EN, `sb.auth.resend`, `www/index.html`, commit f535ee1). Cause : le testeur Chakib (Hotmail) ne recevait pas le mail de confirmation (envoyé par Supabase/Brevo à 23 h 50) → e-mail confirmé à la main dans la base à 00 h 04 ; il ne s'était pas encore connecté à 00 h 10. test-81 ne contient pas encore les réglages des cartes R2 (mode hors ligne : voir le point du 05/11 22 h 50, la publication prévue devient test-82). À faire : installer test-81, essayer le bouton avec un compte non confirmé, vérifier que Chakib se connecte.**
+
 **➡️ Dernier point : 29/10 — test-67 — lire d'abord POINT-29-10.md (corrections de l'audit : API 36, SOS en file d'attente, Mes urgences ; SQL supabase/test-67.sql à exécuter par Elaid ; talkie-walkie prévu plus tard).**
 
 **➡️ Dernier point : 25/10 — test-66 — lire d'abord POINT-25-10.md (inclinaison anti-vibrations `www/js/lean.js` + banc d'essai `scripts/banc/`, musique en arrière-plan `MrMusicService`, chute moins sensible aux vibrations).**
