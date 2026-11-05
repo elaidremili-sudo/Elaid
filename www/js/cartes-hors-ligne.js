@@ -13,7 +13,7 @@
   'use strict';
   // Adresse du fichier de carte (Cloudflare R2, accès public, CORS https://localhost + GitHub Pages).
   var PM_URL = window.MR_PMTILES || '';
-  var SRC_MAX = 15, DL_MAX = 15, MAX_TILES = 20000, CONC = 6, AVG_KB = 9;
+  var SRC_MAX = 14, DL_MAX = 14, MAX_TILES = 20000, CONC = 6, AVG_KB = 9;
   var DB = 'mr_cartes', T = 'tiles', Z = 'zones', V = 'vues', MAX_SEEN = 3000;
   var LIB = function (p) { return new URL('lib/carte/' + p, location.href).href; };
   var ATTR = '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a> © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -252,7 +252,7 @@
         'Download the map around you before riding (mountains, south…). With no signal it shows with your GPS position. Wi-Fi recommended.') + '</div>' +
       '<div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">' +
       '<label class="meta">' + W('Rayon', 'نصف القطر', 'Radius') + ' <select data-mroffkm="1">' + [15, 30, 50, 80].map(function (k) { return '<option value="' + k + '"' + (k === 30 ? ' selected' : '') + '>' + k + ' km</option>'; }).join('') + '</select></label>' +
-      '<label class="meta">' + W('Détail', 'التفاصيل', 'Detail') + ' <select data-mroffz="1"><option value="12">' + W('Grandes routes', 'الطرق الرئيسية', 'Main roads') + '</option><option value="14" selected>' + W('Routes et villages', 'طرق وقرى', 'Roads & villages') + '</option><option value="15">' + W('Maximum', 'أقصى', 'Maximum') + '</option></select></label>' +
+      '<label class="meta">' + W('Détail', 'التفاصيل', 'Detail') + ' <select data-mroffz="1"><option value="12">' + W('Grandes routes', 'الطرق الرئيسية', 'Main roads') + '</option><option value="14" selected>' + W('Routes, pistes et villages', 'طرق ومسالك وقرى', 'Roads, tracks & villages') + '</option></select></label>' +
       '<span class="meta" data-mroffest="1"></span></div>' +
       '<div class="row"><button class="p" data-mroffdl="1">⬇️ ' + W('Télécharger autour de moi', 'تحميل حول موقعي', 'Download around me') + '</button></div>' +
       '<div class="meta" data-mroffprog="1" aria-live="polite"></div><div data-mrofflist="1"></div>' +
