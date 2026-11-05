@@ -1,5 +1,12 @@
 # MotoRoute – Bilan avant finalisation (31/10/2026) — LIRE EN PREMIER
 
+> **CONSOLES (05/11, 10 h) — fait par Claude via le PC d'Elaid (Desktop Commander + Claude Code dans Chrome) :**
+> - Google Cloud : clé **Android** déjà limitée à com.motoroute.app + SHA-1 (C5 vérifié) ; clé **Browser** (inutilisée par l'app) limitée au site https://elaidremili-sudo.github.io/*.
+> - Cloudflare : **alerte budget 1 USD** créée et active (e-mail elaidremili@gmail.com). Aucun jeton d'API (ni utilisateur ni compte) : le secret montré dans la conversation est donc le **secret de l'app Realtime « Motoroute »** → à remplacer (créer un nouveau secret, mettre à jour CF_REALTIME_APP_SECRET dans Supabase, puis essayer le direct).
+> - Firebase : **nouvelle clé générée et testée** (fichier `Téléchargements\motoroute-9f566-firebase-adminsdk-fbsvc-fb3b52f41a.json`, jeton Google obtenu, FCM accepte). **Reste à faire par Elaid** : Supabase → Edge Functions → Secrets → FCM_SERVICE_ACCOUNT → coller le contenu du fichier → Save (refusé à Claude). **Ensuite seulement** supprimer l'ancienne clé `989bdc9c…` (Google Cloud → IAM → Comptes de service → firebase-adminsdk → Clés), puis supprimer le fichier téléchargé.
+> - Musique : Audius marche **sans clé** (recherche, tendances et lecture testées le 05/11, réponse 200 audio/mpeg).
+> - Horloge du PC d'Elaid en avance de 10 min : à corriger (Paramètres Windows → Heure → Synchroniser).
+
 > **SERVEUR (05/11, 9 h) — fait par Claude avec l'accord d'Elaid :**
 > - `supabase/signalements.sql` **appliqué** sur Motoroute (tables `message_reports` et `user_blocks`, règles d'accès vérifiées).
 > - Fonction **talkie** remise en ligne (v2 = version du dépôt : coupe-circuit toutes les 5 min, quota revérifié à la session et à l'écoute).
