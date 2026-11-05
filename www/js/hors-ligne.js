@@ -73,14 +73,15 @@
         if (p && p.sub) return String(p.sub);
       }
     } catch (e) {}
-    // Jeton expiré ou clé publique seule : on se fie au compte enregistré sur le téléphone.
-    try { var s = JSON.parse(localStorage.getItem('sb-ixtqlxltwuktpdznbhnx-auth-token') || 'null'); if (s && s.user && s.user.id) return String(s.user.id); } catch (e) {}
-    return null; // pas de compte connu : pas de cache (jamais de cache « anonyme » sous les règles d'accès)
+    // Un jeton expiré se lit quand même (son « sub » reste valable) ; clé publique seule = pas de cache
+    // (jamais de cache « anonyme » sous les règles d'accès).
+    return null;
   }
   /* Tables gardées pour la lecture hors ligne. Exclues volontairement : sos_alerts, member_positions,
      ride_positions, talkie_*, push_tokens, guardians (temps réel ou sondages : une vieille réponse tromperait). */
-  var TABLES = /^(groups|group_members|rides|ride_participants|profiles|annonces|places|place_likes|partners|partner_items|partner_requests|group_messages|group_tracks|trajets|emergency_cards|user_blocks)$/;
-  var READ_RPC = /^(mr_guard_list|mr_my_guard_code|mr_is_admin|trajets_comparables)$/;
+  var TABLES = /^(groups|group_members|rides|ride_participants|profiles|annonces|places|place_likes|partners|partner_items|partner_requests|group_messages|group_tracks|trajets|user_blocks)$/;
+  // emergency_cards : déjà gardée par l'appli (fiche locale) ; pas de 2e copie de données de santé.
+  var READ_RPC = /^(mr_is_admin|trajets_comparables)$/; // anges gardiens et code secret : jamais en cache
   function tableOf(url) { var m = /\/rest\/v1\/([a-z0-9_]+)/i.exec(url); return m ? m[1] : ''; }
   function rpcOf(url) { var m = /\/rest\/v1\/rpc\/([a-z0-9_]+)/i.exec(url); return m ? m[1] : ''; }
   function hget(h, n) { try { return h ? (typeof h.get === 'function' ? h.get(n) : (h[n] || h[n.toLowerCase()] || '')) : ''; } catch (e) { return ''; } }
@@ -163,10 +164,11 @@
     var uid = uidOf(headers);
     if (!uid) return nativeFetch(input, init);
     var key = uid + '|' + (hget(headers, 'Accept') || '') + '|' + url + (body ? '|' + body : '');
-    var fromCache = function (err) {
+    var g0 = gen;
+    var fromCache = function (err, slow) {
       return get(ST_REST, key).then(function (c) {
         if (!c) throw err;
-        state.cached = true; setOff(true); emit();
+        state.cached = true; if (slow) emit(); else setOff(true); emit();
         var h = new Headers(c.h || {}); h.set('x-mr-cache', String(c.at));
         return new Response(c.b, { status: 200, statusText: 'OK (hors ligne)', headers: h });
       }, function () { throw err; });
@@ -174,10 +176,13 @@
     if (navigator.onLine === false) return fromCache(new TypeError('Failed to fetch (hors ligne)'));
     var net = nativeFetch(input, init).then(function (r) {
       setOff(false);
-      if (r.ok && r.status === 200) {
+      // Accès retiré (session révoquée, exclu du groupe…) : la copie gardée ne doit plus être montrée.
+      if (r.status === 401 || r.status === 403) tx(ST_REST, 'readwrite', function (s) { s.delete(key); }).catch(function () {});
+      if (r.ok && r.status === 200 && g0 === gen) {
         r.clone().text().then(function (b) {
           if (b.length > MAX_BODY) return;
           var h = {}; ['content-type', 'content-range'].forEach(function (n) { var v = r.headers.get(n); if (v) h[n] = v; });
+          if (g0 !== gen) return; // déconnexion pendant la requête : on n'écrit rien
           markSync();
           put(ST_REST, key, { b: b, h: h, at: Date.now(), u: uid, t: tableOf(url) }).then(function () { if (Math.random() < 0.05) trim(ST_REST, MAX_REST); }).catch(function () {});
         }).catch(function () {});
@@ -186,7 +191,7 @@
     }, function (e) { if (netErr(e)) return fromCache(e); throw e; });
     // Réseau très lent (montagne) : si rien après 7 s et qu'une réponse est gardée, on la montre tout de suite.
     var slow = new Promise(function (res) {
-      setTimeout(function () { get(ST_REST, key).then(function (c) { if (c) res(fromCache(new Error('lent'))); }, function () {}); }, SLOW_MS);
+      setTimeout(function () { get(ST_REST, key).then(function (c) { if (c) res(fromCache(new Error('lent'), true)); }, function () {}); }, SLOW_MS);
     });
     return Promise.race([net, slow]);
   }
@@ -216,7 +221,15 @@
   }
 
   /* ---------- Effacer le cache d'un compte à la déconnexion ---------- */
+  var gen = 0;
   function clear(uid) {
+    gen++;
+    if (!uid) {
+      try { localStorage.removeItem('mr_off_last'); } catch (e) {}
+      state.last = 0;
+      tx(ST_IMG, 'readwrite', function (s) { s.clear(); }).catch(function () {});
+      try { if (window.MrMaps && MrMaps.clearAll) MrMaps.clearAll(); } catch (e) {}
+    }
     return tx(ST_REST, 'readwrite', function (s) {
       s.openCursor().onsuccess = function (ev) {
         var c = ev.target.result; if (!c) return;
@@ -229,9 +242,11 @@
     if (hooked) return; var c = window.mrSb; if (!c || !c.auth || !c.auth.onAuthStateChange) return; hooked = true;
     c.auth.onAuthStateChange(function (ev, session) {
       if (session && session.user) lastUid = session.user.id;
-      if (ev === 'SIGNED_OUT') { clear(lastUid || null); lastUid = null; }
+      if (ev === 'SIGNED_OUT') { clear(null); lastUid = null; }
     });
   }
+  // Données gardées mais plus aucune session sur le téléphone (déconnexion manquée) : on efface tout.
+  try { if (!localStorage.getItem('sb-ixtqlxltwuktpdznbhnx-auth-token')) setTimeout(function () { clear(null); }, 0); } catch (e) {}
   var hk = setInterval(function () { hookAuth(); if (hooked) clearInterval(hk); }, 1000);
   setTimeout(function () { clearInterval(hk); }, 60000);
 

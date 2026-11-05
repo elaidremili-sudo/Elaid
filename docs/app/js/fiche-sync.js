@@ -36,12 +36,23 @@
     var r = await c.from('emergency_cards').select('*').eq('user_id', u.id).maybeSingle();
     if (r.error) { pulledFor = null; return; }
     var row = r.data, local = S.ice, lAt = +S.iceAt || 0;
+    // 05/11/2026 : fiche locale venant d'un AUTRE compte (changement de compte sur ce téléphone) :
+    // on ne l'envoie jamais sur le nouveau compte ; on la remplace par celle du compte, ou on la vide.
+    if (S.iceSync && S.iceSync !== u.id) {
+      if (row) { S.ice = fromRow(row); S.iceAt = new Date(row.updated_at).getTime(); }
+      else { S.ice = {}; S.iceAt = 0; }
+      S.iceSync = row ? u.id : null;
+      try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+      try { render(); } catch (e) {}
+      try { window.smsSync && window.smsSync(); } catch (e) {}
+      return;
+    }
     if (row && (empty(local) || new Date(row.updated_at).getTime() > lAt)) {
       S.ice = fromRow(row); S.iceAt = new Date(row.updated_at).getTime(); S.iceSync = u.id;
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
       try { render(); } catch (e) {}
       try { window.smsSync && window.smsSync(); } catch (e) {}
-    } else if (!empty(local) && (!row || lAt > new Date(row.updated_at).getTime() || S.iceSync != u.id)) {
+    } else if (!empty(local) && (!row || lAt > new Date(row.updated_at).getTime() || !S.iceSync)) {
       await push();
     }
   }

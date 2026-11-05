@@ -14,7 +14,7 @@
   // Adresse du fichier de carte (Cloudflare R2, accès public, CORS https://localhost + GitHub Pages).
   var PM_URL = window.MR_PMTILES || '';
   var SRC_MAX = 15, DL_MAX = 15, MAX_TILES = 20000, CONC = 6, AVG_KB = 9;
-  var DB = 'mr_cartes', T = 'tiles', Z = 'zones';
+  var DB = 'mr_cartes', T = 'tiles', Z = 'zones', V = 'vues', MAX_SEEN = 3000;
   var LIB = function (p) { return new URL('lib/carte/' + p, location.href).href; };
   var ATTR = '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a> © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
 
@@ -27,10 +27,11 @@
   function db() {
     if (dbp) return dbp;
     dbp = new Promise(function (res, rej) {
-      var r = indexedDB.open(DB, 2);
-      r.onupgradeneeded = function () { var d = r.result;
-        if (d.objectStoreNames.contains(T)) d.deleteObjectStore(T); d.createObjectStore(T);
-        if (!d.objectStoreNames.contains(Z)) d.createObjectStore(Z, { keyPath: 'id' }); };
+      var r = indexedDB.open(DB, 3);
+      r.onupgradeneeded = function (ev) { var d = r.result;
+        if (ev.oldVersion < 2) { if (d.objectStoreNames.contains(T)) d.deleteObjectStore(T); d.createObjectStore(T); }
+        if (!d.objectStoreNames.contains(Z)) d.createObjectStore(Z, { keyPath: 'id' });
+        if (!d.objectStoreNames.contains(V)) d.createObjectStore(V).createIndex('at', 'at'); };
       r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
     });
     dbp.catch(function () { dbp = null; });
@@ -46,6 +47,38 @@
   var tkey = function (z, x, y) { return z + '/' + x + '/' + y; };
   var getTile = function (z, x, y) { return req(T, 'readonly', function (s) { return s.get(tkey(z, x, y)); }); };
   var putTile = function (z, x, y, buf) { return req(T, 'readwrite', function (s) { s.put(buf, tkey(z, x, y)); }); };
+
+  /* Tuiles seulement VUES (hors zones téléchargées) : on en garde 3 000 au plus, les plus anciennes partent.
+     Sinon la liste des tuiles finirait par retracer tous les lieux où le motard est passé. */
+  var nSeen = 0;
+  function seen(z, x, y) {
+    return req(V, 'readwrite', function (s) { s.put({ at: Date.now() }, tkey(z, x, y)); }).then(function () {
+      if (++nSeen % 100) return;
+      return zones().then(function (all) {
+        var inZone = function (k) { var p = k.split('/').map(Number); return all.some(function (zn) { return p[0] <= zn.zmax &&
+          p[1] >= lon2x(zn.bb[1], p[0]) && p[1] <= lon2x(zn.bb[3], p[0]) && p[2] >= lat2y(zn.bb[2], p[0]) && p[2] <= lat2y(zn.bb[0], p[0]); }); };
+        return db().then(function (d) { return new Promise(function (res) {
+          var t = d.transaction([V, T], 'readwrite'), sv = t.objectStore(V), st = t.objectStore(T), c = sv.count();
+          c.onsuccess = function () {
+            var extra = c.result - MAX_SEEN; if (extra <= 0) return;
+            sv.index('at').openCursor().onsuccess = function (ev) {
+              var cur = ev.target.result; if (!cur || extra-- <= 0) return;
+              if (!inZone(cur.primaryKey)) st.delete(cur.primaryKey);
+              cur.delete(); cur.continue();
+            };
+          };
+          t.oncomplete = t.onerror = t.onabort = function () { res(); };
+        }); });
+      });
+    }).catch(function () {});
+  }
+  function clearAll() {
+    unmount();
+    return db().then(function (d) { return new Promise(function (res) {
+      var t = d.transaction([T, Z, V], 'readwrite'); [T, Z, V].forEach(function (n) { t.objectStore(n).clear(); });
+      t.oncomplete = t.onerror = t.onabort = function () { res(); };
+    }); }).catch(function () {});
+  }
 
   /* ---------- géométrie des tuiles ---------- */
   function lon2x(lon, z) { return Math.max(0, Math.min(Math.pow(2, z) - 1, Math.floor((lon + 180) / 360 * Math.pow(2, z)))); }
@@ -83,7 +116,7 @@
           if (!pm || navigator.onLine === false) return { data: new ArrayBuffer(0) };
           return pm.getZxy(z, x, y).then(function (r) {
             var d = r && r.data ? r.data : new ArrayBuffer(0);
-            putTile(z, x, y, d).catch(function () {});
+            putTile(z, x, y, d).then(function () { return seen(z, x, y); }).catch(function () {});
             return { data: d };
           }, function () { return { data: new ArrayBuffer(0) }; });
         });
@@ -260,5 +293,5 @@
   }
 
   window.MrMaps = { ready: function () { return !!PM_URL; }, mount: mount, move: move, unmount: unmount, zones: zones, download: download,
-    remove: remove, plan: plan, managerHtml: managerHtml, bindManager: bindManager };
+    remove: remove, plan: plan, managerHtml: managerHtml, bindManager: bindManager, clearAll: clearAll };
 })();

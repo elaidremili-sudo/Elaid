@@ -184,6 +184,7 @@
   async function sendGroups(p, x) {
     const c = window.mrSb, u = curUser();
     if (!c || !u) return { done: false, why: 'nouser' }; // déconnecté : on attend (2 h max)
+    if (p.uid && p.uid !== u.id) return { done: true, res: { ok: false, why: 'otheruser' } }; // alerte d'un autre compte : jamais envoyée au nom du compte actuel
     const gs = await activeGroups(c, u);
     if (!gs.length) return { done: true, res: { ok: false, why: 'nogroup' } };
     // heure réelle de l'alerte (pas celle du renvoi) : les membres voient « il y a 40 min » et non « à l'instant »
@@ -207,7 +208,7 @@
     let lat = null, lng = null;
     if (ll) { const p = String(ll).split(','); lat = parseFloat(p[0]); lng = parseFloat(p[1]); if (isNaN(lat) || isNaN(lng)) lat = lng = null; }
     try {
-      const x = await window.MrSosQueue.add('grp', { msg: String(msg || '').slice(0, 500), lat, lng, kind: kind === 'sos' ? 'sos' : 'chute' });
+      const x = await window.MrSosQueue.add('grp', { msg: String(msg || '').slice(0, 500), lat, lng, kind: kind === 'sos' ? 'sos' : 'chute', uid: u.id });
       if (x.state === 'pending') return { ok: false, why: 'queued', id: x.id };
       return Object.assign({ id: x.id }, x.res || { ok: false, why: x.why || 'net' });
     } catch (e) { report('groupes-envoi', e); return { ok: false, why: 'net' }; }

@@ -980,6 +980,7 @@ if(x.hasAttribute('data-dl')){
  let r=await sb.functions.invoke('delete-account',{body:{}});if(r.error&&(!(r.error.context&&r.error.context.status)||r.error.context.status==404))r=await sb.rpc('delete_my_account');else if(!r.error&&r.data&&!r.data.ok)r={error:{message:r.data.detail||r.data.why}};
  if(r.error){const m=String(r.error.message||'');msg=/Could not find the function|PGRST202|schema cache/i.test(m+(r.error.code||''))?(lang=='ar'?'الخادم غير جاهز بعد: نفّذ سكربت SQL «suppression» في Supabase.':lang=='en'?'The server is not ready yet: run the “suppression” SQL script in Supabase.':'Le serveur n’est pas encore prêt : exécute le script SQL « suppression » dans Supabase.'):window.mrErrTxt(r.error);draw();return}
  try{await sb.auth.signOut({scope:'local'})}catch(e2){}
+ try{localStorage.removeItem(SKEY)}catch(e2){}try{window.MrOffline&&MrOffline.clear()}catch(e2){}
  user=null;mark();d.close();alert(t('dlok'));return}
 if(x.hasAttribute('data-x')){if(gate&&!user){quitApp();return}d.close();return}
 if(x.hasAttribute('data-sw')){mode=mode=='in'?'up':'in';msg='';draw();return}
@@ -1005,7 +1006,7 @@ d.addEventListener('cancel',e=>{if((gate&&!user)||tm)e.preventDefault()});
 setInterval(enforce,1500); /* test-71 : 1,5 s au lieu de 0,8 s */window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
 window.mrSb=sb;window.mrUser=()=>user;
 if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;try{lastUid=user?user.id:null}catch(e){}mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
-let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{if(!s&&ev!=='SIGNED_OUT'&&storedSess())return;/* hors ligne : un renouvellement raté n'est pas une déconnexion */user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
+let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_OUT'){try{window.MrOffline&&MrOffline.clear()}catch(e){}}if(!s&&ev!=='SIGNED_OUT'&&storedSess())return;/* hors ligne : un renouvellement raté n'est pas une déconnexion */user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
 const lg=document.getElementById('lang');if(lg)lg.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0));
 document.querySelectorAll('[data-lg]').forEach(x=>x.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0)));
 mark();
