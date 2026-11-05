@@ -42,8 +42,8 @@ gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${100 + run}`)
 fs.writeFileSync(gradlePath, gradle);
 console.log(`Version : 1.0.${run} (code ${100 + run})`);
 
-// AdMob : identifiant de l'application (test Google tant que ADMOB_APP_ID n'est pas fourni)
-const admobId = process.env.ADMOB_APP_ID || 'ca-app-pub-9115324413258436~7133412146'; // test-61 : application MotoRoute dans AdMob
+// AdMob : identifiant de l'application MotoRoute (test-61)
+const admobId = 'ca-app-pub-9115324413258436~7133412146';
 let man = fs.readFileSync(path, 'utf8');
 if (!man.includes('com.google.android.gms.ads.APPLICATION_ID')) {
   man = man.replace(/<application([^>]*)>/, `<application$1>\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobId}"/>`);
@@ -64,19 +64,8 @@ if (fs.existsSync(stylesPath)) {
   console.log('Écran complet (encoche/caméra) : activé');
 }
 
-// AdMob : bannière MotoRoute réelle si la variable GitHub ADMOB_BANNER_ID est fournie (sinon bannière de test Google)
-// La copie de www/ vers Android se fait après ce script (npx cap sync), donc on modifie www/index.html ici.
-const banner = process.env.ADMOB_BANNER_ID;
-if (banner && /^ca-app-pub-\d+\/\d+$/.test(banner) && process.env.ADMOB_APP_ID) {
-  const ip = 'www/index.html';
-  let h = fs.readFileSync(ip, 'utf8');
-  h = h.replace("const BANNER_ID='ca-app-pub-3940256099942544/6300978111',TESTING=true;",
-                `const BANNER_ID='${banner}',TESTING=false;`);
-  fs.writeFileSync(ip, h);
-  console.log('AdMob bannière : identifiant MotoRoute (publicités réelles)');
-} else {
-  console.log('AdMob bannière : identifiant de test Google (ADMOB_APP_ID + ADMOB_BANNER_ID à ajouter dans les variables GitHub)');
-}
+// AdMob : les identifiants de la bannière et de l'interstitiel sont dans www/index.html (BANNER_ID, INTER_ID).
+// Passer TESTING=false dans www/index.html le jour de la mise en production sur Google Play.
 
 // Sentry : numéro de version dans l'app pour savoir quelle version a planté (test-33)
 fs.writeFileSync('www/js/version.js', `// Fabriqué automatiquement\nwindow.MR_VERSION = 'test-${run}';\n`);
