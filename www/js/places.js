@@ -46,7 +46,9 @@
     ? W('Le serveur n’est pas encore prêt : exécute le script supabase/bonnes-adresses.sql dans Supabase (SQL Editor).',
         'الخادم غير جاهز بعد: نفّذ السكربت supabase/bonnes-adresses.sql في Supabase.',
         'The server is not ready yet: run supabase/bonnes-adresses.sql in Supabase (SQL Editor).')
-    : String((e && e.message) || e || W('Erreur réseau.', 'خطأ في الشبكة.', 'Network error.'));
+    : (/fetch|network|load failed|timeout/i.test(String((e && (e.name + ' ' + e.message)) || e))
+      ? '📴 ' + W('Pas de réseau : adresses indisponibles pour le moment.', 'لا توجد شبكة: العناوين غير متاحة حاليًا.', 'No network: places unavailable for now.')
+      : String((e && e.message) || e || W('Erreur réseau.', 'خطأ في الشبكة.', 'Network error.')));
 
   async function load() {
     const c = sbc(), u = me();
@@ -151,7 +153,7 @@ ${mine || admin ? `<button class="g" data-pldel="${esc(p.id)}">🗑 ${W('Supprim
     const chips = `<div class="pl-chips"><button class="g${filt == 'all' ? ' on' : ''}" data-plk="all">${W('Tout', 'الكل', 'All')}</button>${KINDS.map(k => `<button class="g${filt == k[0] ? ' on' : ''}" data-plk="${k[0]}">${k[1]} ${esc(k[2]())}</button>`).join('')}</div>`;
     const L = sorted();
     let body;
-    if (err) body = `<div class="card">${esc(err)}</div>`;
+    if (err && !items.length) body = `<div class="card">${esc(err)}</div>`;
     else if (busy && !loaded) body = `<div class="meta" style="margin-top:12px">${W('Chargement…', 'جارٍ التحميل…', 'Loading…')}</div>`;
     else if (!L.length) body = `<div class="meta" style="margin-top:12px">${items.length ? W('Aucune adresse pour ce choix.', 'لا توجد عناوين لهذا الاختيار.', 'No place for this choice.') : W('Aucune adresse pour l’instant. Sois le premier à en ajouter une !', 'لا توجد عناوين بعد. كن أول من يضيف عنوانًا!', 'No places yet. Be the first to add one!')}</div>`;
     else body = L.slice(0, 120).map(itemHtml).join('');

@@ -179,8 +179,10 @@
 
   /* Envoi réel aux groupes (un essai). Identifiant d'alerte « client_id » : le serveur ignore un renvoi déjà reçu. */
   let noCid = false; // serveur sans la colonne client_id (test-67.sql pas encore passé)
+  // 05/11/2026 : hors ligne, le compte enregistré sur le téléphone suffit pour mettre l'alerte en file.
+  const curUser = () => (window.mrUser && window.mrUser()) || (window.mrStoredUser && window.mrStoredUser()) || null;
   async function sendGroups(p, x) {
-    const c = window.mrSb, u = window.mrUser && window.mrUser();
+    const c = window.mrSb, u = curUser();
     if (!c || !u) return { done: false, why: 'nouser' }; // déconnecté : on attend (2 h max)
     const gs = await activeGroups(c, u);
     if (!gs.length) return { done: true, res: { ok: false, why: 'nogroup' } };
@@ -200,7 +202,7 @@
   window.MrSosQueue.register('grp', sendGroups);
 
   window.mrSosSend = async function (msg, ll, kind) {
-    const c = window.mrSb, u = window.mrUser && window.mrUser();
+    const c = window.mrSb, u = curUser();
     if (!c || !u) return { ok: false, why: 'nouser' };
     let lat = null, lng = null;
     if (ll) { const p = String(ll).split(','); lat = parseFloat(p[0]); lng = parseFloat(p[1]); if (isNaN(lat) || isNaN(lng)) lat = lng = null; }

@@ -760,23 +760,26 @@ window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtm
  :`${sumHtml()}<div class="row"><button class="g" data-rdcal="1">${k.cal}</button> ${cal}</div>${vsHtml()}${msg?`<div class="meta">${msg}</div>`:''}<div class="row"><button class="p" data-rdstart="1">${k.start}</button></div>`+histHtml();
  return `<div class="card"><h3>📊 ${k.t}</h3><div class="meta">${k.note}</div>${body}<div class="meta">${k.est}</div><div class="meta">${k.fallnote}</div></div>`+(!on&&window.mrCmpIntro?window.mrCmpIntro():'')+(on?(gpOff(),`<div class="meta" style="text-align:center">🔋 ${lang=='ar'?'وضع توفير البطارية: الخريطة متوقفة أثناء التسجيل.':lang=='en'?'Battery saver: the map is paused while recording.':'Économie de batterie : la carte est en pause pendant l’enregistrement.'}</div>`):gpsHtml())};
 $('main').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;if(D.rdvs){S.vibSens=D.rdvs;save();if(est)est.setSens(VS());render();return}if(D.rdcal!==undefined)calib();else if(D.rdstart!==undefined)rstart();else if(D.rdstop!==undefined)rstop();else if(D.rdsumx!==undefined){sumR=null;render()}});
-let gpP=null,gpW=null,gpU=0,gpE=0;
+let gpP=null,gpW=null,gpU=0,gpE=0,gpMapErr=0;
 const gpUrl=p=>'https://www.openstreetmap.org/export/embed.html?bbox='+[p[1]-.006,p[0]-.004,p[1]+.006,p[0]+.004].map(x=>x.toFixed(5)).join('%2C')+'&layer=mapnik&marker='+p[0].toFixed(5)+'%2C'+p[1].toFixed(5);
-function gpOff(){try{if(gpW!=null)navigator.geolocation.clearWatch(gpW)}catch(e){}gpW=null}
+function gpOff(){try{if(gpW!=null)navigator.geolocation.clearWatch(gpW)}catch(e){}gpW=null;try{window.MrMaps&&MrMaps.unmount()}catch(e){}}
 function gpOn(){if(gpW!=null||!navigator.geolocation){if(!navigator.geolocation)gpE=2;return}
  try{gpW=navigator.geolocation.watchPosition(p=>{if(tab!=6){gpOff();return}
   const c=p.coords,n=Date.now();gpP=[c.latitude,c.longitude,c.accuracy];const f=g('gps_f');
   if(!f){gpU=n;render();return}
   const x=g('gps_c');if(x)x.textContent=c.latitude.toFixed(5)+', '+c.longitude.toFixed(5)+' · ±'+Math.round(c.accuracy)+' m';
   const l=g('gps_l');if(l)l.href='https://www.google.com/maps/search/?api=1&query='+c.latitude+','+c.longitude;
-  if(n-gpU>6000){f.src=gpUrl(gpP);gpU=n}
+  if(f.tagName!='IFRAME'){if(window.MrMaps)MrMaps.move(c.latitude,c.longitude,c.accuracy)}else if(n-gpU>6000&&navigator.onLine!==false){f.src=gpUrl(gpP);gpU=n}
  },e=>{gpOff();gpE=e&&e.code==1?1:2;if(tab==6)render()},{enableHighAccuracy:true,maximumAge:2000,timeout:20000})}catch(e){gpE=2}}
 function gpsHtml(){const ar=lang=='ar',en=lang=='en',w=(a,f,e)=>ar?a:en?e:f;
  if(gpW==null&&!gpE)gpOn();
  let body;
- if(gpP){body=`<iframe id="gps_f" title="map" src="${gpUrl(gpP)}" style="width:100%;height:280px;border:0;border-radius:12px;margin-top:8px"></iframe><div class="meta" id="gps_c">${gpP[0].toFixed(5)}, ${gpP[1].toFixed(5)} · ±${Math.round(gpP[2])} m</div><a id="gps_l" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${gpP[0]},${gpP[1]}" style="display:block;text-align:center;padding:12px;margin:8px 0;border-radius:14px;font-weight:700;border:2px solid var(--line);text-decoration:none;color:inherit">🗺️ ${w('فتح في خرائط Google','Ouvrir dans Google Maps','Open in Google Maps')}</a>`}
+ const mm=window.MrMaps&&MrMaps.ready()&&!gpMapErr;
+ if(gpP&&mm)setTimeout(()=>{const el=g('gps_f');if(el&&el.tagName!='IFRAME')MrMaps.mount(el,gpP[0],gpP[1],gpP[2]).catch(()=>{gpMapErr=1;render()})},0);
+ if(gpP){body=(mm?`<div id="gps_f" role="application" aria-label="${w('خريطة','Carte','Map')}" style="position:relative;width:100%;height:300px;border-radius:12px;margin-top:8px;overflow:hidden;background:#1d2126"></div>`:`<iframe id="gps_f" title="map" src="${gpUrl(gpP)}" style="width:100%;height:280px;border:0;border-radius:12px;margin-top:8px"></iframe>`)+`<div class="meta" id="gps_c">${gpP[0].toFixed(5)}, ${gpP[1].toFixed(5)} · ±${Math.round(gpP[2])} m</div><a id="gps_l" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${gpP[0]},${gpP[1]}" style="display:block;text-align:center;padding:12px;margin:8px 0;border-radius:14px;font-weight:700;border:2px solid var(--line);text-decoration:none;color:inherit">🗺️ ${w('فتح في خرائط Google','Ouvrir dans Google Maps','Open in Google Maps')}</a>`}
  else body=`<div class="meta">${gpE==1?w('الوصول إلى الموقع مرفوض. اسمح به في إعدادات المتصفح.','Accès à la position refusé. Autorise la localisation dans les réglages du navigateur.','Location access denied. Allow location in your browser settings.'):gpE==2?w('GPS غير متاح.','GPS indisponible ou signal introuvable.','GPS unavailable or no signal.'):w('جارٍ البحث عن موقعك…','Recherche de ta position…','Finding your position…')}</div>`;
- return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div></div>`}
+ if(mm)setTimeout(()=>{const r=g('gps_off');if(r&&!r.firstChild){r.innerHTML=MrMaps.managerHtml();MrMaps.bindManager(r)}},0);
+ return `<div class="card"><h3>📍 ${w('موقعي (GPS)','Ma position (GPS)','My position (GPS)')}</h3>${body}<div class="row"><button class="g" data-gpon="1">${w('إعادة تشغيل GPS','Relancer le GPS','Restart GPS')}</button></div>${mm?`<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">📴 ${w('خرائط بدون اتصال','Cartes hors ligne','Offline maps')}</summary><div id="gps_off"></div></details>`:''}</div>`}
 $('main').addEventListener('click',e=>{if(e.target.closest('[data-gpon]')){gpE=0;gpOff();gpOn();render()}});
 /* test-71 (bilan A4) : le capteur de mouvement de Conduite n'est plus allumé en permanence (batterie) :
    seulement pendant un trajet ou un calibrage. La détection de chute a son propre capteur, allumé seulement quand elle est cochée. */
@@ -819,7 +822,7 @@ const dir=`<button class="p" data-plopen="meca">📍 ${A()?'العناوين ا�
 const pd=p.mem.filter(m=>m.paid).length;
 const mem=btn('add','mem',P('+ Membre','+ عضو'),'p')+note(`${P('Cotisations payées','الاشتراكات المدفوعة')} : ${pd}/${p.mem.length}`)+p.mem.map((m,i)=>row(`${esc(m.n)} — ${esc(m.r)}`,btn('paid',i,(m.paid?'✅ ':'⬜ ')+P('Cotisation','اشتراك'))+del('mem',i))).join('');
 const rb=btn('add','rb',P('+ Étape','+ محطة'),'p')+(p.rb.length?' '+btn('rbs','',P('💬 Partager','💬 مشاركة')):'')+p.rb.map((s,i)=>row(`${i+1}. ${esc(s.t)}${s.la?` <a class="lnk" target="_blank" rel="noopener" href="${mp(s.la,s.lo)}">🗺</a>`:''}`,del('rb',i))).join('');
-const off=note(P('Dans Google Maps : ton profil → Cartes hors connexion → choisis ta zone (montagne, sud…).','في خرائط غوغل: ملفك الشخصي ← الخرائط بلا اتصال ← اختر منطقتك.'));
+const off=(window.MrMaps&&MrMaps.ready())?(setTimeout(()=>{document.querySelectorAll('[data-mrplusoff]').forEach(r=>{if(!r.firstChild){r.innerHTML=MrMaps.managerHtml();MrMaps.bindManager(r)}})},0),'<div data-mrplusoff="1"></div>'):note(P('Dans Google Maps : ton profil → Cartes hors connexion → choisis ta zone (montagne, sud…).','في خرائط غوغل: ملفك الشخصي ← الخرائط بلا اتصال ← اختر منطقتك.'));
 /* test-44 : « MotoRoute Plus » était un simple titre qui ne s'ouvrait pas → c'est maintenant une rubrique qui s'ouvre et contient tous les outils */
 return `<details class="card" data-k="plus" ${O.plus?'open':''}><summary style="cursor:pointer"><b style="font-size:18px">✨ MotoRoute Plus ▾</b><div class="meta">${P('9 outils : défis, routes favorites, SOS panne, dangers, motards hôtes, annuaire, gestion du club, roadbook, cartes hors ligne. Touche pour ouvrir.','9 أدوات: التحديات، الطرق المفضلة، نجدة العطل، المخاطر، المضيفون، الدليل، إدارة النادي، خريطة الطريق، الخرائط بلا اتصال. المس للفتح.')}</div></summary><div style="margin-top:10px">`
 +det('ch',P('🏆 Défis & badges','🏆 التحديات والأوسمة'),ch)+det('fav',P('📍 Favorites & boucle','📍 المفضلة والحلقة'),fav)+det('sos',P('🆘 SOS Motard (panne)','🆘 نجدة سائق (عطل)'),sos)+det('hz',P('⚠️ Dangers confirmés','⚠️ مخاطر مؤكَّدة'),hz+note(P('Confirmé par plusieurs motards = plus fiable.','تأكيد عدة سائقين = أكثر موثوقية.')))+det('host',P('🏠 Motards hôtes','🏠 سائقون مضيفون'),host)+det('dir',P('🔧 Annuaire de confiance','🔧 دليل موثوق'),dir)+det('mem',P('👥 Gestion du club','👥 إدارة النادي'),mem)+det('rb',P('🧭 Roadbook du club','🧭 خريطة طريق النادي'),rb)+det('off',P('📴 Hors ligne','📴 بلا اتصال'),off)+'</div></details>';
@@ -929,7 +932,7 @@ document.getElementById('main').addEventListener('toggle',e=>{if(e.target.datase
 render();
 })();
 </script>
-<script src="lib/supabase.js"></script>
+<script src="lib/supabase.js"></script><script src="js/hors-ligne.js"></script><script src="js/cartes-hors-ligne.js"></script>
 <dialog id="dA"></dialog>
 <script>
 (function(){
@@ -941,6 +944,17 @@ en:{acc:'My account',in:'Log in',up:'Create account',fn:'First name',em:'Email',
 const t=k=>(TX[lang]||TX.fr)[k],esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let sb=null,mode='in',user=null,msg='',gate=false,ready=false,tm=false;const TERMS_V='2026-11-05',CGU='https://elaidremili-sudo.github.io/Elaid/conditions.html';const termsOk=()=>{try{return !!(user&&((user.user_metadata&&user.user_metadata.terms_version)||localStorage.getItem('mr_terms_'+user.id)))}catch(e){return !!(user&&user.user_metadata&&user.user_metadata.terms_version)}};
 try{sb=window.supabase.createClient(U,K)}catch(e){}
+/* 05/11/2026 — hors ligne : la session enregistrée sur le téléphone est gardée sans réseau.
+   Sans ça, un jeton expiré + pas de réseau = écran de connexion obligatoire + groupes/sorties effacés,
+   et chaque requête attendait ~25 s le renouvellement impossible du jeton. */
+const SKEY='sb-ixtqlxltwuktpdznbhnx-auth-token';
+const storedSess=()=>{try{const o=JSON.parse(localStorage.getItem(SKEY)||'null');return o&&o.user&&o.access_token?o:null}catch(e){return null}};
+window.mrStoredUser=()=>{const o=storedSess();return o?o.user:null};
+const netDown=()=>navigator.onLine===false;
+const isNetErr=e=>!!e&&/fetch|network|retryable|timeout|load failed/i.test(String((e.name||'')+' '+(e.message||'')));
+if(sb&&sb.auth&&sb.auth.getSession){const gs0=sb.auth.getSession.bind(sb.auth);
+ sb.auth.getSession=function(){const st=storedSess();if(st&&netDown())return Promise.resolve({data:{session:st},error:null});
+  return gs0().then(r=>{if(r&&r.data&&!r.data.session&&st&&(netDown()||isNetErr(r.error)))return {data:{session:st},error:null};return r},e=>{if(st&&isNetErr(e))return {data:{session:st},error:null};throw e})}}
 const d=document.getElementById('dA'),b=document.createElement('button');
 b.className='lang';b.id='acct';b.setAttribute('aria-label','Compte');
 document.querySelector('.tools').insertBefore(b,document.getElementById('help'));
@@ -970,7 +984,7 @@ if(x.hasAttribute('data-dl')){
 if(x.hasAttribute('data-x')){if(gate&&!user){quitApp();return}d.close();return}
 if(x.hasAttribute('data-sw')){mode=mode=='in'?'up':'in';msg='';draw();return}
 if(!sb){msg=t('off');draw();return}
-if(x.hasAttribute('data-o')){await sb.auth.signOut();user=null;mark();d.close();return}
+if(x.hasAttribute('data-o')){let so=null;try{so=await sb.auth.signOut()}catch(e){so={error:e}}if(so&&so.error){try{await sb.auth.signOut({scope:'local'})}catch(e){}}try{localStorage.removeItem(SKEY)}catch(e){}try{window.MrOffline&&MrOffline.clear()}catch(e){}user=null;mark();d.close();return}
 const em=d.querySelector('#a_e').value.trim(),pw=d.querySelector('#a_p').value,n=mode=='up'?d.querySelector('#a_n').value.trim():'x';
 if(!em||!pw||!n){msg=t('need');draw();return}
 if(mode=='up'&&!(d.querySelector('#a_c')||{}).checked){msg=t('cgn');draw();return}
@@ -991,7 +1005,7 @@ d.addEventListener('cancel',e=>{if((gate&&!user)||tm)e.preventDefault()});
 setInterval(enforce,1500); /* test-71 : 1,5 s au lieu de 0,8 s */window.mrGate=enforce;window.mrSignup=()=>{if(user)return;mode='up';msg='';draw();if(!d.open)d.showModal()};
 window.mrSb=sb;window.mrUser=()=>user;
 if(sb){sb.auth.getSession().then(r=>{user=r.data.session?r.data.session.user:null;try{lastUid=user?user.id:null}catch(e){}mark();ready=true;enforce();if(window.mrSync)window.mrSync()}).catch(()=>{ready=true;enforce()});
-let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
+let lastUid=null;sb.auth.onAuthStateChange((ev,s)=>{if(!s&&ev!=='SIGNED_OUT'&&storedSess())return;/* hors ligne : un renouvellement raté n'est pas une déconnexion */user=s?s.user:null;mark();if(ready)enforce();const uid=user?user.id:null;/* test-59 : le renouvellement de connexion (toutes les heures, au retour dans l'appli) ne redessine plus tout l'écran */if(uid!==lastUid){lastUid=uid;setTimeout(()=>{if(window.mrSync)window.mrSync()},0)}})}else{ready=true;enforce()}
 const lg=document.getElementById('lang');if(lg)lg.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0));
 document.querySelectorAll('[data-lg]').forEach(x=>x.addEventListener('click',()=>setTimeout(()=>{if(d.open)draw()},0)));
 mark();
@@ -1026,7 +1040,7 @@ async function ins(table,row,single){
 async function pull(){
  const c=sbc(),u=me();
  if(!c)return;
- if(!u){if(S.groups.some(g=>g.srv)||S.sorties.some(s=>s.srv)){S.groups=S.groups.filter(g=>!g.srv);S.sorties=S.sorties.filter(s=>!s.srv);sig='';save();render()}return}
+ if(!u){if(window.mrStoredUser&&window.mrStoredUser())return;/* session gardée hors ligne : ne rien effacer */if(S.groups.some(g=>g.srv)||S.sorties.some(s=>s.srv)){S.groups=S.groups.filter(g=>!g.srv);S.sorties=S.sorties.filter(s=>!s.srv);sig='';save();render()}return}
  if(busy)return;busy=true;lastPull=Date.now();
  try{
   /* test-71 (bilan A3) : on ne télécharge plus tout l'historique à chaque fois.

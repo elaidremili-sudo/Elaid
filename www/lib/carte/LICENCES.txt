@@ -1,0 +1,8 @@
+Bibliothèques de carte embarquées dans MotoRoute (mode hors ligne) :
+- maplibre-gl 4.7.1 : BSD-3-Clause (voir maplibre-LICENSE.txt)
+- pmtiles 3.2.1 (Protomaps) : BSD-3-Clause
+- @protomaps/basemaps 5.0.0 : BSD-3-Clause (style de carte)
+- @mapbox/mapbox-gl-rtl-text 0.2.3 : voir rtl-text-LICENSE.md (affichage de l'arabe)
+- Polices Noto Sans (fonts/) : SIL Open Font License 1.1
+- Icônes (sprites/) : dérivées de tangrams/icons (MIT), via protomaps/basemaps-assets
+Données cartographiques : © OpenStreetMap contributors (ODbL), tuiles Protomaps.

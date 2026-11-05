@@ -107,7 +107,7 @@
     <div class="filters">${chip(fC == 'all', 'data-adfc="all"', t.all)}${chip(fC == 'moto', 'data-adfc="moto"', t.moto)}${chip(fC == 'part', 'data-adfc="part"', t.part)}${chip(fC == 'gear', 'data-adfc="gear"', W('Équipement', 'تجهيزات', 'Gear'))}${chip(fFav, 'data-adff="1"', '♥ ' + t.fav)}${chip(fMine, 'data-adfm="1"', '👤 ' + W('Mes annonces', 'إعلاناتي', 'My ads'))}</div></div>
     ${err ? `<div class="card"><div class="meta" style="color:#ff6b6b">${esc(err)}</div><button class="g" data-adretry="1">↻ ${W('Réessayer', 'إعادة المحاولة', 'Retry')}</button></div>` : ''}
     ${!loadedAt && !err ? `<div class="empty">${W('Chargement des annonces…', 'جارٍ تحميل الإعلانات…', 'Loading ads…')}</div>`
-      : l.length ? l.map(card).join('') : `<div class="empty">${fMine ? W('Tu n’as pas encore publié d’annonce.', 'لم تنشر أي إعلان بعد.', 'You have not posted an ad yet.') : t.empty2}</div>`}
+      : l.length ? l.map(card).join('') : err && !items.length ? '' : `<div class="empty">${fMine ? W('Tu n’as pas encore publié d’annonce.', 'لم تنشر أي إعلان بعد.', 'You have not posted an ad yet.') : t.empty2}</div>`}
     <div class="card"><h3>${t.tips_t}</h3><div class="meta">${t.tips}</div></div>`;
   }
 
