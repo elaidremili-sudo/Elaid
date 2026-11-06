@@ -162,17 +162,15 @@
   function sendBB() {
     let o = null; try { o = JSON.parse(localStorage.getItem('mr_bb') || 'null'); } catch (e) {}
     if (!o || !o.rows || o.rows.length < 20) { alert(L3('Aucune mesure détaillée : fais d’abord un trajet avec cette version.', 'لا توجد قياسات مفصلة: قم برحلة بهذه النسخة أولًا.', 'No detailed measurements yet: ride a trip with this version first.')); return; }
-    if (!window.Sentry || !Sentry.withScope) { alert(L3('Envoi impossible ici.', 'الإرسال غير ممكن هنا.', 'Cannot send from here.')); return; }
+    if (!window.Sentry || !Sentry.captureMessage) { alert(L3('Envoi impossible ici.', 'الإرسال غير ممكن هنا.', 'Cannot send from here.')); return; }
     const lines = o.rows.map(r => r.join(',')), chunks = []; let cur = '';
     for (const l of lines) { if (cur.length + l.length > 7000) { chunks.push(cur); cur = ''; } cur += l + '\n'; }
     if (cur) chunks.push(cur);
     try {
-      Sentry.withScope(sc => {
-        sc.setTag('type', 'mesures-inclinaison'); sc.setExtra('colonnes', 't_s,lean,lss,dlt,rapport,kmh,gps_incl,roulis,ref_apprise,ecart_gravite'); sc.setExtra('version', o.v);
-        sc.setExtra('coef_leanK', o.k); sc.setExtra('max_appli_G_D', o.lL + '/' + o.lR); sc.setExtra('lignes', o.rows.length);
-        chunks.forEach((c, i) => sc.setExtra('m' + String(i + 1).padStart(2, '0'), c));
-        Sentry.captureMessage('Mesures inclinaison ' + (o.v || ''), 'info');
-      });
+      // la bibliothèque Sentry de l'appli n'a pas withScope : on passe le contexte directement au message
+      const extra = {colonnes:'t_s,lean,lss,dlt,rapport,kmh,gps_incl,roulis,ref_apprise,ecart_gravite', version:o.v, coef_leanK:o.k, max_appli_G_D:o.lL + '/' + o.lR, lignes:o.rows.length};
+      chunks.forEach((c, i) => { extra['m' + String(i + 1).padStart(2, '0')] = c; });
+      Sentry.captureMessage('Mesures inclinaison ' + (o.v || ''), {level:'info', tags:{type:'mesures-inclinaison'}, extra});
       alert(L3('✅ Mesures envoyées. Merci !', '✅ تم إرسال القياسات. شكرًا!', '✅ Measurements sent. Thanks!'));
     } catch (e) { alert(L3('Envoi impossible.', 'تعذر الإرسال.', 'Could not send.')); }
   }
