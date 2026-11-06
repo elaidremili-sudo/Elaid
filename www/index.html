@@ -1219,7 +1219,7 @@ setTimeout(()=>{if(me())pull()},1500);
 .mp-sw input{width:22px;height:22px;flex:none}
 [dir=rtl] .mp-msg.me{margin-inline-start:auto}
 </style>
-<input type="file" id="mpGpxIn" accept=".gpx,application/gpx+xml,application/xml,text/xml,application/octet-stream" hidden>
+<input type="file" id="mpGpxIn" accept="*/*" hidden>
 <dialog id="mpChat" class="mp-dlg"></dialog>
 <dialog id="mpLive" class="mp-dlg"></dialog>
 <script>
@@ -1253,6 +1253,8 @@ let GPX=[];try{GPX=JSON.parse(localStorage.getItem(GK)||'[]');if(!Array.isArray(
 let gOpen=null,gMsg='';
 const gSave=()=>{try{localStorage.setItem(GK,JSON.stringify(GPX));return true}catch(e){return false}};
 function parseGpx(txt,fname){
+ txt=String(txt||'').replace(/^[\uFEFF\s]+/,''); /* 06/11 : BOM ou espaces avant <?xml → fichier refusé */
+ if(!/<gpx[\s>]/i.test(txt))throw new Error(W('Ce fichier n’est pas un GPX.','هذا الملف ليس GPX.','This file is not a GPX.'));
  const x=new DOMParser().parseFromString(txt,'application/xml');
  if(x.getElementsByTagName('parsererror').length)throw new Error(W('Fichier GPX illisible.','ملف GPX غير مقروء.','Unreadable GPX file.'));
  const all=t=>Array.from(x.getElementsByTagNameNS('*',t));
