@@ -155,11 +155,25 @@
     libp.catch(function () { libp = null; });
     return libp;
   }
+  /* Aspects de la carte : Clair (lisible en plein jour, par défaut), Relief (Clair + ombrage du terrain, en ligne),
+     Sombre (nuit). Le choix est gardé sur le téléphone. Le relief vient des « AWS Terrain Tiles » (données ouvertes,
+     sans clé) ; hors ligne, la carte reste là sans l'ombrage. */
+  var MODES = ['light', 'relief', 'dark'];
+  var mode = function () { try { var m = localStorage.getItem('mr_mapstyle'); return MODES.indexOf(m) >= 0 ? m : 'light'; } catch (e) { return 'light'; } };
+  var modeName = function (m) { return m === 'relief' ? '⛰️ ' + W('Relief', 'تضاريس', 'Relief') : m === 'dark' ? '🌙 ' + W('Sombre', 'داكن', 'Dark') : '☀️ ' + W('Clair', 'فاتح', 'Light'); };
+  var ATTR_DEM = ' · Relief : <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a>';
   function style() {
-    var B = window.basemaps, l = lg() === 'ar' ? 'ar' : lg() === 'en' ? 'en' : 'fr';
-    return { version: 8, glyphs: 'mrglyph://{fontstack}/{range}', sprite: LIB('sprites/dark'),
-      sources: { pm: { type: 'vector', tiles: ['mrpm://{z}/{x}/{y}'], minzoom: 0, maxzoom: SRC_MAX, attribution: ATTR } },
-      layers: B.layers('pm', B.namedFlavor('dark'), { lang: l }) };
+    var B = window.basemaps, l = lg() === 'ar' ? 'ar' : lg() === 'en' ? 'en' : 'fr', m = mode(), dark = m === 'dark';
+    var layers = B.layers('pm', B.namedFlavor(dark ? 'dark' : 'light'), { lang: l });
+    var sources = { pm: { type: 'vector', tiles: ['mrpm://{z}/{x}/{y}'], minzoom: 0, maxzoom: SRC_MAX, attribution: ATTR } };
+    if (m === 'relief') {
+      sources.dem = { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium',
+        tileSize: 256, maxzoom: 13, attribution: ATTR_DEM.slice(3) };
+      var at = layers.findIndex(function (ly) { return ly.type === 'line'; }); // sous les routes, au-dessus des surfaces (terre, eau, parcs)
+      layers.splice(at < 0 ? layers.length : at, 0, { id: 'mr_relief', type: 'hillshade', source: 'dem',
+        paint: { 'hillshade-exaggeration': 0.55, 'hillshade-shadow-color': '#3b3126', 'hillshade-highlight-color': '#ffffff', 'hillshade-accent-color': '#5a4a36' } });
+    }
+    return { version: 8, glyphs: 'mrglyph://{fontstack}/{range}', sprite: LIB('sprites/' + (dark ? 'dark' : 'light')), sources: sources, layers: layers };
   }
 
   /* ---------- carte affichée ---------- */
@@ -185,15 +199,26 @@
       var dot = document.createElement('div');
       dot.style.cssText = 'width:16px;height:16px;border-radius:50%;background:#ff7a1a;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.35)';
       mk = new ml.Marker({ element: dot }).setLngLat([lng, lat]).addTo(M);
-      M.on('load', function () {
-        M.addSource('mr_acc', { type: 'geojson', data: circle(lat, lng, acc || 30) });
-        M.addLayer({ id: 'mr_acc', type: 'fill', source: 'mr_acc', paint: { 'fill-color': '#ff7a1a', 'fill-opacity': 0.15 } });
-      });
+      var addAcc = function () {
+        try { if (!M.getSource('mr_acc')) { M.addSource('mr_acc', { type: 'geojson', data: circle(last ? last[0] : lat, last ? last[1] : lng, (last && last[2]) || acc || 30) });
+          M.addLayer({ id: 'mr_acc', type: 'fill', source: 'mr_acc', paint: { 'fill-color': '#ff7a1a', 'fill-opacity': 0.2 } }); } } catch (e) {}
+      };
+      M.on('style.load', addAcc);
       M.on('dragstart', function () { follow = false; });
       var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '◎'; btn.setAttribute('aria-label', W('Recentrer sur moi', 'إعادة التمركز', 'Recenter on me'));
       btn.style.cssText = 'position:absolute;right:10px;bottom:34px;z-index:2;width:40px;height:40px;border-radius:10px;border:0;background:#fff;color:#111;font-size:20px;box-shadow:0 1px 4px rgba(0,0,0,.4)';
       btn.onclick = function () { follow = true; if (last) M.easeTo({ center: [last[1], last[0]], zoom: Math.max(M.getZoom(), 14) }); };
       el.appendChild(btn);
+      var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = modeName(mode());
+      sb.setAttribute('aria-label', W('Changer l’aspect de la carte', 'تغيير شكل الخريطة', 'Change map style'));
+      sb.style.cssText = 'position:absolute;left:10px;bottom:34px;z-index:2;height:40px;padding:0 12px;border-radius:10px;border:0;background:#fff;color:#111;font-size:14px;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.4)';
+      sb.onclick = function () {
+        var nx = MODES[(MODES.indexOf(mode()) + 1) % MODES.length];
+        if (nx === 'relief' && navigator.onLine === false) nx = MODES[(MODES.indexOf(nx) + 1) % MODES.length]; // pas de relief sans réseau
+        try { localStorage.setItem('mr_mapstyle', nx); } catch (e) {}
+        sb.textContent = modeName(nx); try { M.setStyle(style()); } catch (e) {}
+      };
+      el.appendChild(sb);
       if (!last) last = [lat, lng, acc]; else move(last[0], last[1], last[2]);
       return M;
     });
