@@ -44,7 +44,7 @@
     // axe appris lors des trajets précédents (format test-50 : a = axe, c = sens) : point de départ, vite confirmé ou corrigé
     if (o.rollAx && o.rollAx.a && o.rollAx.a.length === 3) { const sg0 = o.rollAx.c < 0 ? -1 : 1; for (let i = 0; i < 3; i++) cv[i] = o.rollAx.a[i] * sg0 * .3; nn = .3; fAx = cv.map(x => x / .3); }
     const fG = lp3(3), fA = lp3(2), fD = lp3(1), fW = lp2(1);
-    let dbg = {}, lastAf = null;
+    let dbg = {}, lastAf = null, Ur = null, UrT = 0; // Ur : gravité apparente moyenne en ligne droite (test-86), UrT : secondes apprises
     // état d'un trajet
     let active = false, lTs = 0, spd = 0, lean = 0, leanU = 0, lss = 0, ssm = 0, dlt = 0, lssP = 0, rr = 0, looseT = 0, looseS = 0, lastB = null;
     let looseMs = 0, rideMs = 0, vibSum = 0, vibN = 0, gAcc = 0, gAccT = 0, gAccN = 0, spP = null, spPT = 0;
@@ -96,7 +96,7 @@
       lTs = 0; spd = 0; lean = 0; leanU = 0; lss = 0; ssm = 0; dlt = 0; lssP = 0; rr = 0; looseT = 0; looseS = 0; lastB = null;
       looseMs = 0; rideMs = 0; vibSum = 0; vibN = 0;
       gH.length = wB.length = bH.length = oH.length = rH.length = dH.length = aB.length = 0; wBi = 0;
-      fG.reset(); fA.reset(); fD.reset(); fW.reset();
+      fG.reset(); fA.reset(); fD.reset(); fW.reset(); Ur = null; UrT = 0;
     }
 
     // x, y, z : accélération incluant la gravité (m/s², vers le haut) ; al, be, ga : rotationRate du navigateur (°/s) ; n : ms
@@ -133,6 +133,15 @@
       /* test-71 : on lisse d'abord le rapport vitesse × lacet / g, PUIS on convertit en angle. Avant, on lissait les angles déjà
          convertis : avec le bruit du gyroscope, l'arcsinus gonfle plus vers le haut que vers le bas (+3 à +6° en virage). */
       if (SM) { ssm += (rat - ssm) * kl; lss = Math.asin(Math.max(-.883, Math.min(.883, ssm))) / R2; } else lss += (raw - lss) * kl; // angle d'équilibre lissé (~0,25 s : le bruit du lacet est multiplié par la vitesse)
+      /* test-86 : la référence « moto droite » est réapprise en roulant. En ligne droite à vitesse stable (GPS droit, ni freinage ni
+         accélération), la gravité apparente vue par le téléphone EST la verticale de la moto. Si la calibration a été faite sur la béquille
+         latérale (moto penchée de 5 à 8°), l'angle du pilote (dlt) était faux d'autant et gonflait un côté de 5 à 10°. */
+      { const gl2 = gpsLean(n, 2500), brk2 = gAccT && n - gAccT < 3000;
+        if (lastAf && gl2 != null && gl2 < 1.5 && !brk2 && spd >= 30 && Math.abs(lss) < 4) {
+          const hf = Math.hypot(lastAf[0], lastAf[1], lastAf[2]);
+          if (hf > 8 && hf < 11.5) { const v = [lastAf[0] / hf, lastAf[1] / hf, lastAf[2] / hf], k = Math.min(.05, dt / 20);
+            Ur = Ur ? Ur.map((q, i) => q * (1 - k) + v[i] * k) : v; const m = Math.hypot(Ur[0], Ur[1], Ur[2]); Ur = Ur.map(q => q / m); UrT += dt; } } }
+      const UR = Ur && UrT > 8 && (Ur[0] * U[0] + Ur[1] * U[1] + Ur[2] * U[2]) > .966 ? Ur : U; // appris sur 8 s de ligne droite et pas à plus de 15° de la calibration
       const gp = [gv[0] - w0 * A[0], gv[1] - w0 * A[1], gv[2] - w0 * A[2]];
       const dL = (lss - lssP) / dt; lssP = lss; learnAxis(gp, dL * R2, dt);
       const ax = rollAxis(A);
@@ -142,8 +151,8 @@
          L'écart se voit dans l'accéléromètre : la gravité apparente penche sur le côté par rapport à la position calibrée « moto droite » (U).
          ax est l'axe de roulis (sens : rotation positive = pencher à gauche) ; gauche = ax × U. */
       if (BC && ax && lastAf && Math.abs(lss) > 8) { // virage franc seulement : en ligne droite, le freinage fausserait la mesure
-        const Y = [ax[1] * U[2] - ax[2] * U[1], ax[2] * U[0] - ax[0] * U[2], ax[0] * U[1] - ax[1] * U[0]];
-        const fu = lastAf[0] * U[0] + lastAf[1] * U[1] + lastAf[2] * U[2], fy = lastAf[0] * Y[0] + lastAf[1] * Y[1] + lastAf[2] * Y[2];
+        const Y = [ax[1] * UR[2] - ax[2] * UR[1], ax[2] * UR[0] - ax[0] * UR[2], ax[0] * UR[1] - ax[1] * UR[0]];
+        const fu = lastAf[0] * UR[0] + lastAf[1] * UR[1] + lastAf[2] * UR[2], fy = lastAf[0] * Y[0] + lastAf[1] * Y[1] + lastAf[2] * Y[2];
         const d0 = fu > 4 ? Math.atan2(fy, fu) / R2 : 0, lim = Math.min(12, Math.abs(lss) * .35); // le pilote ne change pas l'angle de plus d'un tiers
         dlt += (Math.max(-lim, Math.min(lim, d0)) - dlt) * Math.min(1, dt / .6);
       } else dlt -= dlt * Math.min(1, dt / .4);
@@ -215,7 +224,7 @@
       motion, gps, display,
       start() { resetRide(); active = true; },
       stop() { active = false; },
-      setU(u) { U = u && u.length === 3 ? u.slice() : null; Ug = U ? U.slice() : null; fAx = null; nn = 0; cv.fill(0); fw.fill(0); fwN = 0; },
+      setU(u) { U = u && u.length === 3 ? u.slice() : null; Ug = U ? U.slice() : null; Ur = null; UrT = 0; fAx = null; nn = 0; cv.fill(0); fw.fill(0); fwN = 0; },
       setSens(s) { if (SENS[s]) sens = s; },
       get lean() { return lean; },
       get leanU() { return leanU; },
@@ -224,6 +233,9 @@
       // angle (°) entre la gravité actuelle (filtrée) et la position calibrée « moto droite » : ~90° moto couchée
       tilt() { if (!U || !lastAf) return 0; const h = Math.hypot(lastAf[0], lastAf[1], lastAf[2]); if (h < 4) return 0;
         const c = (lastAf[0] * U[0] + lastAf[1] * U[1] + lastAf[2] * U[2]) / h; return Math.acos(Math.max(-1, Math.min(1, c))) / R2; },
+      // test-86 : « boîte noire » — valeurs internes pour comprendre un écart avec le tableau de bord de la moto
+      // [angle affiché, angle d'équilibre, angle du pilote, rapport vitesse×lacet/g, km/h, inclinaison vue par le GPS, vitesse de roulis °/s, référence apprise (0/1), écart gravité/calibration °]
+      snap() { const r1 = v => Math.round(v * 10) / 10, gl = gpsLean(lTs, 2500); return [r1(lean), r1(lss), r1(dlt), Math.round(ssm * 1000) / 1000, Math.round(spd), gl == null ? -1 : r1(gl), Math.round(rr), Ur && UrT > 8 ? 1 : 0, r1(this.tilt())]; },
       looseAt: n => !!looseT && n - looseT < 5000,
       rollAx: () => { const ax = rollAxis(Ug || U || [0, 0, 1]); return ax ? { a: ax.map(v => Math.round(v * 1e4) / 1e4), c: 1 } : null; },
       // bilan du trajet : part du temps où le téléphone bougeait, niveau moyen de vibrations (m/s²)
@@ -231,6 +243,6 @@
     };
   }
 
-  const api = { create, SENS: Object.keys(SENS), version: 'test-66' };
+  const api = { create, SENS: Object.keys(SENS), version: 'test-86' };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MrLean = api;
 })(typeof window !== 'undefined' ? window : this);

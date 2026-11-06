@@ -135,7 +135,7 @@
   let calOpen = false;
   function calHtml(r) {
     const k = +S.leanK || 1, act = Math.abs(k - 1) > .005;
-    const head = `<div class="lc-cal"><button type="button" class="g" data-lccal="1">📏 ${L3('Ma moto affichait un autre angle ?', 'دراجتي أظهرت زاوية أخرى؟', 'My bike showed a different angle?')}</button>${act ? `<div class="meta">${L3('Réglage actif', 'ضبط مفعّل', 'Active setting')} : × ${k.toFixed(2)} · <a href="#" data-lccal0="1">${L3('Annuler le réglage', 'إلغاء الضبط', 'Reset')}</a></div>` : ''}`;
+    const head = `<div class="lc-cal"><button type="button" class="g" data-lcsend="1">📡 ${L3('Envoyer les mesures du dernier trajet', 'إرسال قياسات آخر رحلة', 'Send last trip measurements')}</button> <button type="button" class="g" data-lccal="1">📏 ${L3('Ma moto affichait un autre angle ?', 'دراجتي أظهرت زاوية أخرى؟', 'My bike showed a different angle?')}</button>${act ? `<div class="meta">${L3('Réglage actif', 'ضبط مفعّل', 'Active setting')} : × ${k.toFixed(2)} · <a href="#" data-lccal0="1">${L3('Annuler le réglage', 'إلغاء الضبط', 'Reset')}</a></div>` : ''}`;
     if (!calOpen) return head + '</div>';
     const old = !(r.lv >= 2);
     return head + `<div class="meta" style="margin-top:6px">${L3('Si ta moto a une centrale inertielle (inclinaison affichée sur le tableau de bord), entre les angles maximum qu’elle a affichés pour ce trajet.', 'إذا كانت دراجتك تعرض الميلان على لوحة القيادة، أدخل أقصى الزوايا التي أظهرتها لهذه الرحلة.', 'If your bike shows lean angle on its dashboard, enter the maximum angles it showed for this trip.')}</div>
@@ -156,6 +156,25 @@
     calOpen = false; try { save(); } catch (e) {}
     const c = document.getElementById('lc_card'); if (c) { c.outerHTML = window.mrLeanCard(); setTimeout(paintCard, 0); }
     alert(L3(`✅ Trajet corrigé (× ${k.toFixed(2)}).`, `✅ صُحّحت الرحلة (× ${k.toFixed(2)}).`, `✅ Trip corrected (× ${k.toFixed(2)}).`) + (r.lv >= 2 ? '\n' + L3('Le réglage s’appliquera aussi à tes prochains trajets.', 'سيطبّق الضبط على رحلاتك القادمة.', 'It will apply to your next trips too.') : ''));
+  }
+
+  /* test-86 : envoi à la demande des mesures détaillées du dernier trajet (sans position GPS : vitesse et angles seulement) pour régler l'inclinaison */
+  function sendBB() {
+    let o = null; try { o = JSON.parse(localStorage.getItem('mr_bb') || 'null'); } catch (e) {}
+    if (!o || !o.rows || o.rows.length < 20) { alert(L3('Aucune mesure détaillée : fais d’abord un trajet avec cette version.', 'لا توجد قياسات مفصلة: قم برحلة بهذه النسخة أولًا.', 'No detailed measurements yet: ride a trip with this version first.')); return; }
+    if (!window.Sentry || !Sentry.withScope) { alert(L3('Envoi impossible ici.', 'الإرسال غير ممكن هنا.', 'Cannot send from here.')); return; }
+    const lines = o.rows.map(r => r.join(',')), chunks = []; let cur = '';
+    for (const l of lines) { if (cur.length + l.length > 7000) { chunks.push(cur); cur = ''; } cur += l + '\n'; }
+    if (cur) chunks.push(cur);
+    try {
+      Sentry.withScope(sc => {
+        sc.setTag('type', 'mesures-inclinaison'); sc.setExtra('colonnes', 't_s,lean,lss,dlt,rapport,kmh,gps_incl,roulis,ref_apprise,ecart_gravite'); sc.setExtra('version', o.v);
+        sc.setExtra('coef_leanK', o.k); sc.setExtra('max_appli_G_D', o.lL + '/' + o.lR); sc.setExtra('lignes', o.rows.length);
+        chunks.forEach((c, i) => sc.setExtra('m' + String(i + 1).padStart(2, '0'), c));
+        Sentry.captureMessage('Mesures inclinaison ' + (o.v || ''), 'info');
+      });
+      alert(L3('✅ Mesures envoyées. Merci !', '✅ تم إرسال القياسات. شكرًا!', '✅ Measurements sent. Thanks!'));
+    } catch (e) { alert(L3('Envoi impossible.', 'تعذر الإرسال.', 'Could not send.')); }
   }
 
   function paintCard() {
@@ -234,7 +253,8 @@
 
   /* ===== événements ===== */
   document.addEventListener('click', e => {
-    const b = e.target.closest('[data-lcbig],[data-lcturn],[data-lcz],[data-lcx],[data-lccal],[data-lccal0],[data-lccalok]'); if (!b) return;
+    const b = e.target.closest('[data-lcbig],[data-lcturn],[data-lcz],[data-lcx],[data-lccal],[data-lccal0],[data-lccalok],[data-lcsend]'); if (!b) return;
+    if (b.dataset.lcsend !== undefined) { e.preventDefault(); return sendBB(); }
     if (b.dataset.lccal !== undefined || b.dataset.lccal0 !== undefined || b.dataset.lccalok !== undefined) {
       e.preventDefault();
       if (b.dataset.lccalok !== undefined) return calApply();
