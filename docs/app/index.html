@@ -2180,6 +2180,7 @@ refresh();
 .mu-head h3{margin:0;flex:1;min-width:0;font-size:18px}
 .mu-head .mu-now{display:block;font-size:12px;font-weight:400;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mu-head button{flex:none;width:40px;height:40px;border-radius:50%;padding:0;font-size:16px}
+.mu-ctl{display:flex;justify-content:center;gap:14px;margin:8px 0 2px}.mu-ctl button{width:52px;height:52px;border-radius:50%;padding:0;font-size:20px}
 .mu-head .mu-fold{border:0;background:none;color:var(--mute);font-size:18px}
 .mu-row .mu-pick{padding:7px 2px}
 #mu_bar{position:fixed;left:0;right:0;bottom:calc(var(--mu-nav,0px) + var(--mu-ad,0px));z-index:19;display:flex;align-items:center;gap:10px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.25);
@@ -2411,10 +2412,11 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     }
     const playing = state === 'playing' || state === 'loading';
     const head = `<div class="mu-head"><h3>🎵 ${W3('Musique','الموسيقى','Music')}${t ? `<span class="mu-now">${playing ? '♪ ' : ''}${esc(t.name)}${err ? ' · ' + esc(err) : ''}</span>` : `<span class="mu-now">${W3('Radios gratuites, sans compte','إذاعات مجانية بدون حساب','Free radios, no account')}</span>`}</h3>`
-      + (t ? `<button class="g" data-mu="prev" aria-label="prev">⏮</button><button class="p" data-mu="toggle" aria-label="play">${playing ? '⏸' : '▶'}</button><button class="g" data-mu="next" aria-label="next">⏭</button>` : '')
       + `<button class="mu-fold" data-mu="fold" aria-label="${open ? W3('Réduire','تصغير','Collapse') : W3('Ouvrir','فتح','Open')}">${open ? '▴' : '▾'}</button></div>`;
-    if (!open) return `<div class="card" style="padding:10px 12px">${head}</div>`;
-    return `<div class="card" style="padding:10px 12px">${head}
+    const ctl = `<div class="mu-ctl"><button class="g" data-mu="kprev" aria-label="${W3('Précédent','السابق','Previous')}">⏮</button><button class="p" data-mu="ktoggle" aria-label="${W3('Lecture / pause','تشغيل / إيقاف مؤقت','Play / pause')}">${t && playing ? '⏸' : '⏯'}</button><button class="g" data-mu="knext" aria-label="${W3('Suivant','التالي','Next')}">⏭</button><button class="g" data-mu="kstop" aria-label="${W3('Arrêter','إيقاف','Stop')}">⏹</button></div>`
+      + (t ? '' : `<div class="meta" style="font-size:11px;text-align:center;margin-top:2px">${W3('Commande aussi Ground Music ou l’appli qui joue','تتحكم أيضًا في Ground Music أو التطبيق الذي يعمل','Also controls Ground Music or the playing app')}</div>`);
+    if (!open) return `<div class="card" style="padding:10px 12px">${head}${ctl}</div>`;
+    return `<div class="card" style="padding:10px 12px">${head}${ctl}
       <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'pl' ? ' on' : ''}" data-mu="view" data-v="pl">${W3('Playlists','القوائم','Playlists')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
       <div class="row" style="justify-content:flex-start;margin-top:10px"><button class="g" data-mu="ground">🎶 ${W3('Ouvrir Ground Music','فتح Ground Music','Open Ground Music')}</button></div>
@@ -2430,6 +2432,9 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'stop') stop();
     else if (a === 'view') { view = b.dataset.v; if (view === 'pl') { plView = null; plTracks = []; clubGroups = null; } addFor = null; rerender(); }
     else if (a === 'fold') { open = !open; rerender(); }
+    else if (a[0] === 'k' && ['kprev','ktoggle','knext','kstop'].includes(a)) { const k = a.slice(1);
+      if (queue[qi]) { if (k === 'toggle') { if (audio.paused) play(); else audio.pause(); } else if (k === 'next') step(1); else if (k === 'prev') step(-1); else stop(); }
+      else { const N = nat(); if (N && N.mediaKey) N.mediaKey({key:k}).catch(() => {}); else alert(W3('Rien ne joue dans MotoRoute. Lance une radio ou un morceau.','لا شيء قيد التشغيل في MotoRoute. شغّل إذاعة أو أغنية.','Nothing is playing in MotoRoute. Start a radio or a track.')); } }
     else if (a === 'ground') { const N = nat(), store = 'https://play.google.com/store/apps/details?id=com.groundmusic.app';
       if (N && N.openApp) N.openApp({pkg:'com.groundmusic.app'}).catch(() => { window.open(store, '_blank'); });
       else window.open(store, '_blank'); }

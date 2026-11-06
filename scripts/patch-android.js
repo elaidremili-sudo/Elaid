@@ -1981,6 +1981,20 @@ public class MrTalkieService extends Service {
   let src = fs.readFileSync(pp, 'utf8');
   if (!src.includes('openApp')) {
     src = src.replace(/(public class MrMusicPlugin extends Plugin \{)/, `$1
+    // 06/11 : touches multimédia envoyées au téléphone → commandent l'appli qui joue (Ground Music…)
+    @PluginMethod
+    public void mediaKey(PluginCall call) {
+        String k = call.getString("key", "toggle");
+        int code = "next".equals(k) ? android.view.KeyEvent.KEYCODE_MEDIA_NEXT : "prev".equals(k) ? android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            : "stop".equals(k) ? android.view.KeyEvent.KEYCODE_MEDIA_PAUSE : android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            am.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, code));
+            am.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, code));
+            call.resolve();
+        } catch (Exception e) { call.reject("erreur: " + e.getMessage()); }
+    }
+
     @PluginMethod
     public void openApp(PluginCall call) {
         String pkg = call.getString("pkg", "");
