@@ -2415,6 +2415,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     return `<div class="card" style="padding:10px 12px">${head}
       <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'pl' ? ' on' : ''}" data-mu="view" data-v="pl">${W3('Playlists','القوائم','Playlists')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
+      <div class="row" style="justify-content:flex-start;margin-top:10px"><button class="g" data-mu="ground">🎶 ${W3('Ouvrir Ground Music','فتح Ground Music','Open Ground Music')}</button></div>
       <div class="meta" style="margin-top:10px;font-size:12px">${W3('Ou ouvre ton appli :','أو افتح تطبيقك:','Or open your app:')} ${ext.map(m => `<a target="_blank" rel="noopener" href="${m[1]}">${m[0]}</a>`).join(' · ')}</div></div>`;
   };
   // ---------- Actions ----------
@@ -2427,6 +2428,9 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     else if (a === 'stop') stop();
     else if (a === 'view') { view = b.dataset.v; if (view === 'pl') { plView = null; plTracks = []; clubGroups = null; } addFor = null; rerender(); }
     else if (a === 'fold') { open = !open; rerender(); }
+    else if (a === 'ground') { const N = nat(), store = 'https://play.google.com/store/apps/details?id=com.groundmusic.app';
+      if (N && N.openApp) N.openApp({pkg:'com.groundmusic.app'}).catch(() => { window.open(store, '_blank'); });
+      else window.open(store, '_blank'); }
     else if (a === 'chip') { chip = i; q = ''; const c = CHIPS[i]; loadRadios(c.q, c[lang] || c.fr); }
     else if (a === 'play') { const L = b.dataset.l === 'dir' ? dir.map(x => ({...x, live:x.live !== undefined ? x.live : !/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(\?|$)|\/stream\?/i.test(x.url)})) : b.dataset.l === 'songs' ? tracks : b.dataset.l === 'pl' ? plTracks : radios; start(L, i); }
     else if (a === 'star') { const src = b.closest('.mu-row').querySelector('[data-l]').dataset.l === 'songs' ? tracks : radios, r = src[i]; if (inDir(r.url)) dir = dir.filter(x => x.url !== r.url); else dir.unshift({name:r.name, url:r.url, cat:src === tracks ? W3('Musique','موسيقى','Music') : 'Radio', info:r.info, live:r.live}); saveDir(); rerender(); }

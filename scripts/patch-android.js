@@ -1974,3 +1974,32 @@ public class MrTalkieService extends Service {
   fs.writeFileSync(path, m);
   console.log('Autorisations retirées (Google Play) : ' + banned.map(p => p.split('.').pop()).join(', '));
 }
+
+// 06/11 : bouton « Ouvrir Ground Music » (appli de musique d'Elaid) — lance une autre appli par son nom de paquet
+{
+  const pp = javaDir + '/MrMusicPlugin.java';
+  let src = fs.readFileSync(pp, 'utf8');
+  if (!src.includes('openApp')) {
+    src = src.replace(/(public class MrMusicPlugin extends Plugin \{)/, `$1
+    @PluginMethod
+    public void openApp(PluginCall call) {
+        String pkg = call.getString("pkg", "");
+        try {
+            Intent i = getContext().getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i == null) { call.reject("absente"); return; }
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("erreur: " + e.getMessage()); }
+    }
+`);
+    if (!src.includes('openApp')) throw new Error('patch-android : openApp non ajouté à MrMusicPlugin');
+    fs.writeFileSync(pp, src);
+  }
+  let m = fs.readFileSync(path, 'utf8');
+  if (!m.includes('com.groundmusic.app')) {
+    m = m.replace(/<manifest([^>]*)>/, '<manifest$1>\n    <queries><package android:name="com.groundmusic.app" /></queries>');
+    fs.writeFileSync(path, m);
+  }
+  console.log('Musique : lancement de Ground Music (com.groundmusic.app) ajouté');
+}
