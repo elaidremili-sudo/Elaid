@@ -760,7 +760,9 @@ function tipHtml(){const t=rdStat;if(!t||!t.rideMs||t.rideMs<60000)return'';cons
  return''}
 function musicHtml(){return window.mrMusicHtml?window.mrMusicHtml():''}
 const _rv3=routeView;
-routeView=function(t){return musicHtml()+_rv3(t)};
+routeView=function(t){return _rv3(t)};
+/* 06/11 : la carte Musique passe tout en haut de l'onglet Route (d'autres modules ajoutaient leurs cartes au-dessus) */
+window.addEventListener('load',()=>{const _fm=routeView;routeView=function(t){return musicHtml()+_fm(t)}});
 window.mrRiding=()=>!!on;window.mrTripOn=()=>!!(on||(window.mrEngTrip&&window.mrEngTrip())); /* test-62 : la pub plein écran ne s'affiche jamais pendant un trajet */
 window.mrRideView=function(t){if(!on&&window.mrCmpHtml){const ch=window.mrCmpHtml();if(ch){gpOff();return ch}} /* test-29 : la carte GPS n'est pas affichée → on coupe son suivi (sinon l'écran se redessine à chaque position) */const k=kk(),cal=U?`<span class="tag a">${k.cald}</span>`:`<span class="tag">${k.caln}</span>`;
  const body=on?`<div style="text-align:center"><div style="font-size:56px;font-weight:800;line-height:1" id="rd_v">0</div><div class="meta">${k.kmh}</div><div style="position:relative;height:64px;margin:6px auto;width:120px;border-bottom:3px solid var(--line)"><div id="rd_b" style="position:absolute;left:56px;bottom:0;width:8px;height:60px;border-radius:4px;background:var(--acc);transform-origin:50% 100%"></div></div><div style="font-size:28px;font-weight:800" id="rd_l">—</div><div class="meta">${k.lean}</div></div><div class="meta" id="rd_s"></div><div class="row"><button class="p" data-rdstop="1">${k.stop}</button></div>`
