@@ -21,7 +21,7 @@
     return (Array.isArray(v) ? v : []).filter(function (p) { return p && p.url && p.bbox && p.bbox.length === 4; });
   })(window.MR_PMTILES);
   var PM_URL = PARTS.length ? PARTS[0].url : '';
-  var SRC_MAX = 14, DL_MAX = 14, MAX_TILES = 20000, CONC = 6, AVG_KB = 9;
+  var SRC_MAX = 14, DL_MAX = 14, MAX_TILES = 20000, CONC = 3, AVG_KB = 9;
   var DB = 'mr_cartes', T = 'tiles', Z = 'zones', V = 'vues', MAX_SEEN = 3000;
   var LIB = function (p) { return new URL('lib/carte/' + p, location.href).href; };
   var ATTR = '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a> © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -221,25 +221,60 @@
     var zone = { id: 'z' + Date.now(), name: String(o.name || '').trim().slice(0, 60) || W('Zone', 'منطقة', 'Area'),
       lat: o.lat, lng: o.lng, km: km, bb: bb, zmax: zmax, n: list.length, bytes: 0, at: Date.now(), done: false };
     var stop = false; job = { cancel: function () { stop = true; }, onProgress: o.onProgress, zone: zone };
-    return libs().then(function () {
-      var i = 0, ok = 0, bytes = 0, errs = 0;
-      function one() {
-        if (stop || i >= list.length) return Promise.resolve();
-        var t = list[i++];
-        return getTile(t[0], t[1], t[2]).then(function (have) {
-          if (have) { ok++; bytes += have.byteLength || 0; return; }
-          var pm = pmFor(t[0], t[1], t[2]); if (!pm) { ok++; return putTile(t[0], t[1], t[2], new ArrayBuffer(0)); }
-          return pm.getZxy(t[0], t[1], t[2]).then(function (r) {
-            var d = r && r.data ? r.data : new ArrayBuffer(0); ok++; bytes += d.byteLength; return putTile(t[0], t[1], t[2], d);
-          });
-        }).catch(function () { errs++; }).then(function () {
-          if (job && job.onProgress && (i % 20 === 0 || i >= list.length)) { try { job.onProgress(ok, list.length, bytes, errs); } catch (e) {} }
-          return one();
+    return libs().then(function () { return zones(); }).then(function (all) {
+      var same = all.filter(function (z) { return !z.done && z.zmax === zmax && z.km === km && Math.abs(z.lat - o.lat) < 0.01 && Math.abs(z.lng - o.lng) < 0.01; })[0];
+      if (same) { zone.id = same.id; if (!String(o.name || '').trim()) zone.name = same.name; } // on reprend la zone incomplète au lieu d'en créer une 2e
+    }).then(function () {
+      var ok = 0, bytes = 0, lastErr = '', done = 0, errNow = 0, wake = null;
+      try { if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (w) { wake = w; }, function () {}); } catch (e) {}
+      var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+      // si le réseau tombe, on attend son retour (60 s au plus) au lieu de brûler les essais
+      var online = function () { return navigator.onLine !== false ? Promise.resolve() : new Promise(function (r) {
+        var f = function () { clearTimeout(tm); window.removeEventListener('online', f); r(); }, tm = setTimeout(f, 60000); window.addEventListener('online', f); }); };
+      // une requête bloquée est abandonnée au bout de 25 s ; 5 essais, pauses 1-2-4-8 s avec un peu de hasard
+      function fetchTile(pm, t, n) {
+        return online().then(function () {
+          return Promise.race([pm.getZxy(t[0], t[1], t[2]), new Promise(function (_, rej) { setTimeout(function () { rej(new Error('délai dépassé')); }, 25000); })]);
+        }).catch(function (e) {
+          if (n >= 5 || stop) throw e;
+          return sleep(1000 * Math.pow(2, n - 1) + Math.random() * 500).then(function () { return fetchTile(pm, t, n + 1); });
         });
       }
-      var w = []; for (var k = 0; k < CONC; k++) w.push(one());
-      return Promise.all(w).then(function () {
-        zone.bytes = bytes; zone.ok = ok; zone.errs = errs; zone.done = !stop && ok >= list.length * 0.98;
+      // une tuile n'est comptée « réussie » qu'une fois écrite sur le téléphone ; une tuile absente de la carte est rangée vide
+      function work(t) {
+        return getTile(t[0], t[1], t[2]).then(function (have) {
+          if (have) { ok++; bytes += have.byteLength || 0; return; }
+          var pm = pmFor(t[0], t[1], t[2]);
+          if (!pm) return putTile(t[0], t[1], t[2], new ArrayBuffer(0)).then(function () { ok++; });
+          return fetchTile(pm, t, 1).then(function (r) {
+            var d = r && r.data ? r.data : new ArrayBuffer(0);
+            return putTile(t[0], t[1], t[2], d).then(function () { ok++; bytes += d.byteLength; });
+          });
+        });
+      }
+      function pass(items, failed) {
+        var i = 0;
+        function one() {
+          if (stop || i >= items.length) return Promise.resolve();
+          var t = items[i++];
+          return work(t).catch(function (e) { failed.push(t); errNow++; lastErr = String((e && (e.message || e.name)) || e).slice(0, 60); })
+            .then(function () {
+              if (++done % 20 === 0 && job && job.onProgress) { try { job.onProgress(ok, list.length, bytes, errNow, lastErr); } catch (e) {} }
+              return one();
+            });
+        }
+        var w = []; for (var k = 0; k < CONC; k++) w.push(one());
+        return Promise.all(w);
+      }
+      var failed1 = [], failed2 = [];
+      return pass(list, failed1).then(function () {
+        if (stop || !failed1.length) return;
+        errNow = 0; // seconde chance pour les tuiles restées en échec, après une pause
+        return sleep(5000).then(function () { return pass(failed1, failed2); });
+      }).then(function () {
+        try { if (wake && wake.release) wake.release(); } catch (e) {}
+        zone.bytes = bytes; zone.ok = ok; zone.errs = list.length - ok; zone.lastErr = lastErr; zone.done = !stop && ok >= list.length;
+        if (job && job.onProgress) { try { job.onProgress(ok, list.length, bytes, zone.errs, lastErr); } catch (e) {} }
         return req(Z, 'readwrite', function (s) { s.put(zone); }).then(function () { return zone; });
       });
     }).then(function (z) { job = null; return z; }, function (e) { job = null; throw e; });
@@ -296,10 +331,10 @@
     function track(pr) {
       var b = q('[data-mroffdl]'), prog = q('[data-mroffprog]');
       b.textContent = '⏹ ' + W('Arrêter', 'إيقاف', 'Stop');
-      if (job) job.onProgress = function (ok, n, by, er) {
-        prog.textContent = '⬇️ ' + Math.floor(ok / n * 100) + ' % · ' + mo(by) + (er ? ' · ' + er + ' ' + W('échecs', 'فشل', 'failed') : ''); };
+      if (job) job.onProgress = function (ok, n, by, er, why) {
+        prog.textContent = '⬇️ ' + Math.floor(ok / n * 100) + ' % · ' + mo(by) + (er ? ' · ' + er + ' ' + W('échecs', 'فشل', 'failed') + (why ? ' (' + why + ')' : '') : ''); };
       pr.then(function (z) { prog.textContent = z.done ? '✅ ' + W('Zone prête hors ligne', 'المنطقة جاهزة دون اتصال', 'Area ready offline') + ' (' + mo(z.bytes) + ')'
-          : '⚠️ ' + W('Téléchargement incomplet : relance-le avec du réseau, le reste sera repris.', 'تحميل غير مكتمل: أعده مع الشبكة وسيُستكمل الباقي.', 'Incomplete download: run it again with a connection, it resumes.'); list(); },
+          : '⚠️ ' + W('Téléchargement incomplet : relance-le avec du réseau, le reste sera repris.', 'تحميل غير مكتمل: أعده مع الشبكة وسيُستكمل الباقي.', 'Incomplete download: run it again with a connection, it resumes.') + (z.lastErr ? ' (' + z.lastErr + ')' : ''); list(); },
         function (e2) { prog.textContent = '⚠️ ' + (e2 && e2.message === 'toobig' ? W('Zone trop grande.', 'المنطقة كبيرة جدًا.', 'Area too big.') : W('Téléchargement impossible pour le moment.', 'تعذّر التحميل حاليًا.', 'Download not possible right now.')); })
         .then(function () { b.textContent = btnTxt(); });
     }
