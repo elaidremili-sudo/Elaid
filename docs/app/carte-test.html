@@ -1,0 +1,11 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Essai carte MotoRoute</title><meta name="robots" content="noindex">
+<script>var lang=new URLSearchParams(location.search).get('l')||'fr';
+window.MR_PMTILES=[{url:"https://pub-aec8d1234fc0489cb0413bfa4fc07e7c.r2.dev/algerie-no.pmtiles",bbox:[-8.7,33,3,37.2]},{url:"https://pub-aec8d1234fc0489cb0413bfa4fc07e7c.r2.dev/algerie-ne.pmtiles",bbox:[3,33,12,37.2]},{url:"https://pub-aec8d1234fc0489cb0413bfa4fc07e7c.r2.dev/algerie-sud.pmtiles",bbox:[-8.7,18.9,12,33]}];</script>
+<script src="js/cartes-hors-ligne.js"></script></head>
+<body style="margin:0;background:#111;color:#eee;font:14px sans-serif">
+<!-- Page d'essai (pas dans l'appli) : affiche la carte hors ligne en un point. ?lat=&lng=&z=&l=fr|ar -->
+<div id="m" style="position:relative;width:100vw;height:100vh"></div>
+<script>var q=new URLSearchParams(location.search),la=+q.get('lat')||36.45,lo=+q.get('lng')||4.12;
+MrMaps.mount(document.getElementById('m'),la,lo,30).then(function(M){if(q.get('z'))M.setZoom(+q.get('z'));M.on('idle',function(){document.title='CARTE-OK'})},function(e){document.title='CARTE-ERREUR '+e.message});</script>
+</body></html>
