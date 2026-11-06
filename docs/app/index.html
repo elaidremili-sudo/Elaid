@@ -701,7 +701,7 @@ let leanU=0,rdStat=null,bigImp=0;const VS=()=>(S.vibSens&&['faible','normale','f
 const est=window.MrLean?MrLean.create({U,rollAx:S.rollAx,sens:VS()}):null;
 function mot(e){const a=e.accelerationIncludingGravity;if(!a)return;let x=a.x||0,y=a.y||0,z=a.z||0;if(IOS){x=-x;y=-y;z=-z}evN++;window.dbgA=[x,y,z];if(calOn)calS.push([x,y,z]);{const hm=Math.hypot(x,y,z);if(hm>40)lastImp=Date.now();if(hm>80)bigImp=Date.now()} /* test-71 : seuils relevés (4 g / 8 g) */
  const r=e.rotationRate;if(!est||!r)return;est.motion(x,y,z,r.alpha||0,r.beta||0,r.gamma||0,Date.now());
- if(on){const lk=+S.leanK||1;lean=est.display()*lk;leanU=est.leanU*lk}} /* test-71 : réglage avec le tableau de bord de la moto (js/inclinaison.js) */
+ if(on){const k0=+S.leanK||1,kG=+S.leanKL||k0,kD=+S.leanKR||k0,d0=est.display(),u0=est.leanU;lean=d0*(d0<0?kG:kD);leanU=u0*(u0<0?kG:kD)}} /* 06/11 : un réglage par côté (gauche < 0) */ /* test-71 : réglage avec le tableau de bord de la moto (js/inclinaison.js) */
 function gps(p){const c=p.coords;if(c.accuracy>50)return;const n=Date.now(),pt=[c.latitude,c.longitude];let v=c.speed;
  if(last){const d=hv(last.p,pt);if(v==null||isNaN(v)){const dt=(n-last.t)/1000;v=dt>0?d*1000/dt:0}if(v*3.6>3&&d<1)km+=d}else if(v==null||isNaN(v))v=0;
  if(est)est.gps(c.latitude,c.longitude,Math.max(0,v),c.heading,n); /* virage vu par le GPS : js/lean.js */
@@ -728,7 +728,7 @@ function tick(){const n=Date.now(),al=Math.abs(lean),au=Math.abs(leanU);
  paint();if(on&&n-svT>15000)saveRun(n)}
 /* test-67 : sauvegarde du trajet en cours toutes les 15 s (avant 4 s) + dès que l'appli passe en arrière-plan ; à l'arrêt, le trajet est calculé avec le dernier point en mémoire */
 function saveRun(n){svT=n=n||Date.now();try{localStorage.setItem(RK,JSON.stringify({t0,km,vmax,vsum,vn,lL,lR,vc,vcs,vcn,pA,pB,trk,ts:n}))}catch(e){}saveBB()}
-function saveBB(){try{if(bb.length)localStorage.setItem('mr_bb',JSON.stringify({id:t0,v:window.MR_VERSION||'',k:+S.leanK||1,lL:Math.round(lL),lR:Math.round(lR),rows:bb}))}catch(e){}}
+function saveBB(){try{if(bb.length)localStorage.setItem('mr_bb',JSON.stringify({id:t0,v:window.MR_VERSION||'',k:[+S.leanKL||+S.leanK||1,+S.leanKR||+S.leanK||1].map(x=>x.toFixed(2)).join('/'),lL:Math.round(lL),lR:Math.round(lR),rows:bb}))}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(on&&document.hidden)saveRun()});addEventListener('pagehide',()=>{if(on)saveRun()});
 async function perm(){if(!('DeviceMotionEvent' in window)){alert(kk().nos);return false}
  try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!='granted'){alert(kk().perm);return false}}catch(e){}

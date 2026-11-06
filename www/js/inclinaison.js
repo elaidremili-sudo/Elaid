@@ -132,30 +132,33 @@
      - le trajet choisi est corrigé (max gauche / droite et couleurs du tracé) ;
      - si le trajet a été mesuré avec le nouveau calcul (test-71, r.lv >= 2), le coefficient est gardé (S.leanK)
        et appliqué ensuite à tous les trajets ; les trajets plus anciens (ancien calcul, trop fort) sont seulement corrigés un par un. */
-  let calOpen = false;
+  let calOpen = false, calV = {lc_cl:'', lc_cr:''}; // valeurs tapées gardées : l'écran peut être redessiné quand le clavier se ferme
   function calHtml(r) {
-    const k = +S.leanK || 1, act = Math.abs(k - 1) > .005;
-    const head = `<div class="lc-cal"><button type="button" class="g" data-lcsend="1">📡 ${L3('Envoyer les mesures du dernier trajet', 'إرسال قياسات آخر رحلة', 'Send last trip measurements')}</button> <button type="button" class="g" data-lccal="1">📏 ${L3('Ma moto affichait un autre angle ?', 'دراجتي أظهرت زاوية أخرى؟', 'My bike showed a different angle?')}</button>${act ? `<div class="meta">${L3('Réglage actif', 'ضبط مفعّل', 'Active setting')} : × ${k.toFixed(2)} · <a href="#" data-lccal0="1">${L3('Annuler le réglage', 'إلغاء الضبط', 'Reset')}</a></div>` : ''}`;
+    const k0 = +S.leanK || 1, kG = +S.leanKL || k0, kD = +S.leanKR || k0, act = Math.abs(kG - 1) > .005 || Math.abs(kD - 1) > .005;
+    const head = `<div class="lc-cal"><button type="button" class="g" data-lcsend="1">📡 ${L3('Envoyer les mesures du dernier trajet', 'إرسال قياسات آخر رحلة', 'Send last trip measurements')}</button> <button type="button" class="g" data-lccal="1">📏 ${L3('Ma moto affichait un autre angle ?', 'دراجتي أظهرت زاوية أخرى؟', 'My bike showed a different angle?')}</button>${act ? `<div class="meta">${L3('Réglage actif', 'ضبط مفعّل', 'Active setting')} : ↶ × ${kG.toFixed(2)} · ↷ × ${kD.toFixed(2)} · <a href="#" data-lccal0="1">${L3('Annuler le réglage', 'إلغاء الضبط', 'Reset')}</a></div>` : ''}`;
     if (!calOpen) return head + '</div>';
     const old = !(r.lv >= 2);
     return head + `<div class="meta" style="margin-top:6px">${L3('Si ta moto a une centrale inertielle (inclinaison affichée sur le tableau de bord), entre les angles maximum qu’elle a affichés pour ce trajet.', 'إذا كانت دراجتك تعرض الميلان على لوحة القيادة، أدخل أقصى الزوايا التي أظهرتها لهذه الرحلة.', 'If your bike shows lean angle on its dashboard, enter the maximum angles it showed for this trip.')}</div>
-      <div class="row" style="gap:8px;justify-content:flex-start;flex-wrap:wrap"><label>↶ ${L3('Gauche', 'يسار', 'Left')} <input id="lc_cl" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lL || 0)}"></label>
-      <label>↷ ${L3('Droite', 'يمين', 'Right')} <input id="lc_cr" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lR || 0)}"></label>
+      <div class="row" style="gap:8px;justify-content:flex-start;flex-wrap:wrap"><label>↶ ${L3('Gauche', 'يسار', 'Left')} <input id="lc_cl" value="${esc(calV.lc_cl)}" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lL || 0)}"></label>
+      <label>↷ ${L3('Droite', 'يمين', 'Right')} <input id="lc_cr" value="${esc(calV.lc_cr)}" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lR || 0)}"></label>
       <button type="button" class="p" data-lccalok="1">${L3('Appliquer', 'تطبيق', 'Apply')}</button></div>
       <div class="meta">${old ? L3('Ce trajet a été mesuré avec l’ancien calcul (plus fort) : il sera corrigé, mais le réglage ne sera pas gardé pour les prochains. Fais-le sur un trajet enregistré avec cette version.', 'سُجّلت هذه الرحلة بالحساب القديم: ستُصحّح هي فقط.', 'This trip used the old calculation: only this trip will be corrected.') : L3('Le réglage sera gardé et appliqué à tes prochains trajets. Une seule valeur suffit (gauche ou droite).', 'سيُحفظ الضبط ويطبّق على رحلاتك القادمة. تكفي قيمة واحدة.', 'The setting will be kept for your next trips. One value is enough.')}</div></div>`;
   }
   function calApply() {
     const r = cur(); if (!r) return;
-    const n = id => { const v = parseFloat(String((document.getElementById(id) || {}).value || '').replace(',', '.')); return v >= 5 && v <= 65 ? v : null; };
+    const n = id => { const el = document.getElementById(id), v = parseFloat(String((el && el.value) || calV[id] || '').replace(',', '.')); return v >= 5 && v <= 65 ? v : null; };
     const dl = n('lc_cl'), dr = n('lc_cr'), al = r.lL || 0, ar = r.lR || 0;
-    const ks = []; if (dl && al >= 8) ks.push(dl / al); if (dr && ar >= 8) ks.push(dr / ar);
-    if (!ks.length) { alert(L3('Entre au moins un angle (gauche ou droite), pour un trajet avec des virages d’au moins 8°.', 'أدخل زاوية واحدة على الأقل.', 'Enter at least one angle.')); return; }
-    const k = Math.max(.6, Math.min(1.3, ks.reduce((a, b) => a + b, 0) / ks.length));
-    r.lL = Math.round(al * k); r.lR = Math.round(ar * k); r.tk = r.tk.map(p => { const q = p.slice(); q[2] = Math.round((q[2] || 0) * k); return q; }); r.cal = (r.cal || 1) * k;
-    if (r.lv >= 2) S.leanK = Math.max(.6, Math.min(1.3, (+S.leanK || 1) * k));
-    calOpen = false; try { save(); } catch (e) {}
+    // 06/11 : un coefficient par côté (la moto peut lire plus fort d'un côté) ; une seule valeur → même coefficient des deux côtés
+    const C = x => Math.max(.5, Math.min(2, x));
+    let kl = dl && al >= 8 ? dl / al : null, kr = dr && ar >= 8 ? dr / ar : null;
+    if (kl == null && kr == null) { alert(L3('Entre au moins un angle (gauche ou droite), pour un trajet avec des virages d’au moins 8°.', 'أدخل زاوية واحدة على الأقل.', 'Enter at least one angle.')); return; }
+    if (kl == null) kl = kr; if (kr == null) kr = kl; kl = C(kl); kr = C(kr);
+    r.lL = Math.round(al * kl); r.lR = Math.round(ar * kr); r.tk = r.tk.map(p => { const q = p.slice(); q[2] = Math.round((q[2] || 0) * (q[3] < 0 ? kl : kr)); return q; }); r.cal = [kl, kr];
+    if (r.lv >= 2) { const k0 = +S.leanK || 1; S.leanKL = C((+S.leanKL || k0) * kl); S.leanKR = C((+S.leanKR || k0) * kr); S.leanK = 1; }
+    const k = (kl + kr) / 2;
+    calOpen = false; calV = {lc_cl:'', lc_cr:''}; try { save(); } catch (e) {}
     const c = document.getElementById('lc_card'); if (c) { c.outerHTML = window.mrLeanCard(); setTimeout(paintCard, 0); }
-    alert(L3(`✅ Trajet corrigé (× ${k.toFixed(2)}).`, `✅ صُحّحت الرحلة (× ${k.toFixed(2)}).`, `✅ Trip corrected (× ${k.toFixed(2)}).`) + (r.lv >= 2 ? '\n' + L3('Le réglage s’appliquera aussi à tes prochains trajets.', 'سيطبّق الضبط على رحلاتك القادمة.', 'It will apply to your next trips too.') : ''));
+    alert(L3(`✅ Trajet corrigé : gauche × ${kl.toFixed(2)}, droite × ${kr.toFixed(2)}.`, `✅ صُحّحت الرحلة: يسار × ${kl.toFixed(2)}، يمين × ${kr.toFixed(2)}.`, `✅ Trip corrected: left × ${kl.toFixed(2)}, right × ${kr.toFixed(2)}.`) + (r.lv >= 2 ? '\n' + L3('Le réglage s’appliquera aussi à tes prochains trajets.', 'سيطبّق الضبط على رحلاتك القادمة.', 'It will apply to your next trips too.') : ''));
   }
 
   /* test-86 : envoi à la demande des mesures détaillées du dernier trajet (sans position GPS : vitesse et angles seulement) pour régler l'inclinaison */
@@ -256,7 +259,7 @@
     if (b.dataset.lccal !== undefined || b.dataset.lccal0 !== undefined || b.dataset.lccalok !== undefined) {
       e.preventDefault();
       if (b.dataset.lccalok !== undefined) return calApply();
-      if (b.dataset.lccal0 !== undefined) { if (!confirm(L3('Annuler le réglage ? Les prochains trajets seront mesurés sans correction.', 'إلغاء الضبط؟', 'Reset the setting?'))) return; S.leanK = 1; try { save(); } catch (x) {} }
+      if (b.dataset.lccal0 !== undefined) { if (!confirm(L3('Annuler le réglage ? Les prochains trajets seront mesurés sans correction.', 'إلغاء الضبط؟', 'Reset the setting?'))) return; S.leanK = 1; S.leanKL = 0; S.leanKR = 0; try { save(); } catch (x) {} }
       else calOpen = !calOpen;
       const c = document.getElementById('lc_card'); if (c) { c.outerHTML = window.mrLeanCard(); setTimeout(paintCard, 0); } return;
     }
@@ -266,6 +269,7 @@
     if (D.lcturn !== undefined) { if (big && document.getElementById('lc_dl') && document.getElementById('lc_dl').open) focusTurn(D.lcturn); else openBig(+D.lcturn); return; }
     if (D.lcbig !== undefined) openBig();
   });
+  document.addEventListener('input', e => { const t = e.target; if (t && (t.id === 'lc_cl' || t.id === 'lc_cr')) calV[t.id] = t.value; });
   document.addEventListener('change', e => { if (e.target && e.target.id === 'lc_sel') { sel = +e.target.value; const c = document.getElementById('lc_card'); if (c) { c.outerHTML = window.mrLeanCard(); setTimeout(paintCard, 0); } } });
   addEventListener('resize', () => setTimeout(() => { paintCard(); if (big) { const W = big.cv.clientWidth, H = big.cv.clientHeight; big.v0 = fit(big.P, W, H, 30); paintBig(); } }, 200));
 
