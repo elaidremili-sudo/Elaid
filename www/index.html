@@ -715,8 +715,8 @@ function paint(){const k=kk();if(g('rd_v'))g('rd_v').textContent=Math.round(spd)
 function tick(){const n=Date.now(),al=Math.abs(lean),au=Math.abs(leanU);
  if(spd>3){vsum+=spd;vn++}vmax=Math.max(vmax,spd);
  /* test-86 : un maximum n'est retenu que s'il est tenu 0,8 s sans interruption (les pointes de bruit de 0,2 à 0,6 s ne comptent plus) ; l'affichage en direct ne change pas */
- ph.push([n,lean]);while(ph.length&&n-ph[0][0]>800)ph.shift();
- let hL=0,hR=0;if(ph.length>=4&&n-ph[0][0]>=600&&spd>=15){hL=Math.min(...ph.map(q=>q[1]));hR=-Math.max(...ph.map(q=>q[1]))}
+ ph.push([n,lean]);while(ph.length&&n-ph[0][0]>1500)ph.shift();
+ let hL=0,hR=0;if(ph.length>=5&&n-ph[0][0]>=1200&&spd>=15){hL=Math.min(...ph.map(q=>q[1]));hR=-Math.max(...ph.map(q=>q[1]))}
  if(hL>lL)lL=hL;if(hR>lR)lR=hR;const ah=Math.max(hL,hR,0);
  if(al>=15){vc=Math.max(vc,spd);vcs+=spd;vcn++}if(spd>=15&&ah>segM){segM=ah;segS=hL>=hR?1:-1}
  /* test-86 « boîte noire » : une ligne par seconde (valeurs internes de lean.js), gardée pour le dernier trajet ; envoi à la demande depuis Conduite → Inclinaison colorée */
