@@ -387,6 +387,7 @@ $('fab').onclick=()=>{if(tab==1){fillG();$('d1').showModal()}else if(tab==2){if(
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 $('main').onclick=e=>{
  const b=e.target.closest('button');if(!b)return;
+ if(b.closest('.mu-card'))return;/* 07/11 : les boutons Musique gèrent leur propre affichage ; avant, chaque appui redessinait tout l'onglet Route = clignotement */
  const D=b.dataset;
  if(D.j){const s=S.sorties.find(x=>x.id==D.j);s.joined=!s.joined}
  else if(D.ft)fT=D.ft;else if(D.fc)fC=D.fc;
@@ -2209,7 +2210,12 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
 (function(){
   const W3 = (fr, ar, en) => (typeof lang !== 'undefined' && lang === 'ar') ? ar : (typeof lang !== 'undefined' && lang === 'en') ? en : fr;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const rerender = () => { try { if (typeof render === 'function' && typeof tab !== 'undefined' && tab == 4) render(); } catch(e) {} };
+  const rerender = () => { try { if (typeof render !== 'function' || typeof tab === 'undefined' || tab != 4) return;
+    /* 07/11 : on ne redessine que la carte Musique (sans animation d'entrée) au lieu de tout l'onglet Route : plus de clignotement */
+    const old = document.querySelector('#main .mu-card'), ae = document.activeElement;
+    if (!old || !window.mrMusicHtml || (ae && ae.closest && ae.closest('.mu-card') && ae.tagName === 'INPUT')) { if (!old) render(); return; }
+    const w = document.createElement('div'); w.innerHTML = window.mrMusicHtml(); const nw = w.firstElementChild; if (!nw) return;
+    nw.classList.add('mu-still'); old.replaceWith(nw); } catch(e) {} };
   const audio = new Audio(); audio.preload = 'none'; window.mrMusicAudio = audio;
   let open = false, view = 'radio', chip = 0, radios = null, rMsg = '', rLoading = false, q = '';
   let queue = [], qi = -1, state = 'idle', err = '';
@@ -2417,8 +2423,8 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
       + `<button class="mu-fold" data-mu="fold" aria-label="${open ? W3('Réduire','تصغير','Collapse') : W3('Ouvrir','فتح','Open')}">${open ? '▴' : '▾'}</button></div>`;
     const ctl = `<div class="mu-ctl"><button class="g" data-mu="kprev" aria-label="${W3('Précédent','السابق','Previous')}">⏮</button><button class="p" data-mu="ktoggle" aria-label="${W3('Lecture / pause','تشغيل / إيقاف مؤقت','Play / pause')}">${t && playing ? '⏸' : '⏯'}</button><button class="g" data-mu="knext" aria-label="${W3('Suivant','التالي','Next')}">⏭</button><button class="g" data-mu="kstop" aria-label="${W3('Arrêter','إيقاف','Stop')}">⏹</button></div>`
       + (t ? '' : `<div class="meta" style="font-size:11px;text-align:center;margin-top:2px">${W3('Commande aussi Ground Music ou l’appli qui joue','تتحكم أيضًا في Ground Music أو التطبيق الذي يعمل','Also controls Ground Music or the playing app')}</div>`);
-    if (!open) return `<div class="card" style="padding:10px 12px">${head}${ctl}</div>`;
-    return `<div class="card" style="padding:10px 12px">${head}${ctl}
+    if (!open) return `<div class="card mu-card" style="padding:10px 12px">${head}${ctl}</div>`;
+    return `<div class="card mu-card" style="padding:10px 12px">${head}${ctl}
       <div class="mu-tabs"><button class="g${view === 'radio' ? ' on' : ''}" data-mu="view" data-v="radio">${W3('Radios','إذاعات','Radios')}</button><button class="g${view === 'songs' ? ' on' : ''}" data-mu="view" data-v="songs">${W3('Morceaux','أغانٍ','Tracks')}</button><button class="g${view === 'pl' ? ' on' : ''}" data-mu="view" data-v="pl">${W3('Playlists','القوائم','Playlists')}</button><button class="g${view === 'dir' ? ' on' : ''}" data-mu="view" data-v="dir">${W3('Annuaire','دليلي','My list')} (${dir.length})</button><button class="g${view === 'link' ? ' on' : ''}" data-mu="view" data-v="link">${W3('Lien','رابط','Link')}</button></div>
       ${body}
       <div class="row" style="justify-content:flex-start;margin-top:10px"><button class="g" data-mu="ground">🎶 ${W3('Ouvrir Ground Music','فتح Ground Music','Open Ground Music')}</button></div>
@@ -2595,6 +2601,7 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-err
 /* test-60 : une seule animation d'entrée par carte. Avant, l'animation passait de « up » à « fxIn » puis revenait à « up »
    quand la classe fx-enter était retirée (0,9 s après) : les cartes disparaissaient et réapparaissaient = 2e rafraîchissement. */
 :root[data-ui=futur] main .card{animation:fxIn .55s cubic-bezier(.2,.8,.2,1) both}
+:root[data-ui=futur] main .card.mu-still{animation:none}
 :root[data-ui=futur] main.fx-enter .card:nth-child(2){animation-delay:.06s}
 :root[data-ui=futur] main.fx-enter .card:nth-child(3){animation-delay:.12s}
 :root[data-ui=futur] main.fx-enter .card:nth-child(4){animation-delay:.18s}
