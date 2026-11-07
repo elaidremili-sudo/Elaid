@@ -2,6 +2,16 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
+**➡️ Dernier point : 07/11, après-midi — test-98 (audit à 6 agents du 07/11, 10 corrections).**
+- **SOS sans compte** : bouton SOS rouge sur l'écran de connexion (appel, SMS, WhatsApp vers le numéro enregistré + 14 / 17) ; la fenêtre « Mes urgences » n'est plus fermée par l'écran de connexion.
+- **Plan B SMS** : fabrication « sans SMS » (case `sans_sms` en lançant le workflow à la main, ou variable de dépôt `MR_NO_SMS=1`) : pas de SEND_SMS, appel automatique gardé, SMS prérempli à toucher. Par défaut rien ne change.
+- **GPX** : KML (Google My Maps) accepté, KMZ expliqué, « & » et préfixe `gpx:` acceptés, encodages ISO-8859-1/UTF-16 lus, vrais messages d'erreur, refus envoyés à Sentry (« GPX : import refusé », sans coordonnées). Essayé avec 12 fichiers dans Chrome.
+- **SOS** : 15 s au plus par essai d'envoi (`www/js/sos.js`). **Fiche d'urgence** vidée → effacée aussi du compte (`www/js/fiche-sync.js`).
+- **Route** (`www/js/route-ordre.js`) : SOS en haut, puis Musique, Bonnes adresses, Premiers secours, Chute, Danger ; le reste dans « 🧰 Plus d'outils ». SOS de Route gardé discret (choix d'Elaid du 02/11) mais 48 px ; SOS du haut 40 px (zone 48), 🔑 48 px.
+- Textes : message technique d'Annonces, textes « démo » des vitrines retirés, Carnet « ton premier trajet », textes SOS/musique à 14 px, commandes musique dans le bon sens en arabe.
+- Icône 512 en RGBA ; politique de confidentialité : Cloudflare R2 (cartes) et envoi des mesures à Sentry.
+- **Non fait, décision d'Elaid attendue** : boutons « Simuler une chute » / « Simuler le moteur » (cacher aux testeurs ?).
+
 **➡️ Dernier point : 06/11, 21 h 30 — test-94 publiée.**
 - **Inclinaison** (`www/js/lean.js`, `www/js/inclinaison.js`, `www/index.html`) : pic tenu 1,5 s ; référence « moto droite » réapprise en ligne droite (`Ur`) ; boîte noire 1 ligne/s + bouton « 📡 Envoyer les mesures » (Sentry MOTOROUTE-4, `captureMessage` car la lib Sentry n'a pas `withScope`) ; réglage tableau de bord séparé gauche/droite (`S.leanKL`/`S.leanKR`, inclinaison > 0 = gauche ; inversion corrigée en test-93) ; valeurs tapées gardées si l'écran se redessine.
 - **Constats sur les mesures du 06/11** : tableau de bord 32/29 contre appli 27/17 (après-midi) ; le soir, la valeur vitesse × rotation (`lss`) saute de ±62° en 1 s (téléphone qui bouge/vibre ?) et `ref_apprise` reste à 0 (conditions d'apprentissage trop strictes). À faire : savoir où est fixé le téléphone, filtrer les sauts avec le GPS, revoir l'apprentissage, réglage moyen sur 2–3 trajets ; Elaid doit « Annuler le réglage » (×1,71 à droite trop fort).

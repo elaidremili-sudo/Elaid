@@ -5,9 +5,19 @@ on:
     branches: [main]
     paths-ignore: ['www/video/**', '.github/workflows/videos.yml']
   workflow_dispatch:
+    inputs:
+      sans_sms:
+        description: "Plan B si Google refuse SEND_SMS : version sans SMS automatique (appel automatique + SMS prérempli)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+
+# test-98 : MR_NO_SMS=1 → version sans SEND_SMS. Soit en lançant la fabrication à la main (case « sans_sms »),
+# soit pour toutes les fabrications : Settings → Secrets and variables → Actions → Variables → MR_NO_SMS = 1.
+env:
+  MR_NO_SMS: ${{ (github.event_name == 'workflow_dispatch' && inputs.sans_sms) && '1' || vars.MR_NO_SMS || '' }}
 
 jobs:
   android:
@@ -93,9 +103,15 @@ jobs:
           for P in READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_PHONE_STATE; do
             if grep -q "android.permission.$P'" badging.txt; then echo "::error::Autorisation $P présente dans l'appli (refusée par Google Play)."; exit 1; fi
           done
-          for P in SEND_SMS CALL_PHONE; do
-            grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le SOS automatique ne marcherait plus."; exit 1; }
-          done
+          if [ "$MR_NO_SMS" = "1" ]; then
+            echo "::notice::Version SANS SMS automatique (plan B Google Play) : appel automatique + SMS prérempli."
+            if grep -q "android.permission.SEND_SMS'" badging.txt; then echo "::error::Version sans SMS demandée mais SEND_SMS est présente."; exit 1; fi
+            grep -q "android.permission.CALL_PHONE'" badging.txt || { echo "::error::Autorisation CALL_PHONE manquante : l'appel automatique du SOS ne marcherait plus."; exit 1; }
+          else
+            for P in SEND_SMS CALL_PHONE; do
+              grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le SOS automatique ne marcherait plus."; exit 1; }
+            done
+          fi
           # 29/10 : talkie-walkie de groupe. Android 14+ refuse un service « microphone » sans ces deux autorisations
           # (le service est déclaré avec foregroundServiceType="microphone" : contrôle fait par scripts/patch-android.js).
           for P in RECORD_AUDIO FOREGROUND_SERVICE_MICROPHONE; do

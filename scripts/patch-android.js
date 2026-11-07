@@ -36,6 +36,9 @@ console.log('Autorisations ajoutées :\n' + (add || '(déjà présentes)'));
 // Numéro de version : augmente à chaque fabrication (obligatoire pour Google Play)
 const gradlePath = 'android/app/build.gradle';
 const run = parseInt(process.env.GITHUB_RUN_NUMBER || '1', 10);
+// test-98 : plan B si Google refuse SEND_SMS — MR_NO_SMS=1 fabrique une version sans SMS automatique
+// (appel automatique gardé : CALL_PHONE n'est pas une autorisation restreinte ; SMS prérempli à toucher).
+const NO_SMS = /^(1|true|oui)$/i.test(String(process.env.MR_NO_SMS || ''));
 let gradle = fs.readFileSync(gradlePath, 'utf8');
 gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${100 + run}`)
                .replace(/versionName\s+"[^"]*"/, `versionName "1.0.${run}"`);
@@ -106,8 +109,7 @@ import java.util.List;
 @CapacitorPlugin(
     name = "MrSms",
     permissions = {
-        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
-        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
+${NO_SMS ? "" : `        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),\n`}        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
     }
 )
 public class MrSmsPlugin extends Plugin {
@@ -233,7 +235,7 @@ public class MrSmsPlugin extends Plugin {
         final String to = call.getString("to");
         String msg = call.getString("msg");
         if (to == null || to.isEmpty() || msg == null) { call.reject("numero-manquant"); return; }
-        if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
+${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""}        if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
         if (!allowed(to, false)) { call.reject("numero-non-autorise"); return; }
         if (msg.length() > 640) { call.reject("message-trop-long"); return; }
         if (!smsQuota()) { call.reject("trop-de-sms"); return; }
@@ -459,12 +461,13 @@ public class MainActivity extends BridgeActivity {
 }
 `);
 let man2 = fs.readFileSync(path, 'utf8');
-for (const p of ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE']) {
+for (const p of (NO_SMS ? ['android.permission.CALL_PHONE'] : ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE'])) {
   if (!man2.includes(`"${p}"`)) man2 = man2.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
 if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
 fs.writeFileSync(path, man2);
-console.log('SOS : module MrSms (SMS + appel automatiques) ajouté');
+if (NO_SMS) fs.appendFileSync('www/js/version.js', 'window.MR_NO_SMS = true;\n');
+console.log(NO_SMS ? 'SOS : module MrSms SANS SMS automatique (appel automatique + SMS prérempli)' : 'SOS : module MrSms (SMS + appel automatiques) ajouté');
 
 // test-40 : alertes sonores (notifications Firebase) — sirène dans res/raw, fichier Firebase si présent
 fs.mkdirSync('android/app/src/main/res/raw', { recursive: true });

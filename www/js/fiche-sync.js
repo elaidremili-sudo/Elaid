@@ -21,8 +21,17 @@
              phone: p[0] || '', phone2: p[1] || '', allergy: r.allergies || '' };
   }
 
+  // test-98 : fiche vidée par le membre → on l'efface aussi du compte (avant, l'ancienne revenait au lancement suivant)
+  async function wipe() {
+    var c = sb(), u = user(); if (!c || !u) return false;
+    var r = await c.from('emergency_cards').delete().eq('user_id', u.id);
+    if (r.error) { console.error('fiche urgence (effacement)', r.error.message); return false; }
+    S.iceCleared = false; S.iceSync = u.id; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    return true;
+  }
   async function push() {
-    var c = sb(), u = user(); if (!c || !u || empty(S.ice)) return false;
+    var c = sb(), u = user(); if (!c || !u) return false;
+    if (empty(S.ice)) { return S.iceCleared ? wipe() : false; }
     var r = await c.from('emergency_cards').upsert(toRow(S.ice, u.id), { onConflict: 'user_id' });
     if (r.error) { console.error('fiche urgence', r.error.message); return false; }
     S.iceSync = u.id; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
@@ -47,6 +56,8 @@
       try { window.smsSync && window.smsSync(); } catch (e) {}
       return;
     }
+    // fiche vidée sur ce téléphone (même compte) plus récemment que celle du serveur : on efface au lieu de la reprendre
+    if (row && empty(local) && S.iceCleared && S.iceSync === u.id && lAt >= new Date(row.updated_at).getTime()) { await wipe(); return; }
     if (row && (empty(local) || new Date(row.updated_at).getTime() > lAt)) {
       S.ice = fromRow(row); S.iceAt = new Date(row.updated_at).getTime(); S.iceSync = u.id;
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
@@ -60,7 +71,7 @@
   // Enregistrer la fiche = l'envoyer au compte
   if (typeof saveIce == 'function') {
     var _save = saveIce;
-    saveIce = function () { _save.apply(this, arguments); S.iceAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} push(); };
+    saveIce = function () { _save.apply(this, arguments); S.iceAt = Date.now(); S.iceCleared = empty(S.ice); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} push(); };
   }
   setInterval(pull, 10000);
   setTimeout(pull, 3000);

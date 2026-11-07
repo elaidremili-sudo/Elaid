@@ -129,7 +129,13 @@
     const fn = senders[cur.ch];
     if (!fn) return cur; // le module qui envoie ce canal n'est pas encore chargé
     let out;
-    try { out = await fn(cur.p, cur); } catch (e) { out = { done: false, why: 'net', err: e }; }
+    // test-98 : 15 s au plus par essai. Sur un réseau « connecté sans données », l'envoi pouvait attendre sans fin
+    // et bloquer la file (la sirène attendait derrière). Renvoyer est sans risque : le serveur ignore un doublon (aid / client_id).
+    let tmo;
+    try {
+      out = await Promise.race([fn(cur.p, cur), new Promise(r => { tmo = setTimeout(() => r({ done: false, why: 'timeout' }), 15000); })]);
+    } catch (e) { out = { done: false, why: 'net', err: e }; }
+    finally { clearTimeout(tmo); }
     a = qload(); cur = a.find(y => y.id === x.id);
     if (!cur || cur.state !== 'pending') return cur; // annulée pendant l'envoi
     cur.tries = (cur.tries || 0) + 1;

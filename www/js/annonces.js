@@ -31,9 +31,9 @@
 
   const notReady = e => /PGRST20[25]|42P01|42883|schema cache|does not exist|Could not find/i.test(String((e && (e.code || '')) + ' ' + (e && e.message || '')));
   const errTxt = e => notReady(e)
-    ? W('Le serveur des annonces n’est pas encore prêt : exécute le script supabase/annonces.sql dans Supabase (SQL Editor).',
-        'خادم الإعلانات غير جاهز بعد: نفّذ السكربت supabase/annonces.sql في Supabase.',
-        'The ads server is not ready yet: run supabase/annonces.sql in Supabase (SQL Editor).')
+    ? W('Annonces indisponibles pour l’instant. Réessaie plus tard.',
+        'الإعلانات غير متاحة حاليًا. أعد المحاولة لاحقًا.',
+        'Listings unavailable for now. Try again later.')
     : /Limite atteinte/.test(String(e && e.message)) ? W('Limite atteinte : 10 annonces par 24 h.', 'الحد الأقصى: 10 إعلانات في 24 ساعة.', 'Limit reached: 10 ads per 24 h.')
     : W('Impossible pour l’instant (internet ?).', 'غير ممكن الآن (الإنترنت؟).', 'Not possible right now (internet?).');
   const redraw = () => { try { if (tab == 2) render(); } catch (e) {} };
