@@ -25,7 +25,7 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 | Infos personnelles | **Adresse e-mail** | Oui | Non | Obligatoire | Gestion du compte |
 | Infos personnelles | **Numéro de téléphone** (annonces, bonnes adresses, contact d'urgence) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Infos personnelles | **ID utilisateur** (identifiant de compte) | Oui | Non | Obligatoire | Fonctionnalités de l'appli, Gestion du compte, Prévention des fraudes et sécurité (signalements, limites anti-abus) |
-| Santé et remise en forme | **Informations de santé** (groupe sanguin, allergies, fiche d'urgence) | Oui | Non | Facultative | Fonctionnalités de l'appli (SOS) |
+| Santé et remise en forme | **Informations de santé** (groupe sanguin, allergies, fiche d'urgence) | Oui | **Oui** (07/11 : le groupe sanguin part dans le SMS d'urgence et l'alerte aux groupes) | Facultative | Fonctionnalités de l'appli (SOS) |
 | Messages | **Autres messages dans l'appli** (discussion de groupe) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Photos et vidéos | **Photos** (annonces, bonnes adresses, vitrines) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Fichiers audio | **Enregistrements vocaux ou sonores** (messages vocaux du talkie, 24 h) | Oui | Non | Facultative | Fonctionnalités de l'appli |

@@ -100,7 +100,8 @@ jobs:
           "$BT/aapt2" dump badging "$APK" > badging.txt
           grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission)" badging.txt
           grep -q "targetSdkVersion:'36'" badging.txt || { echo "::error::L'appli ne cible pas Android API 36 (exigé par Google Play)."; exit 1; }
-          for P in READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_PHONE_STATE; do
+          # test-100 : aucune autre autorisation SMS / journal d'appels / contacts (déclaration SEND_SMS « alertes d'urgence »)
+          for P in READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_PHONE_STATE READ_SMS RECEIVE_SMS WRITE_SMS RECEIVE_MMS RECEIVE_WAP_PUSH READ_CALL_LOG WRITE_CALL_LOG PROCESS_OUTGOING_CALLS READ_CONTACTS; do
             if grep -q "android.permission.$P'" badging.txt; then echo "::error::Autorisation $P présente dans l'appli (refusée par Google Play)."; exit 1; fi
           done
           # test-100 : plus d'appel automatique → CALL_PHONE interdite (une autorisation sensible de moins à justifier)

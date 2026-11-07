@@ -55,11 +55,15 @@
      (ils pouvaient croire à une vraie alerte). Mode essai pour Elaid : 7 touchers rapides sur le titre de la fenêtre du compte (bouton 🔑,
      « Mon compte ») affichent ou recachent ces boutons ; le choix reste sur ce téléphone. */
   var KD = 'mr_dev';
-  var dev = function () { try { return localStorage.getItem(KD) === '1'; } catch (e) { return false; } };
+  // test-100 : le mode essai peut aussi être activé pour un compte (champ mr_dev des données du compte, mis côté serveur) :
+  // c'est le cas du compte réservé à l'équipe d'examen de Google, qui n'a pas à connaître les 7 touchers.
+  var acctDev = function () { try { var u = window.mrUser && window.mrUser(); return !!(u && u.user_metadata && u.user_metadata.mr_dev === true); } catch (e) { return false; } };
+  var dev = function () { try { var v = localStorage.getItem(KD); if (v === '1') return true; if (v === '0') return false; } catch (e) {} return acctDev(); };
   var applyDev = function () { document.documentElement.classList.toggle('mr-dev', dev()); };
   st.textContent += ':root:not(.mr-dev) [data-fsim],:root:not(.mr-dev) [data-engsim]{display:none!important}' +
     ':root:not(.mr-dev) .row:has(> [data-fsim]:only-child){display:none!important}';
   applyDev();
+  setInterval(applyDev, 3000); // le compte peut se connecter après le démarrage
   var taps = [];
   document.addEventListener('click', function (e) {
     var h = e.target.closest && e.target.closest('#dA h2.dt'); if (!h) return;
