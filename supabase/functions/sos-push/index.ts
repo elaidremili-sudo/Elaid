@@ -1,4 +1,4 @@
-// MotoRoute – sos-push (20/10/2026, sirène app fermée le 22/10 : test-47, sécurité 23/10)
+// MotoRoute – sos-push (07/11 : plafond recompté après réservation ; 20/10/2026, sirène app fermée le 22/10 : test-47, sécurité 23/10)
 // 29/10 (test-67) : identifiant d'alerte « aid » → pas de doublon quand le téléphone renvoie l'alerte après une coupure réseau.
 // 23/10 : le texte affiché et lu à voix haute est rédigé ICI par le serveur (avant, le téléphone pouvait
 // envoyer n'importe quel texte → risque de fausses alertes). Limite : 5 alertes par heure vers les autres.
@@ -146,6 +146,18 @@ Deno.serve(async (req) => {
       } else logId = rv.id;
     }
     reserved = logId;
+    // 07/11 : plafond sûr même avec des envois simultanés. Chaque alerte est d'abord réservée dans le journal,
+    // puis on recompte : si la réservation dépasse le plafond, on l'annule (avant, le compte était fait avant la réservation).
+    if (logId != null) {
+      let q2 = admin.from("sos_push_log").select("*", { count: "exact", head: true }).eq("user_id", me).gte("at", since);
+      q2 = self ? q2.eq("kind", "self") : q2.neq("kind", "self");
+      const { count: c2 } = await q2;
+      if ((c2 || 0) > (self ? 6 : 5)) {
+        await admin.from("sos_push_log").delete().eq("id", logId);
+        reserved = null;
+        return json({ ok: false, why: "trop" });
+      }
+    }
     const writeLog = async (sent: number, recipients: number) => {
       if (logId != null) {
         await admin.from("sos_push_log").update({ sent, recipients, done: true, at: new Date().toISOString() }).eq("id", logId);
@@ -234,6 +246,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (reserved != null && adminRef) { try { await adminRef.from("sos_push_log").delete().eq("id", reserved); } catch { /* rien */ } }
     console.error("sos-push", String((e as Error)?.message || e).slice(0, 300));
-    return json({ ok: false, why: "erreur", detail: String((e as Error)?.message || e).slice(0, 200) }, 500);
+    return json({ ok: false, why: "erreur" }, 500); // 07/11 : le détail reste dans les journaux du serveur
   }
 });

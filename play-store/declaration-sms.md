@@ -17,9 +17,9 @@ La déclaration est demandée au premier envoi d'une version qui contient `SEND_
 | Quand l'autorisation est demandée | Seulement quand le motard **active lui-même** « Détection de chute » (désactivée par défaut), après une fenêtre qui explique pourquoi. |
 | Quand un SMS part tout seul | Détection de chute activée, **appli ouverte** (détection faite par l'appli elle-même, pas en tâche de fond) **et** moto qui roulait (GPS ≥ 15 km/h dans les 90 s avant) **et** choc > 4 g avec téléphone basculé de plus de 35° (ou choc > 6 g) **et** téléphone immobile ensuite ; sans vitesse GPS récente (tunnel) : seulement choc > 8 g et bascule > 35°. Puis **2 minutes** de fenêtre d'alerte avec bip toutes les 2 s et gros bouton « Je vais bien — annuler ». |
 | À qui | **Uniquement** aux numéros que le motard a saisis lui-même dans sa fiche d'urgence (**2 au plus**). Le module Android refuse tout autre numéro ; la liste ne peut être changée que quand l'appli est à l'écran. |
-| Combien | **1 SMS** par numéro et par alerte ; plafond codé dans le module Android : **6 SMS par 10 minutes**. |
+| Combien | **1 SMS** par numéro et par alerte (2 nouveaux essais seulement si le réseau le refuse) ; plafond codé dans le module Android : **6 SMS par 10 minutes**, en comptant chaque morceau d'un long SMS ; le SMS de test ne peut en utiliser que 2. |
 | Contenu | Texte fixe : nom, moto, groupe sanguin (s'ils sont remplis), coordonnées GPS à 5 décimales. Français/anglais : 1 SMS de 160 caractères max, ex. `MotoRoute SOS: CHUTE Elaid (Z H2) sang O+. GPS 36.12345,4.12345. Pas de reponse 2 min`. En arabe, le message peut partir en 2 ou 3 morceaux (caractères arabes). |
-| Envois manuels | **Un seul** utilise SEND_SMS : « Tester le SMS » (Mes urgences), lancé et confirmé par le motard, marqué TEST, vers son numéro enregistré (pour vérifier que l'alerte partira). Tous les autres SMS manuels (bouton SOS, écran de connexion, version sans SMS) ouvrent l'appli SMS du téléphone avec le message prérempli (lien `sms:`), le motard appuie lui-même sur Envoyer. |
+| Envois manuels | **Un seul** utilise SEND_SMS : « Tester le SMS » (Mes urgences), lancé et confirmé par le motard, marqué TEST, vers le premier numéro d'urgence enregistré (pour vérifier que l'alerte partira). Tous les autres SMS manuels (bouton SOS, écran de connexion, version sans SMS) ouvrent l'appli SMS du téléphone avec le message prérempli (lien `sms:`), le motard appuie lui-même sur Envoyer. |
 | Ce qui n'est jamais fait | Lire, recevoir, stocker ou envoyer au serveur des SMS ; SMS publicitaire ; SMS vers un contact du carnet ; SMS payant. |
 
 ---
@@ -43,7 +43,7 @@ La déclaration est demandée au premier envoi d'une version qui contient `SEND_
 > name, motorcycle, blood type and GPS coordinates, for example
 > "MotoRoute SOS: CRASH Elaid (Z H2) blood O+. GPS 36.12345,4.12345. No answer 2 min".
 > SEND_SMS is the only SMS-related permission in the app. Besides this automatic alert, SEND_SMS is used for one action
-> only: a test SMS marked TEST, started and confirmed by the rider, sent to their own saved number. The app never reads,
+> only: a test SMS marked TEST, started and confirmed by the rider, sent to the first saved emergency number. The app never reads,
 > receives or stores SMS, never sends SMS to any number the rider did not enter, and is limited in code to 6 SMS per
 > 10 minutes.
 
@@ -55,7 +55,7 @@ basculé de plus de 35° (ou plus de 6 g), puis plus aucun mouvement ; sans vite
 de plus de 8 g avec bascule. L'appli affiche alors une fenêtre d'alerte avec bip répété et gros bouton « Je vais bien —
 annuler » pendant 2 minutes. Sans réponse, elle envoie un message d'alerte court à ces numéros seulement : nom, moto, groupe
 sanguin, coordonnées GPS. SEND_SMS est la seule autorisation SMS de l'appli. En dehors de cette alerte, elle ne sert qu'à
-un SMS de test marqué TEST, lancé et confirmé par le motard, vers son propre numéro. L'appli ne lit, ne reçoit ni ne garde
+un SMS de test marqué TEST, lancé et confirmé par le motard, vers le premier numéro d'urgence enregistré. L'appli ne lit, ne reçoit ni ne garde
 aucun SMS, n'écrit à aucun numéro que le motard n'a pas saisi, et est limitée dans le code à 6 SMS par 10 minutes.
 
 ### Texte 2 — Why alternatives are not enough (à coller)

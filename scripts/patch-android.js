@@ -122,6 +122,12 @@ public class MrSmsPlugin extends Plugin {
             case SmsManager.RESULT_ERROR_RADIO_OFF: return "mode-avion-ou-sim-coupee";
             case SmsManager.RESULT_ERROR_NULL_PDU: return "message-invalide";
             case SmsManager.RESULT_ERROR_GENERIC_FAILURE: return "refus-operateur-ou-credit";
+            // 07/11 : codes Android 9+ (valeurs numériques, sans dépendre des constantes de l'API) traduits
+            case 10: case 102: case 117: return "refus-operateur-ou-credit";
+            case 111: return "refus-reseau-ou-credit";          // RIL_MODEM_ERR : vu le 07/11 avec une SIM sans crédit
+            case 17: case 100: case 101: case 112: case 116: return "reseau-instable";
+            case 19: case 110: return "centre-sms-invalide";
+            case 120: return "sim-introuvable";
             default: return "erreur-" + code;
         }
     }
@@ -194,7 +200,9 @@ public class MrSmsPlugin extends Plugin {
     }
 
     // Anti-abus : au plus SMS_MAX SMS par tranche de 10 minutes (un vrai SOS n'en envoie que 1 à 3)
-    private synchronized boolean smsQuota() {
+    // 07/11 : le plafond compte les morceaux de SMS (un long message arabe = plusieurs SMS). Un SMS de test ne peut
+    // utiliser que 2 places sur 6 : il en reste toujours 4 pour une vraie alerte. Un envoi refusé par le réseau est rendu.
+    private synchronized boolean smsQuota(int parts, boolean test) {
         long now = System.currentTimeMillis();
         String[] old = prefs().getString("sms_at", "").split(",");
         StringBuilder keep = new StringBuilder();
@@ -202,13 +210,21 @@ public class MrSmsPlugin extends Plugin {
         for (String t : old) {
             try { long v = Long.parseLong(t); if (now - v < SMS_WINDOW) { keep.append(v).append(','); c++; } } catch (Exception e) {}
         }
-        if (c >= SMS_MAX) return false;
-        keep.append(now);
+        if (c + parts > (test ? SMS_MAX - 4 : SMS_MAX)) return false;
+        for (int i = 0; i < parts; i++) { if (i > 0) keep.append(','); keep.append(now); }
         prefs().edit().putString("sms_at", keep.toString()).apply();
         return true;
     }
 
-    // Enregistre les numéros d'urgence (3 au plus). Refusé si l'app n'est pas à l'écran.
+    private synchronized void smsRefund(int parts) {
+        String[] old = prefs().getString("sms_at", "").split(",");
+        java.util.ArrayList<String> l = new java.util.ArrayList<>();
+        for (String t : old) if (!t.isEmpty()) l.add(t);
+        for (int i = 0; i < parts && !l.isEmpty(); i++) l.remove(l.size() - 1);
+        prefs().edit().putString("sms_at", android.text.TextUtils.join(",", l)).apply();
+    }
+
+    // Enregistre les numéros d'urgence (2 au plus, comme déclaré à Google Play). Refusé si l'app n'est pas à l'écran.
     @PluginMethod
     public void setNumbers(PluginCall call) {
         if (!foreground()) { call.reject("app-pas-a-l-ecran"); return; }
@@ -216,7 +232,7 @@ public class MrSmsPlugin extends Plugin {
         StringBuilder sb = new StringBuilder();
         int k = 0;
         try {
-            if (arr != null) for (int i = 0; i < arr.length() && k < 3; i++) {
+            if (arr != null) for (int i = 0; i < arr.length() && k < 2; i++) {
                 String n = norm(arr.getString(i));
                 if (n.length() >= 8 && n.length() <= 15) { if (k > 0) sb.append(','); sb.append(n); k++; }
             }
@@ -239,13 +255,15 @@ public class MrSmsPlugin extends Plugin {
 ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""}        if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("no-permission"); return; }
         if (!allowed(to, false)) { call.reject("numero-non-autorise"); return; }
         if (msg.length() > 640) { call.reject("message-trop-long"); return; }
-        if (!smsQuota()) { call.reject("trop-de-sms"); return; }
         final Context ctx = getContext();
-        final int sub = pickSub();
+        // 07/11 : anySim = nouvel essai avec la SIM par défaut d'Android (double SIM : la SIM SMS choisie a échoué)
+        final int sub = call.getBoolean("anySim", false) ? SubscriptionManager.INVALID_SUBSCRIPTION_ID : pickSub();
         final SmsManager sm;
         try { sm = managerFor(sub); } catch (Exception e) { call.reject("sim-introuvable"); return; }
         final ArrayList<String> parts = sm.divideMessage(msg);
         final int n = parts.size();
+        if (n > 3) { call.reject("message-trop-long"); return; }
+        if (!smsQuota(n, call.getBoolean("test", false))) { call.reject("trop-de-sms"); return; }
         final String tag = Long.toString(System.nanoTime());
         final String aSent = ctx.getPackageName() + ".SMS_SENT." + tag;
         final String aDeliv = ctx.getPackageName() + ".SMS_DELIV." + tag;
@@ -290,7 +308,7 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
                     try { ctx.unregisterReceiver(this); } catch (Exception e) {}
                     if (firstErr[0] == Activity.RESULT_OK) {
                         JSObject r = new JSObject(); r.put("parts", n); r.put("sim", sub); r.put("simName", simLabel(sub)); call.resolve(r);
-                    } else { String sl = simLabel(sub); call.reject(why(firstErr[0]) + (sl.isEmpty() ? "" : " · " + sl)); }
+                    } else { smsRefund(n); String sl = simLabel(sub); call.reject(why(firstErr[0]) + (sl.isEmpty() ? "" : " · " + sl)); }
                 }
             }
         };
@@ -306,6 +324,7 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
             sm.sendMultipartTextMessage(to, null, parts, sIs, dIs);
         } catch (Exception e) {
             done[0] = true;
+            smsRefund(n);
             try { ctx.unregisterReceiver(sent); ctx.unregisterReceiver(deliv); } catch (Exception x) {}
             call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
             return;

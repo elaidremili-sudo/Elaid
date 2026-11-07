@@ -6,6 +6,8 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 
 ## 1. Questions générales
 
+> Mis à jour le 07/11/2026 après l'audit : position précise et nom « partagés » (SMS d'urgence), et données collectées par AdMob (position approximative, interactions, diagnostics). Source AdMob : https://developers.google.com/admob/android/privacy/play-data-disclosure
+
 | Question | Réponse |
 |---|---|
 | L'appli collecte ou partage-t-elle des données utilisateur ? | **Oui** |
@@ -19,9 +21,9 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 
 | Catégorie Play | Type | Collectée | Partagée | Obligatoire ? | Pourquoi (cases Play) |
 |---|---|---|---|---|---|
-| Position | **Position précise** | Oui | Non | Facultative | Fonctionnalités de l'appli (partage au groupe, sortie en direct, SOS, bonnes adresses) |
-| Position | **Position approximative** | Oui | Non | Facultative | Fonctionnalités de l'appli (option « Position approximative ~2 km ») |
-| Infos personnelles | **Nom** (prénom ; nom complet de la fiche d'urgence) | Oui | Non | Obligatoire (prénom) | Fonctionnalités de l'appli, Gestion du compte |
+| Position | **Position précise** | Oui | **Oui** (07/11 : part dans le SMS d'urgence et l'alerte aux groupes, comme le groupe sanguin) | Facultative | Fonctionnalités de l'appli (partage au groupe, sortie en direct, SOS, bonnes adresses) |
+| Position | **Position approximative** | Oui | **Oui (AdMob)** | Facultative | Fonctionnalités de l'appli (option « Position approximative ~2 km ») ; Publicité (AdMob la déduit de l'adresse IP) |
+| Infos personnelles | **Nom** (prénom ; nom complet de la fiche d'urgence) | Oui | **Oui** (07/11 : le nom part dans le SMS d'urgence) | Obligatoire (prénom) | Fonctionnalités de l'appli, Gestion du compte |
 | Infos personnelles | **Adresse e-mail** | Oui | Non | Obligatoire | Gestion du compte |
 | Infos personnelles | **Numéro de téléphone** (annonces, bonnes adresses, contact d'urgence) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Infos personnelles | **ID utilisateur** (identifiant de compte) | Oui | Non | Obligatoire | Fonctionnalités de l'appli, Gestion du compte, Prévention des fraudes et sécurité (signalements, limites anti-abus) |
@@ -30,9 +32,9 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 | Photos et vidéos | **Photos** (annonces, bonnes adresses, vitrines) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Fichiers audio | **Enregistrements vocaux ou sonores** (messages vocaux du talkie, 24 h) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Activité dans l'appli | **Autre contenu généré par l'utilisateur** (sorties, annonces, bonnes adresses, playlists, signalements) | Oui | Non | Facultative | Fonctionnalités de l'appli |
-| Activité dans l'appli | **Interactions avec l'appli** (clics sur les vitrines partenaires, comptés pour les statistiques) | Oui | Non | Facultative | Analyse |
+| Activité dans l'appli | **Interactions avec l'appli** (clics sur les vitrines partenaires, comptés pour les statistiques) | Oui | **Oui (AdMob)** | Facultative | Analyse ; Publicité (AdMob mesure les interactions avec les annonces) |
 | Infos et performances de l'appli | **Journaux de plantage** (Sentry) | Oui | Non | Obligatoire | Analyse |
-| Infos et performances de l'appli | **Diagnostics** (modèle de téléphone, version, Sentry) | Oui | Non | Obligatoire | Analyse |
+| Infos et performances de l'appli | **Diagnostics** (modèle de téléphone, version, Sentry) | Oui | **Oui (AdMob)** | Obligatoire | Analyse ; Publicité (AdMob collecte des diagnostics) |
 | Identifiants de l'appareil ou autres | **ID d'appareil ou autres** (identifiant publicitaire AdMob, jeton Firebase) | Oui | **Oui (AdMob)** | Obligatoire | Publicité ou marketing (AdMob) ; Fonctionnalités de l'appli (jeton de notification SOS) |
 
 **Ne pas cocher** : infos financières, contacts du carnet d'adresses (l'appli ne lit pas le carnet, les numéros sont saisis à la main), SMS lus (l'appli n'en lit aucun), historique web, calendrier, fichiers et documents, vidéos envoyées (les vidéos de l'éditeur restent sur le téléphone).
