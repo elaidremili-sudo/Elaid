@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       sans_sms:
-        description: "Plan B si Google refuse SEND_SMS : version sans SMS automatique (appel automatique + SMS prérempli)"
+        description: "Plan B si Google refuse SEND_SMS : version sans SMS automatique (SMS prérempli à toucher)"
         type: boolean
         default: false
 
@@ -103,14 +103,13 @@ jobs:
           for P in READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_PHONE_STATE; do
             if grep -q "android.permission.$P'" badging.txt; then echo "::error::Autorisation $P présente dans l'appli (refusée par Google Play)."; exit 1; fi
           done
+          # test-100 : plus d'appel automatique → CALL_PHONE interdite (une autorisation sensible de moins à justifier)
+          if grep -q "android.permission.CALL_PHONE'" badging.txt; then echo "::error::CALL_PHONE présente alors que l'appel automatique a été retiré."; exit 1; fi
           if [ "$MR_NO_SMS" = "1" ]; then
-            echo "::notice::Version SANS SMS automatique (plan B Google Play) : appel automatique + SMS prérempli."
+            echo "::notice::Version SANS SMS automatique (plan B Google Play) : SMS prérempli à toucher."
             if grep -q "android.permission.SEND_SMS'" badging.txt; then echo "::error::Version sans SMS demandée mais SEND_SMS est présente."; exit 1; fi
-            grep -q "android.permission.CALL_PHONE'" badging.txt || { echo "::error::Autorisation CALL_PHONE manquante : l'appel automatique du SOS ne marcherait plus."; exit 1; }
           else
-            for P in SEND_SMS CALL_PHONE; do
-              grep -q "android.permission.$P'" badging.txt || { echo "::error::Autorisation $P manquante : le SOS automatique ne marcherait plus."; exit 1; }
-            done
+            grep -q "android.permission.SEND_SMS'" badging.txt || { echo "::error::Autorisation SEND_SMS manquante : le SMS automatique du SOS ne marcherait plus."; exit 1; }
           fi
           # 29/10 : talkie-walkie de groupe. Android 14+ refuse un service « microphone » sans ces deux autorisations
           # (le service est déclaré avec foregroundServiceType="microphone" : contrôle fait par scripts/patch-android.js).

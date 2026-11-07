@@ -2,7 +2,12 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ Dernier point : 07/11, après-midi — test-98 (audit à 6 agents du 07/11, 10 corrections).**
+**➡️ 07/11, 15 h 30 — test-100 : décision d'Elaid, on garde le SMS automatique et on le déclare à Google ; appel automatique RETIRÉ.**
+- L'appel ne transmettait pas la position (la voix sortait sur le haut-parleur du motard). Plus de `CALL_PHONE` (contrôle de fabrication : sa présence fait échouer), plus de case « appeler » ni de « tester l'appel ». Restent : SMS automatique, alerte de groupe, anges gardiens. Les liens « Appeler » (tel:) manuels restent.
+- Déclaration SEND_SMS, justification des alternatives, script de la vidéo, fiche Play et accès examinateur : `play-store/declaration-sms.md`. Politique de confidentialité mise à jour (SMS seul, plus d'appel).
+- Plan B si refus : fabrication à la main avec `sans_sms` (ni SEND_SMS ni CALL_PHONE).
+
+**Point précédent : 07/11, après-midi — test-98 (audit à 6 agents du 07/11, 10 corrections).**
 - **SOS sans compte** : bouton SOS rouge sur l'écran de connexion (appel, SMS, WhatsApp vers le numéro enregistré + 14 / 17) ; la fenêtre « Mes urgences » n'est plus fermée par l'écran de connexion.
 - **Plan B SMS** : fabrication « sans SMS » (case `sans_sms` en lançant le workflow à la main, ou variable de dépôt `MR_NO_SMS=1`) : pas de SEND_SMS, appel automatique gardé, SMS prérempli à toucher. Par défaut rien ne change.
 - **GPX** : KML (Google My Maps) accepté, KMZ expliqué, « & » et préfixe `gpx:` acceptés, encodages ISO-8859-1/UTF-16 lus, vrais messages d'erreur, refus envoyés à Sentry (« GPX : import refusé », sans coordonnées). Essayé avec 12 fichiers dans Chrome.

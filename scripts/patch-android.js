@@ -37,7 +37,8 @@ console.log('Autorisations ajoutées :\n' + (add || '(déjà présentes)'));
 const gradlePath = 'android/app/build.gradle';
 const run = parseInt(process.env.GITHUB_RUN_NUMBER || '1', 10);
 // test-98 : plan B si Google refuse SEND_SMS — MR_NO_SMS=1 fabrique une version sans SMS automatique
-// (appel automatique gardé : CALL_PHONE n'est pas une autorisation restreinte ; SMS prérempli à toucher).
+// (SMS prérempli à toucher). test-100 (07/11, décision d'Elaid) : plus d'appel automatique ni de CALL_PHONE
+// (la voix lue pendant l'appel sortait sur le haut-parleur du motard, le contact ne recevait pas la position).
 const NO_SMS = /^(1|true|oui)$/i.test(String(process.env.MR_NO_SMS || ''));
 let gradle = fs.readFileSync(gradlePath, 'utf8');
 gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${100 + run}`)
@@ -109,7 +110,7 @@ import java.util.List;
 @CapacitorPlugin(
     name = "MrSms",
     permissions = {
-${NO_SMS ? "" : `        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),\n`}        @Permission(alias = "call", strings = { Manifest.permission.CALL_PHONE })
+${NO_SMS ? "" : `        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS })`}
     }
 )
 public class MrSmsPlugin extends Plugin {
@@ -461,7 +462,7 @@ public class MainActivity extends BridgeActivity {
 }
 `);
 let man2 = fs.readFileSync(path, 'utf8');
-for (const p of (NO_SMS ? ['android.permission.CALL_PHONE'] : ['android.permission.SEND_SMS', 'android.permission.CALL_PHONE'])) {
+for (const p of (NO_SMS ? [] : ['android.permission.SEND_SMS'])) {
   if (!man2.includes(`"${p}"`)) man2 = man2.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
 if (!man2.includes('"android.hardware.telephony"')) man2 = man2.replace('</manifest>', '    <uses-feature android:name="android.hardware.telephony" android:required="false" />\n</manifest>');
