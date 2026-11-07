@@ -2,7 +2,14 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ 07/11, 15 h 30 — test-100 : décision d'Elaid, on garde le SMS automatique et on le déclare à Google ; appel automatique RETIRÉ.**
+**➡️ DERNIER POINT : 07/11, 16 h 30 — test-103 (Elaid fatigué, reprise plus tard).**
+- test-102 : « Position partagée » n'est plus une pastille verte flottante : ligne discrète dans la page (Sorties, Route sous le SOS, Conduite), rouge si un motard décroche.
+- test-103 : SOS de l'écran de connexion tout en bas, en contour rouge (« 🆘 SOS : besoin d'aide ? »).
+- Compte examinateur Google prêt : remilielaid2026@gmail.com (« Google Review », groupe Essay + sortie, fiche d'urgence, `mr_dev` activé dans les données du compte). Doc de la déclaration : https://claude.ai/artifact/ET19t6jpugZsQhfDrYQPtz (copie `play-store/declaration-sms.md`).
+- **Reste, dans l'ordre :** 1) installer test-103, se reconnecter au compte examinateur et vérifier « Simuler une chute » ; 2) filmer la vidéo (6 étapes du doc) ; 3) Play Console : déclaration SMS, micro/musique + 2 vidéos, accès examinateur, sécurité des données, classification 16+, 12 testeurs ; 4) après le 1er envoi : SHA-1 de la clé Google dans la clé Android (Google Cloud) ; 5) Supabase : supprimer fcm-check, protection des mots de passe, vérifier Brevo ; 6) essais sans rouler (6 séances) et casque Bluetooth du talkie ; 7) plus tard sur la moto : calibrage / inclinaison (test-97).
+- Non vérifié : la version « sans SMS » n'a jamais été compilée pour de vrai ; rien de test-98 à test-103 essayé sur téléphone par Claude.
+
+**Point précédent : 07/11, 15 h 30 — test-100 : décision d'Elaid, on garde le SMS automatique et on le déclare à Google ; appel automatique RETIRÉ.**
 - L'appel ne transmettait pas la position (la voix sortait sur le haut-parleur du motard). Plus de `CALL_PHONE` (contrôle de fabrication : sa présence fait échouer), plus de case « appeler » ni de « tester l'appel ». Restent : SMS automatique, alerte de groupe, anges gardiens. Les liens « Appeler » (tel:) manuels restent.
 - Déclaration SEND_SMS, justification des alternatives, script de la vidéo, fiche Play et accès examinateur : `play-store/declaration-sms.md`. Politique de confidentialité mise à jour (SMS seul, plus d'appel).
 - Plan B si refus : fabrication à la main avec `sans_sms` (ni SEND_SMS ni CALL_PHONE).
