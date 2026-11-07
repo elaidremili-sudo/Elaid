@@ -40,7 +40,8 @@ const ROUTES = {
 function simulate(cfg) {
   const fs = cfg.fs || 60, dt = 1 / fs, Rbp = mount(cfg.mount || 'portrait'), Rpb = T(Rbp);
   const segs = ROUTES[cfg.route || 'moto'];
-  const est = MOD.create(Object.assign({ U: unit(mul(Rpb, [0, 0, G])), sens: cfg.sens, debug: true }, JSON.parse(process.env.BANC_OPT || '{}'))); if (est.start) est.start();
+  const Ucal = cfg.stand ? unit(mul(Rpb, mul(Rx(cfg.stand * D), [0, 0, G]))) : unit(mul(Rpb, [0, 0, G])); cfg._dlP = null;
+  const est = MOD.create(Object.assign({ U: Ucal, sens: cfg.sens, debug: true }, JSON.parse(process.env.BANC_OPT || '{}'))); if (est.start) est.start();
   let t = 0, psi = 0, X = 0, Y = 0, phiPrev = 0, wPrev = 0, gpsT = 0, gx = 0, gy = 0;
   const out = []; const ph = [0, 1, 2, 3, 4, 5].map(() => rnd() * 6.28);
   const V = cfg.vib || {}; const t0 = 1.7e12;
@@ -76,6 +77,16 @@ function simulate(cfg) {
     if (V.bumps && rnd() < V.bumps * dt) { const k = 8 + rnd() * 10; fB[2] += k; omB[1] += (rnd() - .5) * 3 }
     // téléphone tenu en main : il tourne doucement d'un côté puis de l'autre
     let Rmp = Rpb;
+    /* 07/11 : téléphone sur le GUIDON. Il tourne avec la direction autour de l'axe de colonne (incliné de la chasse, ~24,5°) :
+       angle de braquage du virage (empattement / rayon) + corrections du pilote (oscillations 0,5–3 Hz). */
+    if (cfg.steer) { const S = cfg.steer, ep = (S.caster || 24.5) * D, sAx = [-Math.sin(ep), 0, Math.cos(ep)];
+      const dl0 = v > 1 ? 1.45 * w / Math.max(v, 1) : 0; // braquage géométrique (rad)
+      const co = (S.amp || 2) * D, f1 = S.f || 1.2, f2 = (S.f || 1.2) * 2.3;
+      const dl = dl0 + co * (Math.sin(2 * Math.PI * f1 * tt + ph[0]) + .5 * Math.sin(2 * Math.PI * f2 * tt + ph[2]));
+      const dld = (dl - (cfg._dlP == null ? dl : cfg._dlP)) / dt; cfg._dlP = dl;
+      const c = Math.cos(dl), sn = Math.sin(dl), [ux, uy, uz] = sAx, C = 1 - c;
+      const Rs = [[c + ux * ux * C, ux * uy * C - uz * sn, ux * uz * C + uy * sn], [uy * ux * C + uz * sn, c + uy * uy * C, uy * uz * C - ux * sn], [uz * ux * C - uy * sn, uz * uy * C + ux * sn, c + uz * uz * C]];
+      Rmp = mm(Rpb, T(Rs)); omB = [omB[0] + dld * sAx[0], omB[1] + dld * sAx[1], omB[2] + dld * sAx[2]]; }
     if (cfg.hand) { const a = cfg.hand * D * Math.sin(2 * Math.PI * 0.55 * tt), b = cfg.hand * .6 * D * Math.sin(2 * Math.PI * 0.31 * tt + 1); Rmp = mm(T(mm(Rx(a), Ry(b))), Rpb);
       const ad = cfg.hand * D * 2 * Math.PI * 0.55 * Math.cos(2 * Math.PI * 0.55 * tt), bd = cfg.hand * .6 * D * 2 * Math.PI * 0.31 * Math.cos(2 * Math.PI * 0.31 * tt + 1);
       omB = [omB[0] + ad, omB[1] + bd, omB[2]] }
@@ -89,7 +100,7 @@ function simulate(cfg) {
       const spdM = Math.max(0, vLag + gauss() * .25), hdg = v > 1 ? ((90 - psi / D + gauss() * 1.5) % 360 + 360) % 360 : null;
       est.gps(lat, lng, spdM, cfg.noHeading ? null : hdg, n);
     }
-    const disp = est.display(n);
+    const disp = est.display(n); if (est.snap && v > 8) { const sn = est.snap(); cfg._sat = (cfg._sat || 0) + (Math.abs(sn[3]) > .85 ? 1 : 0); cfg._nS = (cfg._nS || 0) + 1; cfg._ref = sn[7]; }
     out.push({ seg: segI, rad, t, v: v * 3.6, truth: (car ? phiTrue : phiBike) / D, est: disp, loose: est.looseAt ? est.looseAt(n) : false, straight: Math.abs(w) < 0.01 && Math.abs(wTarget) < 1e-9, steady: rad && segT > 2.5 && segT < dur - 0.5 });
     t += dt; segT += dt; if (segT >= dur) { segI++; segT = 0 }
   }
@@ -111,7 +122,7 @@ function report(name, cfg) {
   const rMaxT = Math.max(...out.map(o => Math.abs(o.truth))), rMaxE = Math.max(...out.map(o => Math.abs(o.est)));
   const WIN = +(process.env.WIN || 1), fsr = Math.round(1 / (out[1].t - out[0].t)), hw = Math.round(WIN * fsr);
   let rMaxS = 0; for (let i = hw; i < out.length; i++) { const v = out.slice(i - hw, i + 1).map(o => Math.abs(o.est)).sort((a, b) => a - b); rMaxS = Math.max(rMaxS, v[Math.floor(v.length * .5)]); }
-  const r = { scenario: name, max_virage_ecart_moy: +(pk.reduce((a, b) => a + b, 0) / Math.max(1, pk.length)).toFixed(1), max_virage_pire: +Math.max(...pk.map(Math.abs)).toFixed(1), max_trajet: rMaxT.toFixed(0) + '° vrai → ' + rMaxE.toFixed(0) + '° app → ' + rMaxS.toFixed(0) + '° tenu', virage_err_moy: +(e.reduce((p, q) => p + q, 0) / Math.max(1, e.length)).toFixed(1), virage_err_p95: +q(e, .95).toFixed(1), mauvais_cote: sgn, droit_p95: +q(sm, .95).toFixed(1), droit_max: +(sm[sm.length - 1] || 0).toFixed(1), alerte_tel_bouge: Math.round(loose * 100) + '%' };
+  const r = { scenario: name, max_virage_ecart_moy: +(pk.reduce((a, b) => a + b, 0) / Math.max(1, pk.length)).toFixed(1), max_virage_pire: +Math.max(...pk.map(Math.abs)).toFixed(1), max_trajet: rMaxT.toFixed(0) + '° vrai → ' + rMaxE.toFixed(0) + '° app → ' + rMaxS.toFixed(0) + '° tenu', virage_err_moy: +(e.reduce((p, q) => p + q, 0) / Math.max(1, e.length)).toFixed(1), virage_err_p95: +q(e, .95).toFixed(1), mauvais_cote: sgn, droit_p95: +q(sm, .95).toFixed(1), droit_max: +(sm[sm.length - 1] || 0).toFixed(1), alerte_tel_bouge: Math.round(loose * 100) + '%', sature: Math.round(100 * (cfg._sat || 0) / Math.max(1, cfg._nS || 1)) + '%', ref: cfg._ref };
   return r;
 }
 
@@ -123,7 +134,15 @@ const SC = [
   ['retard 1 s + pilote dedans + vibrations', { route: 'route', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: 1.2, acc: 6, fres: 14 } }],
   ['retard 1,5 s + pilote dedans 85 %', { route: 'route', mount: 'paysage', lag: 1.5, bike: .85, vib: { gyro: 1, acc: 5 } }],
 ];
-if (require.main !== module) { module.exports = { simulate, report, SC }; return; }
-const rows = SC.map(([n, c]) => report(n, c));
+// 07/11 : scénarios « téléphone sur le guidon » (support Z H2 au centre du guidon), calibration parfois faite sur la béquille
+const SCG = [
+  ['guidon calme (corrections 1,5°)', { route: 'route', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: .6, acc: 3 }, steer: { amp: 1.5, f: 1.2 } }],
+  ['guidon normal (3°)', { route: 'route', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: .8, acc: 4 }, steer: { amp: 3, f: 1.5 } }],
+  ['guidon agité (5°, 2 Hz)', { route: 'route', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: 1, acc: 5 }, steer: { amp: 5, f: 2 } }],
+  ['guidon 3° + calibré sur béquille (6°)', { route: 'route', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: .8, acc: 4 }, steer: { amp: 3, f: 1.5 }, stand: 6 }],
+  ['guidon 3° route moto (120 km/h)', { route: 'moto', mount: 'portrait', lag: 1, bike: .9, vib: { gyro: .8, acc: 4 }, steer: { amp: 3, f: 1.5 } }],
+];
+if (require.main !== module) { module.exports = { simulate, report, SC, SCG }; return; }
+const rows = (process.env.GUIDON === 'seul' ? SCG : process.env.GUIDON ? SC.concat(SCG) : SC).map(([n, c]) => report(n, c));
 console.table(rows);
 if (process.argv[4] === 'json') console.log(JSON.stringify(rows));

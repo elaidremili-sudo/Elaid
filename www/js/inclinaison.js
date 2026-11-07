@@ -137,7 +137,7 @@
     const k0 = +S.leanK || 1, kG = +S.leanKL || k0, kD = +S.leanKR || k0, act = Math.abs(kG - 1) > .005 || Math.abs(kD - 1) > .005;
     const head = `<div class="lc-cal"><button type="button" class="g" data-lcsend="1">📡 ${L3('Envoyer les mesures du dernier trajet', 'إرسال قياسات آخر رحلة', 'Send last trip measurements')}</button> <button type="button" class="g" data-lccal="1">📏 ${L3('Ma moto affichait un autre angle ?', 'دراجتي أظهرت زاوية أخرى؟', 'My bike showed a different angle?')}</button>${act ? `<div class="meta">${L3('Réglage actif', 'ضبط مفعّل', 'Active setting')} : ↶ × ${kG.toFixed(2)} · ↷ × ${kD.toFixed(2)} · <a href="#" data-lccal0="1">${L3('Annuler le réglage', 'إلغاء الضبط', 'Reset')}</a></div>` : ''}`;
     if (!calOpen) return head + '</div>';
-    const old = !(r.lv >= 2);
+    const old = !(r.lv >= 3); // 07/11 : lv 3 = calcul test-97 (guidon)
     return head + `<div class="meta" style="margin-top:6px">${L3('Si ta moto a une centrale inertielle (inclinaison affichée sur le tableau de bord), entre les angles maximum qu’elle a affichés pour ce trajet.', 'إذا كانت دراجتك تعرض الميلان على لوحة القيادة، أدخل أقصى الزوايا التي أظهرتها لهذه الرحلة.', 'If your bike shows lean angle on its dashboard, enter the maximum angles it showed for this trip.')}</div>
       <div class="row" style="gap:8px;justify-content:flex-start;flex-wrap:wrap"><label>↶ ${L3('Gauche', 'يسار', 'Left')} <input id="lc_cl" value="${esc(calV.lc_cl)}" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lL || 0)}"></label>
       <label>↷ ${L3('Droite', 'يمين', 'Right')} <input id="lc_cr" value="${esc(calV.lc_cr)}" type="number" inputmode="decimal" min="5" max="65" style="width:80px" placeholder="${Math.round(r.lR || 0)}"></label>
@@ -149,16 +149,16 @@
     const n = id => { const el = document.getElementById(id), v = parseFloat(String((el && el.value) || calV[id] || '').replace(',', '.')); return v >= 5 && v <= 65 ? v : null; };
     const dl = n('lc_cl'), dr = n('lc_cr'), al = r.lL || 0, ar = r.lR || 0;
     // 06/11 : un coefficient par côté (la moto peut lire plus fort d'un côté) ; une seule valeur → même coefficient des deux côtés
-    const C = x => Math.max(.5, Math.min(2, x));
+    const C = x => Math.max(.8, Math.min(1.25, x)); // 07/11 : ±25 % au plus (avant 0,5–2 : ×1,71 amplifiait le bruit)
     let kl = dl && al >= 8 ? dl / al : null, kr = dr && ar >= 8 ? dr / ar : null;
     if (kl == null && kr == null) { alert(L3('Entre au moins un angle (gauche ou droite), pour un trajet avec des virages d’au moins 8°.', 'أدخل زاوية واحدة على الأقل.', 'Enter at least one angle.')); return; }
     if (kl == null) kl = kr; if (kr == null) kr = kl; kl = C(kl); kr = C(kr);
     r.lL = Math.round(al * kl); r.lR = Math.round(ar * kr); r.tk = r.tk.map(p => { const q = p.slice(); q[2] = Math.round((q[2] || 0) * (q[3] < 0 ? kl : kr)); return q; }); r.cal = [kl, kr];
-    if (r.lv >= 2) { const k0 = +S.leanK || 1; S.leanKL = C((+S.leanKL || k0) * kl); S.leanKR = C((+S.leanKR || k0) * kr); S.leanK = 1; }
+    if (r.lv >= 3) { const k0 = +S.leanK || 1; S.leanKL = C((+S.leanKL || k0) * kl); S.leanKR = C((+S.leanKR || k0) * kr); S.leanK = 1; }
     const k = (kl + kr) / 2;
     calOpen = false; calV = {lc_cl:'', lc_cr:''}; try { save(); } catch (e) {}
     const c = document.getElementById('lc_card'); if (c) { c.outerHTML = window.mrLeanCard(); setTimeout(paintCard, 0); }
-    alert(L3(`✅ Trajet corrigé : gauche × ${kl.toFixed(2)}, droite × ${kr.toFixed(2)}.`, `✅ صُحّحت الرحلة: يسار × ${kl.toFixed(2)}، يمين × ${kr.toFixed(2)}.`, `✅ Trip corrected: left × ${kl.toFixed(2)}, right × ${kr.toFixed(2)}.`) + (r.lv >= 2 ? '\n' + L3('Le réglage s’appliquera aussi à tes prochains trajets.', 'سيطبّق الضبط على رحلاتك القادمة.', 'It will apply to your next trips too.') : ''));
+    alert(L3(`✅ Trajet corrigé : gauche × ${kl.toFixed(2)}, droite × ${kr.toFixed(2)}.`, `✅ صُحّحت الرحلة: يسار × ${kl.toFixed(2)}، يمين × ${kr.toFixed(2)}.`, `✅ Trip corrected: left × ${kl.toFixed(2)}, right × ${kr.toFixed(2)}.`) + (r.lv >= 3 ? '\n' + L3('Le réglage s’appliquera aussi à tes prochains trajets.', 'سيطبّق الضبط على رحلاتك القادمة.', 'It will apply to your next trips too.') : ''));
   }
 
   /* test-86 : envoi à la demande des mesures détaillées du dernier trajet (sans position GPS : vitesse et angles seulement) pour régler l'inclinaison */

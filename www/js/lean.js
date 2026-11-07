@@ -35,7 +35,7 @@
   function create(o) {
     o = o || {};
     let U = o.U && o.U.length === 3 ? o.U.slice() : null;
-    const KT = o.kt || 1.2, LT = o.lt || .25, BC = o.bc == null ? 1 : o.bc, SM = o.sm == null ? 1 : o.sm, YU = o.yu == null ? 1 : o.yu; // constantes du filtre (réglées sur le banc d'essai)
+    const KT = o.kt || 1.2, LT = o.lt || .25, LR = o.lr == null ? 1.5 : o.lr, SL = o.sl == null ? 1.2 : o.sl, RV = o.rv == null ? 25 : o.rv, BC = o.bc == null ? 1 : o.bc, SM = o.sm == null ? 1 : o.sm, YU = o.yu == null ? 1 : o.yu; // constantes du filtre (réglées sur le banc d'essai)
     let sens = SENS[o.sens] ? o.sens : 'normale';
     // état qui survit d'un trajet à l'autre
     let Ug = null, wBi = 0, wBu = 0, fAx = null, nn = 0, fwN = 0;
@@ -44,10 +44,10 @@
     // axe appris lors des trajets précédents (format test-50 : a = axe, c = sens) : point de départ, vite confirmé ou corrigé
     if (o.rollAx && o.rollAx.a && o.rollAx.a.length === 3) { const sg0 = o.rollAx.c < 0 ? -1 : 1; for (let i = 0; i < 3; i++) cv[i] = o.rollAx.a[i] * sg0 * .3; nn = .3; fAx = cv.map(x => x / .3); }
     const fG = lp3(3), fA = lp3(2), fD = lp3(1), fW = lp2(1);
-    let dbg = {}, lastAf = null, Ur = null, UrT = 0; // Ur : gravité apparente moyenne en ligne droite (test-86), UrT : secondes apprises
+    let dbg = {}, lastAf = null, Ur = o.Ur && o.Ur.length === 3 ? o.Ur.slice() : null, UrT = Ur ? 30 : 0, ssR = 0; // Ur : gravité apparente moyenne en ligne droite (test-86), UrT : secondes apprises
     // état d'un trajet
     let active = false, lTs = 0, spd = 0, lean = 0, leanU = 0, lss = 0, ssm = 0, dlt = 0, lssP = 0, rr = 0, looseT = 0, looseS = 0, lastB = null;
-    let looseMs = 0, rideMs = 0, vibSum = 0, vibN = 0, gAcc = 0, gAccT = 0, gAccN = 0, spP = null, spPT = 0;
+    let brkAT = 0, gBase = 0, looseMs = 0, rideMs = 0, vibSum = 0, vibN = 0, gAcc = 0, gAccT = 0, gAccN = 0, spP = null, spPT = 0;
     const gH = [], wB = [], bH = [], oH = [], rH = [], dH = [], aB = [];
 
     function gpsLean(n, ms) { const v = gH.filter(h => n - h[0] <= ms).map(h => h[1]).sort((p, q) => p - q); return v.length ? v[Math.floor(v.length / 2)] : null; }
@@ -93,10 +93,10 @@
 
     function resetRide() {
       wBu = wBi; gAcc = 0; gAccT = 0; gAccN = 0; spP = null; spPT = 0;
-      lTs = 0; spd = 0; lean = 0; leanU = 0; lss = 0; ssm = 0; dlt = 0; lssP = 0; rr = 0; looseT = 0; looseS = 0; lastB = null;
+      brkAT = 0; gBase = 0; lTs = 0; spd = 0; lean = 0; leanU = 0; lss = 0; ssm = 0; dlt = 0; lssP = 0; rr = 0; looseT = 0; looseS = 0; lastB = null;
       looseMs = 0; rideMs = 0; vibSum = 0; vibN = 0;
       gH.length = wB.length = bH.length = oH.length = rH.length = dH.length = aB.length = 0; wBi = 0;
-      fG.reset(); fA.reset(); fD.reset(); fW.reset(); Ur = null; UrT = 0;
+      fG.reset(); fA.reset(); fD.reset(); fW.reset(); ssR = 0; if (UrT < 20) { Ur = null; UrT = 0; } /* 07/11 : référence « moto droite » bien apprise = gardée d'un trajet à l'autre */
     }
 
     // x, y, z : accélération incluant la gravité (m/s², vers le haut) ; al, be, ga : rotationRate du navigateur (°/s) ; n : ms
@@ -132,16 +132,21 @@
       const kl = Math.min(1, dt / LT);
       /* test-71 : on lisse d'abord le rapport vitesse × lacet / g, PUIS on convertit en angle. Avant, on lissait les angles déjà
          convertis : avec le bruit du gyroscope, l'arcsinus gonfle plus vers le haut que vers le bas (+3 à +6° en virage). */
-      if (SM) { ssm += (rat - ssm) * kl; lss = Math.asin(Math.max(-.883, Math.min(.883, ssm))) / R2; } else lss += (raw - lss) * kl; // angle d'équilibre lissé (~0,25 s : le bruit du lacet est multiplié par la vitesse)
+      /* 07/11 : téléphone sur le GUIDON. Les corrections de direction (0,5–3 Hz) s'ajoutent au lacet de la moto et faisaient
+         saturer vitesse × lacet / g (sauts de ±62°). Une moto ne change pas son angle d'équilibre de plus de ~1,2 par seconde
+         (en sinus) : la variation du rapport est bornée, puis lissée. ssR = même rapport lissé sur ~1,5 s (sert à reconnaître la ligne droite). */
+      const ratL = Math.max(-.85, Math.min(.85, rat)), sl = SL * dt;
+      ssR += (ratL - ssR) * Math.min(1, dt / LR);
+      if (SM) { ssm += Math.max(-sl, Math.min(sl, (ratL - ssm) * kl)); lss = Math.asin(Math.max(-.883, Math.min(.883, ssm))) / R2; } else lss += (raw - lss) * kl; // angle d'équilibre lissé (~0,25 s : le bruit du lacet est multiplié par la vitesse)
       /* test-86 : la référence « moto droite » est réapprise en roulant. En ligne droite à vitesse stable (GPS droit, ni freinage ni
          accélération), la gravité apparente vue par le téléphone EST la verticale de la moto. Si la calibration a été faite sur la béquille
          latérale (moto penchée de 5 à 8°), l'angle du pilote (dlt) était faux d'autant et gonflait un côté de 5 à 10°. */
       { const gl2 = gpsLean(n, 2500), brk2 = gAccT && n - gAccT < 3000;
-        if (lastAf && gl2 != null && gl2 < 1.5 && !brk2 && spd >= 30 && Math.abs(lss) < 4) {
+        if (lastAf && gl2 != null && gl2 < 1.5 && !brk2 && spd >= RV && Math.abs(ssR) < .07) { // 07/11 : ligne droite = GPS droit + lacet lissé ~0 (sin 4°), plus tolérant aux coups de guidon
           const hf = Math.hypot(lastAf[0], lastAf[1], lastAf[2]);
           if (hf > 8 && hf < 11.5) { const v = [lastAf[0] / hf, lastAf[1] / hf, lastAf[2] / hf], k = Math.min(.05, dt / 20);
             Ur = Ur ? Ur.map((q, i) => q * (1 - k) + v[i] * k) : v; const m = Math.hypot(Ur[0], Ur[1], Ur[2]); Ur = Ur.map(q => q / m); UrT += dt; } } }
-      const UR = Ur && UrT > 8 && (Ur[0] * U[0] + Ur[1] * U[1] + Ur[2] * U[2]) > .966 ? Ur : U; // appris sur 8 s de ligne droite et pas à plus de 15° de la calibration
+      const UR = Ur && UrT > 8 && ((Ur[0] * U[0] + Ur[1] * U[1] + Ur[2] * U[2]) > .966 || UrT > 20) ? Ur : U; // 07/11 : au-delà de 20 s de ligne droite, on la croit même loin de la calibration (béquille) // appris sur 8 s de ligne droite et pas à plus de 15° de la calibration
       const gp = [gv[0] - w0 * A[0], gv[1] - w0 * A[1], gv[2] - w0 * A[2]];
       const dL = (lss - lssP) / dt; lssP = lss; learnAxis(gp, dL * R2, dt);
       const ax = rollAxis(A);
@@ -166,12 +171,24 @@
       while (rH.length && n - rH[0][0] > 4000) rH.shift();
       let g4 = 0; for (const q of gH) if (n - q[0] <= 4500) g4 = Math.max(g4, q[1]);
       // dispersion de la gravité apparente sur 1,5 s (degrés) : quasi nulle sur un support, même en virage
-      let ad = 0; if (aB.length > 10) { let mx = 0, my = 0, mz = 0; for (const q of aB) { mx += q[1]; my += q[2]; mz += q[3]; } const mn = Math.hypot(mx, my, mz) || 1; mx /= mn; my /= mn; mz /= mn;
-        let sq = 0; for (const q of aB) { const c = Math.max(-1, Math.min(1, q[1] * mx + q[2] * my + q[3] * mz)); sq += Math.acos(c) ** 2; } ad = Math.sqrt(sq / aB.length) / R2; }
-      if (o.debug) dbg = { dlt, wsd, ad, rh: rH.length, g4, lss, rr, raw, ok: !!ok, fwN, fwM: Math.hypot(fw[0], fw[1], fw[2]), ax: ax && ax.map(v => +v.toFixed(2)) };
+      /* 07/11 : on retire d'abord la composante avant/arrière (axe de roulis = axe avant) : un freinage ou une accélération fait basculer
+         la gravité apparente vers l'avant sans que le téléphone bouge (fausse alerte avant chaque virage, le GPS ayant ~1-2 s de retard). */
+      const pq = q => { if (!ax) return [q[1], q[2], q[3]]; const d = q[1] * ax[0] + q[2] * ax[1] + q[3] * ax[2], r = [q[1] - d * ax[0], q[2] - d * ax[1], q[3] - d * ax[2]], m = Math.hypot(r[0], r[1], r[2]) || 1; return [r[0] / m, r[1] / m, r[2] / m]; };
+      let ad = 0; if (aB.length > 10) { const aP = aB.map(pq); let mx = 0, my = 0, mz = 0; for (const q of aP) { mx += q[0]; my += q[1]; mz += q[2]; } const mn = Math.hypot(mx, my, mz) || 1; mx /= mn; my /= mn; mz /= mn;
+        let sq = 0; for (const q of aP) { const c = Math.max(-1, Math.min(1, q[0] * mx + q[1] * my + q[2] * mz)); sq += Math.acos(c) ** 2; } ad = Math.sqrt(sq / aP.length) / R2; }
+      let adR = 0; if (aB.length > 10) { let mx = 0, my = 0, mz = 0; for (const q of aB) { mx += q[1]; my += q[2]; mz += q[3]; } const mn = Math.hypot(mx, my, mz) || 1; let sq = 0; for (const q of aB) { const c = Math.max(-1, Math.min(1, (q[1] * mx + q[2] * my + q[3] * mz) / mn)); sq += Math.acos(c) ** 2; } adR = Math.sqrt(sq / aB.length) / R2; }
+      const adP = ad; ad = Math.max(adP * 1.8, Math.min(adR, adP * 2.5)); // téléphone en main : bouge dans tous les sens ; freinage : surtout vers l'avant
+      if (o.debug) dbg = { brkAT, gAccT, dlt, wsd, ad, adR, adP, rh: rH.length, g4, lss, rr, raw, ok: !!ok, fwN, fwM: Math.hypot(fw[0], fw[1], fw[2]), ax: ax && ax.map(v => +v.toFixed(2)) };
       // mesures sur le banc d'essai (p95, ligne droite) : support avec fortes vibrations ad ≈ 3-3,7° ; téléphone en main ad ≈ 7-8°
-      const brk = gAccT && n - gAccT < 3000; // freinage ou accélération franche (GPS)
-      const shaky = !brk && (ad > 5.5 * S || (wsd > .35 * S && ad > 4 * S) || (rH.length >= 4 && ad > 4.5 * S)) && gH.length && g4 < 4;
+      // 07/11 : freinage / accélération vus directement par l'accéléromètre le long de l'axe avant appris (le GPS a 1-2 s de retard)
+      if (fwN > 4) { const m0 = Math.hypot(fw[0], fw[1], fw[2]); if (m0 > .5 * fwN) { const aF = (af[0] * fw[0] + af[1] * fw[1] + af[2] * fw[2]) / m0, aU = (af[0] * A[0] + af[1] * A[1] + af[2] * A[2]), fu = (fw[0] * A[0] + fw[1] * A[1] + fw[2] * A[2]) / m0;
+        if (Math.abs(aF - aU * fu) > 1.5) brkAT = n; } }
+      // sans axe avant fiable : un freinage franc fait grossir la gravité apparente (√(g² + a²)), alors qu'un téléphone en main ne la change pas
+      { const hm = Math.hypot(ad1[0], ad1[1], ad1[2]); if (!gBase) gBase = hm; if (Math.abs(lss) < 4) gBase += (hm - gBase) * Math.min(1, dt / 15); if (hm - gBase > .3) brkAT = n; }
+      const brk = (gAccT && n - gAccT < 3000) || (brkAT && n - brkAT < 2000); // freinage ou accélération franche (GPS ou accéléromètre)
+      /* 07/11 : un vrai virage (lacet soutenu sur ~1,5 s, sin > 0,14 ≈ 8°) n'est pas un téléphone tenu en main : le GPS a ~2 s de retard
+         en entrée de virage, l'alerte se déclenchait à tort et bloquait l'angle à 5° pendant 20 s. */
+      const shaky = !brk && Math.abs(ssR) < .14 && (ad > 5.5 * S || (wsd > .35 * S && ad > 4 * S) || (rH.length >= 4 && ad > 4.5 * S)) && gH.length && g4 < 4;
       // il faut que ça dure (0,8 s) : une bosse ou une rafale de vent ne suffit pas
       looseS = shaky ? looseS + dt : Math.max(0, looseS - dt * 2);
       if (looseS > .8) { looseT = n; looseMs += dt * 1000; }
@@ -224,6 +241,7 @@
       motion, gps, display,
       start() { resetRide(); active = true; },
       stop() { active = false; },
+      refU: () => (Ur && UrT >= 20 ? Ur.map(v => Math.round(v * 1e4) / 1e4) : null), // 07/11 : à sauvegarder pour le prochain lancement
       setU(u) { U = u && u.length === 3 ? u.slice() : null; Ug = U ? U.slice() : null; Ur = null; UrT = 0; fAx = null; nn = 0; cv.fill(0); fw.fill(0); fwN = 0; },
       setSens(s) { if (SENS[s]) sens = s; },
       get lean() { return lean; },
@@ -235,7 +253,7 @@
         const c = (lastAf[0] * U[0] + lastAf[1] * U[1] + lastAf[2] * U[2]) / h; return Math.acos(Math.max(-1, Math.min(1, c))) / R2; },
       // test-86 : « boîte noire » — valeurs internes pour comprendre un écart avec le tableau de bord de la moto
       // [angle affiché, angle d'équilibre, angle du pilote, rapport vitesse×lacet/g, km/h, inclinaison vue par le GPS, vitesse de roulis °/s, référence apprise (0/1), écart gravité/calibration °]
-      snap() { const r1 = v => Math.round(v * 10) / 10, gl = gpsLean(lTs, 2500); return [r1(lean), r1(lss), r1(dlt), Math.round(ssm * 1000) / 1000, Math.round(spd), gl == null ? -1 : r1(gl), Math.round(rr), Ur && UrT > 8 ? 1 : 0, r1(this.tilt())]; },
+      snap() { const r1 = v => Math.round(v * 10) / 10, gl = gpsLean(lTs, 2500); return [r1(lean), r1(lss), r1(dlt), Math.round(ssm * 1000) / 1000, Math.round(spd), gl == null ? -1 : r1(gl), Math.round(rr), Ur && UrT > 8 && ((Ur[0] * U[0] + Ur[1] * U[1] + Ur[2] * U[2]) > .966 || UrT > 20) ? 1 : 0, r1(this.tilt())]; },
       looseAt: n => !!looseT && n - looseT < 5000,
       rollAx: () => { const ax = rollAxis(Ug || U || [0, 0, 1]); return ax ? { a: ax.map(v => Math.round(v * 1e4) / 1e4), c: 1 } : null; },
       // bilan du trajet : part du temps où le téléphone bougeait, niveau moyen de vibrations (m/s²)
@@ -243,6 +261,6 @@
     };
   }
 
-  const api = { create, SENS: Object.keys(SENS), version: 'test-86' };
+  const api = { create, SENS: Object.keys(SENS), version: 'test-97' };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MrLean = api;
 })(typeof window !== 'undefined' ? window : this);
