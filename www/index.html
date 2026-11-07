@@ -1238,7 +1238,9 @@ setTimeout(()=>{if(me())pull()},1500);
 .mp-rider .mp-dot{width:12px;height:12px;border-radius:50%;flex:none}
 .mp-rider .mp-nm{flex:1;min-width:0}
 .mp-old{opacity:.5}
-.mp-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:20;background:#0f766e;color:#fff;border:0;border-radius:99px;padding:10px 16px;font:600 15px Barlow,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.mp-pill{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 10px;padding:6px 12px;background:transparent!important;color:var(--mute)!important;border:1px solid var(--line)!important;border-radius:12px;font:600 14px Barlow,Cairo,sans-serif;text-align:start;box-shadow:none!important}
+.mp-pill .mp-pdot{width:8px;height:8px;border-radius:50%;background:#3ddc97;flex:none}
+.mp-pill.mp-far{color:#ff6b6b!important;border-color:#d7263d!important}.mp-pill.mp-far .mp-pdot{background:#d7263d}
 .mp-sw{display:flex;align-items:center;gap:10px;font-weight:600;margin:4px 0}
 .mp-sw input{width:22px;height:22px;flex:none}
 [dir=rtl] .mp-msg.me{margin-inline-start:auto}
@@ -1442,11 +1444,17 @@ function chkFar(){const u=me(),n=Date.now(),L=[];
  if(sh.on&&sh.me&&sh.ride==lvR)Object.values(lvPos).forEach(r=>{if(u&&r.user_id==u.id)return;if(n-new Date(r.updated_at)>10*60e3)return;const d=dist(sh.me,[r.lat,r.lng]);
   if(d>=FAR){L.push([r,d]);if(!far[r.user_id]||n-far[r.user_id]>10*60e3){far[r.user_id]=n;try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}farBeep()}}else delete far[r.user_id]});
  farN=L.length;farMsg=L.map(([r,d])=>'⚠️ <b>'+E(r.first_name||'?')+'</b> '+W('est à','على بعد','is')+' '+fmtD(d)+W(' de toi : il a peut-être décroché.',' منك: ربما تأخر عن المجموعة.',' away from you: they may have fallen behind.')).join('<br>');pill()}
-function pill(){let b=$id('mpPill');
- if(!sh.on){if(b)b.remove();return}
- if(!b){b=document.createElement('button');b.id='mpPill';b.className='mp-pill';document.body.appendChild(b);b.onclick=()=>lvOpen(sh.ride,sh.title)}
- b.textContent=(farN?'⚠️ '+farN+' '+W('décroché','متأخر','behind')+' · ':'📡 ')+W('Position partagée','الموقع مُشارك','Location shared')+' · '+sh.title.slice(0,18);b.style.background=farN?'#d7263d':'';
+/* 07/11 (demande d'Elaid) : plus de pastille verte flottante au-dessus de l'écran. Une ligne discrète, dans la page,
+   en haut de Sorties, Route et Conduite, tant que la position est partagée (rouge seulement si un motard a décroché). */
+function pill(){let b=$id('mpPill');const m=$id('main');
+ if(!sh.on||!m||[1,4,6].indexOf(tab)<0){if(b)b.remove();return}
+ if(!b){b=document.createElement('button');b.type='button';b.id='mpPill';b.className='mp-pill';b.onclick=()=>lvOpen(sh.ride,sh.title)}
+ const sos=m.querySelector(':scope > .mr-sos'),ref=sos?sos.nextElementSibling:m.firstElementChild; /* sur Route, le SOS reste en premier */
+ if(ref!==b)m.insertBefore(b,ref);
+ b.classList.toggle('mp-far',!!farN);
+ b.innerHTML='<span class="mp-pdot" aria-hidden="true"></span><span>'+(farN?'⚠️ '+farN+' '+W('décroché','متأخر','behind')+' · ':'')+W('Position partagée','الموقع مُشارك','Location shared')+' · '+E(sh.title.slice(0,24))+'</span>';
 }
+window.mrPill=pill;
 function radar(){
  const ids=Object.keys(lvPos),u=me();const fresh=ids.map(i=>lvPos[i]).filter(r=>Date.now()-new Date(r.updated_at)<15*60e3);
  const ctr=sh.on&&sh.me?sh.me:(u&&lvPos[u.id]?[lvPos[u.id].lat,lvPos[u.id].lng]:null)||(fresh.length?[fresh.reduce((a,r)=>a+r.lat,0)/fresh.length,fresh.reduce((a,r)=>a+r.lng,0)/fresh.length]:null);

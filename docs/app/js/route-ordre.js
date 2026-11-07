@@ -12,7 +12,7 @@
 
   function keep(c) {
     if (!c || !c.matches) return true;
-    if (c.matches('.mr-sos, .mu-card, .pl-card, details.mr-more, [data-k="fa"]')) return true;
+    if (c.matches('.mr-sos, .mu-card, .pl-card, details.mr-more, [data-k="fa"], #mpPill')) return true;
     if (c.querySelector('#fall_chk, [data-hz]')) return true; // détection de chute, signaler un danger
     return false;
   }
@@ -78,7 +78,7 @@
 
   if (typeof render == 'function') {
     var _r = render;
-    render = function () { var r = _r.apply(this, arguments); tidy(); setTimeout(tidy, 0); setTimeout(tidy, 400); return r; };
+    render = function () { var r = _r.apply(this, arguments); tidy(); setTimeout(tidy, 0); setTimeout(tidy, 400); try { window.mrPill && window.mrPill(); setTimeout(function () { try { window.mrPill && window.mrPill(); } catch (e) {} }, 450); } catch (e) {} return r; };
   }
   window.mrRouteTidy = tidy;
 })();
