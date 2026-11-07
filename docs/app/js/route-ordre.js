@@ -51,6 +51,27 @@
     'details.mr-more .mr-more-in>.card{margin-inline:0}';
   document.head.appendChild(st);
 
+  /* test-99 (décision d'Elaid du 07/11) : « Simuler une chute » et « Simuler le moteur » cachés aux testeurs
+     (ils pouvaient croire à une vraie alerte). Mode essai pour Elaid : 7 touchers rapides sur le titre de la fenêtre du compte (bouton 🔑,
+     « Mon compte ») affichent ou recachent ces boutons ; le choix reste sur ce téléphone. */
+  var KD = 'mr_dev';
+  var dev = function () { try { return localStorage.getItem(KD) === '1'; } catch (e) { return false; } };
+  var applyDev = function () { document.documentElement.classList.toggle('mr-dev', dev()); };
+  st.textContent += ':root:not(.mr-dev) [data-fsim],:root:not(.mr-dev) [data-engsim]{display:none!important}' +
+    ':root:not(.mr-dev) .row:has(> [data-fsim]:only-child){display:none!important}';
+  applyDev();
+  var taps = [];
+  document.addEventListener('click', function (e) {
+    var h = e.target.closest && e.target.closest('#dA h2.dt'); if (!h) return;
+    var now = Date.now(); taps = taps.filter(function (x) { return now - x < 4000; }); taps.push(now);
+    if (taps.length < 7) return;
+    taps = [];
+    try { localStorage.setItem(KD, dev() ? '0' : '1'); } catch (x) {}
+    applyDev();
+    alert(dev() ? W('Mode essai activé : boutons « Simuler » visibles.', 'وضع التجربة مفعّل: أزرار «محاكاة» ظاهرة.', 'Test mode on: “Simulate” buttons shown.')
+                : W('Mode essai désactivé : boutons « Simuler » cachés.', 'وضع التجربة متوقف: أزرار «محاكاة» مخفية.', 'Test mode off: “Simulate” buttons hidden.'));
+  });
+
   if (typeof render == 'function') {
     var _r = render;
     render = function () { var r = _r.apply(this, arguments); tidy(); setTimeout(tidy, 0); setTimeout(tidy, 400); return r; };

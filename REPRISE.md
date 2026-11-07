@@ -10,7 +10,7 @@
 - **Route** (`www/js/route-ordre.js`) : SOS en haut, puis Musique, Bonnes adresses, Premiers secours, Chute, Danger ; le reste dans « 🧰 Plus d'outils ». SOS de Route gardé discret (choix d'Elaid du 02/11) mais 48 px ; SOS du haut 40 px (zone 48), 🔑 48 px.
 - Textes : message technique d'Annonces, textes « démo » des vitrines retirés, Carnet « ton premier trajet », textes SOS/musique à 14 px, commandes musique dans le bon sens en arabe.
 - Icône 512 en RGBA ; politique de confidentialité : Cloudflare R2 (cartes) et envoi des mesures à Sentry.
-- **Non fait, décision d'Elaid attendue** : boutons « Simuler une chute » / « Simuler le moteur » (cacher aux testeurs ?).
+- **test-99** : boutons « Simuler une chute » / « Simuler le moteur » cachés (décision d'Elaid). Mode essai : 7 touchers rapides sur le titre de la fenêtre du compte (🔑) les affichent ou les recachent (`mr_dev`, sur ce téléphone).
 
 **➡️ Dernier point : 06/11, 21 h 30 — test-94 publiée.**
 - **Inclinaison** (`www/js/lean.js`, `www/js/inclinaison.js`, `www/index.html`) : pic tenu 1,5 s ; référence « moto droite » réapprise en ligne droite (`Ur`) ; boîte noire 1 ligne/s + bouton « 📡 Envoyer les mesures » (Sentry MOTOROUTE-4, `captureMessage` car la lib Sentry n'a pas `withScope`) ; réglage tableau de bord séparé gauche/droite (`S.leanKL`/`S.leanKR`, inclinaison > 0 = gauche ; inversion corrigée en test-93) ; valeurs tapées gardées si l'écran se redessine.
