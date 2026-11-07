@@ -2255,7 +2255,7 @@ body.mu-on .fab{transform:translateY(calc(-1 * var(--mu-h,0px)))}
     {fr:'Monde', ar:'العالم', en:'World', q:''}
   ];
   // Morceaux à la demande : catalogue libre Audius (écoute gratuite, sans compte pour les membres).
-  const AUDIUS = 'https://api.audius.co/v1', AU_APP = 'MotoRoute', AU_KEY = ''; // clé développeur gratuite à coller ici si Audius l'exige
+  const AUDIUS = 'https://api.audius.co/v1', AU_APP = 'MotoRoute', AU_KEY = '0x4645e11d7602d831e74f6eb91525b19925da45e7'; // clé publique Audius (app « Motoroute », compte @Remili, créée le 07/11) — le Bearer Token, lui, ne va jamais dans l'app
   const auQ = () => 'app_name=' + AU_APP + (AU_KEY ? '&api_key=' + encodeURIComponent(AU_KEY) : '');
   let tracks = null, tMsg = '', tLoading = false, tq = '', tchip = 0;
   const TCHIPS = [
