@@ -2,7 +2,20 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 07/11, 16 h 30 — test-103 (Elaid fatigué, reprise plus tard).**
+**➡️ DERNIER POINT : nuit du 07 au 08/11 — test-104 (audit des 6 relecteurs corrigé).**
+- Bilan complet : https://claude.ai/artifact/6fp5xrMXHyunemKSmA2R2m (doc « MotoRoute — Bilan des 6 relecteurs »).
+- test-104 (commit 25b6dfa) : compte à rebours SOS sur l'heure réelle + écran allumé + Retour bloqué ; plus de double déclenchement ;
+  codes d'erreur SMS traduits (111 = refusé par le réseau : crédit insuffisant ou réseau instable) + 2 nouveaux essais à 20 s (le dernier sur la SIM par défaut) ;
+  module Android : 2 numéros max, plafond 6 SMS/10 min compté en morceaux, SMS de test limité à 2 places, envoi refusé rendu ;
+  position GPS rafraîchie si > 3 min sinon âge dans le SMS ; numéro mal écrit signalé ; explication SMS avec OK / Annuler (cite nom, moto, groupe sanguin, position) ;
+  gSms() supprimé ; mention « détection seulement appli ouverte ». Testé dans Chrome avec un faux module SMS (Retour, décompte, réessai : OK).
+- PAS ENCORE EN LIGNE (déploiement en production refusé à Claude par la protection de la session) :
+  1) supabase/securite-07-11.sql à exécuter (délai de 24 h dans les groupes publics pour positions et alertes) ;
+  2) supabase/functions/sos-push/index.ts à redéployer (plafond de sirènes recompté après réservation).
+- Vidéo de démonstration : Google exige l'ouverture de l'appli et le REFUS de l'autorisation (answer/11150561) → refilmer l'étape 1 avec test-104 ; le reste du montage est prêt (numéros floutés, relu image par image).
+- Play Console : déclaration SMS corrigée (SMS de test vers le 1er numéro d'urgence), sécurité des données alignée (position précise + nom partagés, données AdMob), services de premier plan micro + lecture multimédia à déclarer (voir declaration-micro-talkie.md).
+
+**Point précédent : 07/11, 16 h 30 — test-103 (Elaid fatigué, reprise plus tard).**
 - test-102 : « Position partagée » n'est plus une pastille verte flottante : ligne discrète dans la page (Sorties, Route sous le SOS, Conduite), rouge si un motard décroche.
 - test-103 : SOS de l'écran de connexion tout en bas, en contour rouge (« 🆘 SOS : besoin d'aide ? »).
 - Compte examinateur Google prêt : remilielaid2026@gmail.com (« Google Review », groupe Essay + sortie, fiche d'urgence, `mr_dev` activé dans les données du compte). Doc de la déclaration : https://claude.ai/artifact/ET19t6jpugZsQhfDrYQPtz (copie `play-store/declaration-sms.md`).
