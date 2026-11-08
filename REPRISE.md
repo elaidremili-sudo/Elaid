@@ -9,9 +9,9 @@
   module Android : 2 numéros max, plafond 6 SMS/10 min compté en morceaux, SMS de test limité à 2 places, envoi refusé rendu ;
   position GPS rafraîchie si > 3 min sinon âge dans le SMS ; numéro mal écrit signalé ; explication SMS avec OK / Annuler (cite nom, moto, groupe sanguin, position) ;
   gSms() supprimé ; mention « détection seulement appli ouverte ». Testé dans Chrome avec un faux module SMS (Retour, décompte, réessai : OK).
-- PAS ENCORE EN LIGNE (déploiement en production refusé à Claude par la protection de la session) :
-  1) supabase/securite-07-11.sql à exécuter (délai de 24 h dans les groupes publics pour positions et alertes) ;
-  2) supabase/functions/sos-push/index.ts à redéployer (plafond de sirènes recompté après réservation).
+- 08/11 matin, à la demande d'Elaid : supabase/securite-07-11.sql EXÉCUTÉ (06 h 45, délai de 24 h dans les groupes publics ; aucun membre actuel bloqué)
+  et sos-push corrigée DÉPLOYÉE (06 h 50, version 14, code en ligne relu). Pas encore essayée par une vraie alerte : « Simuler une chute » ou
+  « Tester la sirène chez eux » avec test-104.
 - Vidéo de démonstration : Google exige l'ouverture de l'appli et le REFUS de l'autorisation (answer/11150561) → refilmer l'étape 1 avec test-104 ; le reste du montage est prêt (numéros floutés, relu image par image).
 - Play Console : déclaration SMS corrigée (SMS de test vers le 1er numéro d'urgence), sécurité des données alignée (position précise + nom partagés, données AdMob), services de premier plan micro + lecture multimédia à déclarer (voir declaration-micro-talkie.md).
 
