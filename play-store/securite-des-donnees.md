@@ -6,6 +6,8 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 
 ## 1. Questions générales
 
+> Mis à jour le 12/11/2026 (test-105) : groupe sanguin et allergies seulement avec accord exprès (case non cochée par défaut) ; contact d'urgence prévenu ; plus de SMS automatique après une fausse alerte. Politique du 12 novembre 2026.
+>
 > Mis à jour le 07/11/2026 après l'audit : position précise et nom « partagés » (SMS d'urgence), et données collectées par AdMob (position approximative, interactions, diagnostics). Source AdMob : https://developers.google.com/admob/android/privacy/play-data-disclosure
 
 | Question | Réponse |
@@ -18,6 +20,7 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 ## 2. Types de données (cocher ceux-ci, rien d'autre)
 
 « Partagée » = transmise à un tiers qui l'utilise pour lui-même (ici seulement Google AdMob). Les prestataires qui travaillent pour nous (Supabase, Firebase, Cloudflare, Brevo, Sentry) **ne comptent pas comme partage** selon Google.
+Le nom, la position et le groupe sanguin sont aussi cochés « partagés » par prudence, parce qu'ils partent par SMS vers le contact d'urgence (une personne tierce).
 
 | Catégorie Play | Type | Collectée | Partagée | Obligatoire ? | Pourquoi (cases Play) |
 |---|---|---|---|---|---|
@@ -25,9 +28,9 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 | Position | **Position approximative** | Oui | **Oui (AdMob)** | Facultative | Fonctionnalités de l'appli (option « Position approximative ~2 km ») ; Publicité (AdMob la déduit de l'adresse IP) |
 | Infos personnelles | **Nom** (prénom ; nom complet de la fiche d'urgence) | Oui | **Oui** (07/11 : le nom part dans le SMS d'urgence) | Obligatoire (prénom) | Fonctionnalités de l'appli, Gestion du compte |
 | Infos personnelles | **Adresse e-mail** | Oui | Non | Obligatoire | Gestion du compte |
-| Infos personnelles | **Numéro de téléphone** (annonces, bonnes adresses, contact d'urgence) | Oui | Non | Facultative | Fonctionnalités de l'appli |
+| Infos personnelles | **Numéro de téléphone** (annonces, bonnes adresses, contact d'urgence — une autre personne, que le motard doit avoir prévenue : case « J'ai prévenu ce contact ») | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Infos personnelles | **ID utilisateur** (identifiant de compte) | Oui | Non | Obligatoire | Fonctionnalités de l'appli, Gestion du compte, Prévention des fraudes et sécurité (signalements, limites anti-abus) |
-| Santé et remise en forme | **Informations de santé** (groupe sanguin, allergies, fiche d'urgence) | Oui | **Oui** (07/11 : le groupe sanguin part dans le SMS d'urgence et l'alerte aux groupes) | Facultative | Fonctionnalités de l'appli (SOS) |
+| Santé et remise en forme | **Informations de santé** (groupe sanguin, allergies, fiche d'urgence) | Oui, **seulement avec l'accord exprès** du motard (12/11 : case non cochée par défaut ; sans elle, rien n'est envoyé au serveur) | **Oui, seulement avec cet accord** (le groupe sanguin part dans le SMS d'urgence, l'alerte aux groupes et le message WhatsApp que le motard envoie lui-même ; les allergies ne sont jamais partagées) | Facultative | Fonctionnalités de l'appli (SOS) |
 | Messages | **Autres messages dans l'appli** (discussion de groupe) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Photos et vidéos | **Photos** (annonces, bonnes adresses, vitrines) | Oui | Non | Facultative | Fonctionnalités de l'appli |
 | Fichiers audio | **Enregistrements vocaux ou sonores** (messages vocaux du talkie, 24 h) | Oui | Non | Facultative | Fonctionnalités de l'appli |
@@ -46,5 +49,6 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 ## 3. Points d'attention
 
 - Si AdMob n'est pas encore activé en production (`TESTING=true`), garder quand même la ligne « ID d'appareil – partagée » : le SDK AdMob est dans l'appli.
+- Cohérence vérifiée le 12/11 avec `declaration-sms.md` et la politique du 12 novembre 2026 : santé = facultative, collectée et partagée seulement avec accord exprès ; aucun SMS automatique hors alerte de chute (SMS de test déclenché par le motard, marqué TEST).
 - La déclaration doit rester cohérente avec la **déclaration d'autorisation SMS** et la **déclaration santé** (formulaire séparé « Applis de santé » : répondre que l'appli n'est pas une appli médicale mais contient une fiche d'urgence facultative).
 - Voir aussi `play-store/declaration-micro-talkie.md` (micro en arrière-plan, vidéo à fournir).

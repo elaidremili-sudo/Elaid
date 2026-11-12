@@ -10,15 +10,20 @@
   var clean = function (v) { return String(v == null ? '' : v).trim().slice(0, 200); };
   var empty = function (i) { return !i || !(i.name || i.blood || i.contact || i.phone || i.phone2 || i.allergy); };
 
+  // test-105 : groupe sanguin et allergies (données de santé) envoyés au serveur seulement avec l'accord exprès
+  // du motard (case de la fiche, date gardée sur le téléphone). Sans accord : null (efface aussi l'ancienne valeur du serveur).
+  var healthOk = function () { try { return !!(window.mrHealthOk && window.mrHealthOk()); } catch (e) { return false; } };
   function toRow(i, uid) {
-    var ph = [clean(i.phone), clean(i.phone2)].filter(Boolean).join(' / ');
-    return { user_id: uid, full_name: clean(i.name), blood_type: clean(i.blood), contact_name: clean(i.contact),
-             contact_phone: ph, allergies: clean(i.allergy), updated_at: new Date().toISOString() };
+    var ph = [clean(i.phone), clean(i.phone2)].filter(Boolean).join(' / '), ok = healthOk();
+    return { user_id: uid, full_name: clean(i.name), blood_type: ok ? clean(i.blood) : null, contact_name: clean(i.contact),
+             contact_phone: ph, allergies: ok ? clean(i.allergy) : null, updated_at: new Date().toISOString() };
   }
-  function fromRow(r) {
-    var p = String(r.contact_phone || '').split('/').map(function (x) { return x.trim(); });
-    return { name: r.full_name || '', blood: r.blood_type || '', contact: r.contact_name || '',
-             phone: p[0] || '', phone2: p[1] || '', allergy: r.allergies || '' };
+  // keep = fiche locale du même compte : sans accord, le serveur n'a pas ces champs → on garde ceux du téléphone
+  function fromRow(r, keep) {
+    var p = String(r.contact_phone || '').split('/').map(function (x) { return x.trim(); }), k = keep || {};
+    // un autre téléphone sans accord envoie null : on garde alors la valeur de ce téléphone au lieu de l'effacer
+    return { name: r.full_name || '', blood: r.blood_type == null ? (k.blood || '') : r.blood_type, contact: r.contact_name || '',
+             phone: p[0] || '', phone2: p[1] || '', allergy: r.allergies == null ? (k.allergy || '') : r.allergies };
   }
 
   // test-98 : fiche vidée par le membre → on l'efface aussi du compte (avant, l'ancienne revenait au lancement suivant)
@@ -59,7 +64,7 @@
     // fiche vidée sur ce téléphone (même compte) plus récemment que celle du serveur : on efface au lieu de la reprendre
     if (row && empty(local) && S.iceCleared && S.iceSync === u.id && lAt >= new Date(row.updated_at).getTime()) { await wipe(); return; }
     if (row && (empty(local) || new Date(row.updated_at).getTime() > lAt)) {
-      S.ice = fromRow(row); S.iceAt = new Date(row.updated_at).getTime(); S.iceSync = u.id;
+      S.ice = fromRow(row, S.iceSync === u.id ? local : null); S.iceAt = new Date(row.updated_at).getTime(); S.iceSync = u.id;
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
       try { render(); } catch (e) {}
       try { window.smsSync && window.smsSync(); } catch (e) {}

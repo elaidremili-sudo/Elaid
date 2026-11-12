@@ -17,6 +17,14 @@
   #mr_note .a{display:flex;justify-content:flex-end;margin-top:14px}
   #mr_note button{background:var(--acc,#f2b705);color:var(--on-acc,#111);border:0;border-radius:10px;padding:10px 22px;font:600 16px Barlow,Cairo,sans-serif}
   @keyframes mrnIn{from{opacity:0}to{opacity:1}}
+  #mr_ask{position:fixed;inset:0;z-index:2147483100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,12,.6);animation:mrnIn .18s ease-out}
+  #mr_ask .b{max-width:440px;width:100%;max-height:90vh;overflow:auto;background:var(--card,#1a1d22);color:var(--ink,#f1f1f1);border:1px solid var(--line,#333);border-top:3px solid var(--acc,#f2b705);border-radius:16px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.45);font:16px/1.45 Barlow,Cairo,system-ui,sans-serif}
+  #mr_ask h3{margin:0 0 8px;font:700 21px 'Barlow Condensed',Cairo,sans-serif}
+  #mr_ask .t{white-space:pre-wrap;word-break:break-word}
+  #mr_ask .a{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:14px}
+  #mr_ask button{border-radius:10px;padding:11px 18px;font:600 16px Barlow,Cairo,sans-serif;border:1px solid var(--line,#444)}
+  #mr_ask .y{background:var(--acc,#f2b705);color:var(--on-acc,#111);border-color:transparent}
+  #mr_ask .n{background:transparent;color:var(--ink,#f1f1f1)}
   #mr_sos{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(120,0,0,.82);animation:mrSosP 1s ease-in-out infinite alternate}
   @keyframes mrSosP{from{background:rgba(120,0,0,.82)}to{background:rgba(190,10,10,.9)}}
   #mr_sos .b{max-width:440px;width:100%;background:#140708;color:#fff;border:2px solid #ff3b30;border-radius:18px;padding:20px;box-shadow:0 0 60px rgba(255,59,48,.6);font:16px/1.45 Barlow,Cairo,system-ui,sans-serif}
@@ -44,6 +52,25 @@
   }
   window.alert = function (m) { queue.push(m == null ? '' : String(m)); showNext(); };
 
+  /* test-105 : vrai choix au style MotoRoute (titre + 2 boutons nommés), à la place de confirm() qui ressemblait
+     à une fenêtre système. o = { title, text, yes, no } ; rend une promesse true (yes) / false (no, fond, Échap). */
+  window.mrAsk = function (o) {
+    o = o || {};
+    return new Promise(res => {
+      const d = document.createElement('div');
+      d.id = 'mr_ask'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'mr_ask_h');
+      d.innerHTML = `<div class="b"><h3 id="mr_ask_h">${ESC(o.title || '')}</h3><div class="t">${ESC(o.text || '')}</div><div class="a"><button type="button" class="n" data-v="0">${ESC(o.no || W('Pas maintenant', 'ليس الآن', 'Not now'))}</button><button type="button" class="y" data-v="1">${ESC(o.yes || W('J’accepte', 'أوافق', 'I agree'))}</button></div></div>`;
+      const end = v => { d.remove(); res(v); };
+      d.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) end(b.dataset.v === '1'); else if (e.target === d) end(false); });
+      d.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); end(false); } });
+      const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
+      // bouton Retour d'Android : la fenêtre parente se ferme → on répond « non » au lieu de laisser la question en suspens
+      if (host !== document.body) host.addEventListener('close', () => { if (d.isConnected) end(false); }, { once: true });
+      host.appendChild(d);
+      setTimeout(() => { try { d.querySelector('.y').focus(); } catch (e) {} }, 30);
+    });
+  };
+
   /* ---------- Envoi ---------- */
   window.mrSosGrpLabel = () => W('Alerter mes groupes', 'تنبيه مجموعاتي', 'Alert my groups');
   window.mrSosStatus = function (r) {
@@ -69,6 +96,13 @@
     const m = (u && u.user_metadata) || {};
     return String(m.first_name || (typeof S !== 'undefined' && S.me && S.me.name) || 'Motard').split(' ')[0].slice(0, 40);
   }
+  /* test-105 : le titre de l'alerte (« X a peut-être chuté ») et son texte utilisent le même nom :
+     celui de la fiche d'urgence s'il existe, sinon le prénom du compte. */
+  function alertName(u) {
+    const n = String((typeof S !== 'undefined' && S.ice && S.ice.name) || '').trim().replace(/\s+/g, ' ');
+    return n ? n.slice(0, 40) : firstName(u);
+  }
+  window.mrSosName = () => alertName(curUser());
 
   /* ---------- test-67 : signalement à Sentry (jamais bloquant, sans position ni texte du message) ---------- */
   function report(what, err, extra) {
@@ -195,7 +229,7 @@
     if (!gs.length) return { done: true, res: { ok: false, why: 'nogroup' } };
     // heure réelle de l'alerte (pas celle du renvoi) : les membres voient « il y a 40 min » et non « à l'instant »
     const at = new Date(x && x.at || Date.now()).toISOString();
-    const mk = cid => gs.map(g => Object.assign({ group_id: g, first_name: firstName(u), msg: String(p.msg || '').slice(0, 500), lat: p.lat, lng: p.lng, kind: p.kind === 'sos' ? 'sos' : 'chute', created_at: at }, cid ? { client_id: p.aid } : {}));
+    const mk = cid => gs.map(g => Object.assign({ group_id: g, first_name: alertName(u), msg: String(p.msg || '').slice(0, 500), lat: p.lat, lng: p.lng, kind: p.kind === 'sos' ? 'sos' : 'chute', created_at: at }, cid ? { client_id: p.aid } : {}));
     let r = await c.from('sos_alerts').insert(mk(!noCid));
     if (r.error && /client_id/i.test(r.error.message || '')) { noCid = true; r = await c.from('sos_alerts').insert(mk(false)); }
     if (!r.error) return { done: true, res: { ok: true, n: gs.length } };
