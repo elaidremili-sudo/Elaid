@@ -2,7 +2,17 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : nuit du 07 au 08/11 — test-104 (audit des 6 relecteurs corrigé).**
+**➡️ DERNIER POINT : 12/11 soir — test-105 publiée (consentements, Google Play, loi 18-07).**
+- test-105 (commit 4440f1c, APK + AAB dans Releases) : fenêtre SMS « J'accepte / Pas maintenant » (Retour = non) ;
+  case d'accord santé non cochée par défaut (sans elle : groupe sanguin absent du serveur, SMS, groupe, WhatsApp, QR) ;
+  case « J'ai prévenu ce contact » ; « Fausse alerte » = plus aucun SMS automatique, lien sms: « je vais bien » pré-rempli ;
+  synchro de fiche qui n'efface plus le local ; docs (confidentialité, conditions, suppression), déclaration SMS et sécurité des données à jour.
+- Vidéo de démonstration v4 (hors dépôt) : noms, contact, coordonnées et carte floutés, traduction anglaise de l'explication.
+- RESTE : installer test-105 + « Simuler une chute » ; refilmer l'étape 1 avec test-105 (appli en anglais : ouverture → Not now → I agree) ;
+  YouTube non répertoriée + Play Console ; décider du SMS de test ; sos-push : titre de la sirène = prénom du profil (à aligner) ;
+  pas de marquage « fausse alerte » côté groupe (sos_alerts sans UPDATE) ; ANPDP : déclaration + autorisation de transfert (art. 44).
+
+**Point précédent : nuit du 07 au 08/11 — test-104 (audit des 6 relecteurs corrigé).**
 - Bilan complet : https://claude.ai/artifact/6fp5xrMXHyunemKSmA2R2m (doc « MotoRoute — Bilan des 6 relecteurs »).
 - test-104 (commit 25b6dfa) : compte à rebours SOS sur l'heure réelle + écran allumé + Retour bloqué ; plus de double déclenchement ;
   codes d'erreur SMS traduits (111 = refusé par le réseau : crédit insuffisant ou réseau instable) + 2 nouveaux essais à 20 s (le dernier sur la SIM par défaut) ;
