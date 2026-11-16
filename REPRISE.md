@@ -2,7 +2,13 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 12/11 soir — test-105 publiée (consentements, Google Play, loi 18-07).**
+**➡️ DERNIER POINT : 16/11 soir — test-107 + e-mails par Gmail (plus de spam).**
+- E-mails d'authentification Supabase envoyés par **Gmail** (smtp.gmail.com, port 587, compte `elaidremilipro@gmail.com`, nom « MotoRoute », mot de passe d'application « Supabase » rangé dans « Secret »). Cause du spam : expéditeur @gmail.com relayé par Brevo (non authentifiable). Test du 16/11 21 h 22 : reçu en boîte de réception Gmail, SPF/DKIM/DMARC = pass. Hotmail pas encore testé. Limite Gmail : 500 e-mails / 24 h.
+- test-107 : message « cette adresse a déjà un compte » (Supabase n'envoie rien pour une adresse déjà inscrite) + rappel Spam/Promotions.
+- Piste suivante (essai fait, non publié, branche locale `essai-google`) : bouton « Continuer avec Google » (@capgo/capacitor-social-login + signInWithIdToken) ; demande ID clients Web + Android (SHA-1 clé APK + clé App Signing Play) et Google activé dans Supabase.
+- À faire : modèles d'e-mails en français/arabe (Supabase → Emails → Templates) ; compte de l'ami (sofianejoker03) à confirmer par « Renvoyer l'e-mail ».
+
+**Point précédent : 12/11 soir — test-105 publiée (consentements, Google Play, loi 18-07).**
 - test-105 (commit 4440f1c, APK + AAB dans Releases) : fenêtre SMS « J'accepte / Pas maintenant » (Retour = non) ;
   case d'accord santé non cochée par défaut (sans elle : groupe sanguin absent du serveur, SMS, groupe, WhatsApp, QR) ;
   case « J'ai prévenu ce contact » ; « Fausse alerte » = plus aucun SMS automatique, lien sms: « je vais bien » pré-rempli ;
@@ -248,7 +254,7 @@ Testés tous les deux sur une base Postgres d'essai : entrée directe refusée (
 
 Chaque envoi de code sur GitHub fabrique automatiquement une APK **signée** (secrets `MR_KEYSTORE` + `MR_KEY_PASS`) et un `.aab`, publiés dans Releases sous `test-N`. Les versions s'installent **par-dessus** l'ancienne, sans désinstaller.
 
-## E-mails via Brevo (fait le 18/10, 22 h)
+## E-mails via Brevo (18/10) — REMPLACÉ le 16/11 par Gmail (voir le haut du fichier) ; valeurs Brevo gardées pour revenir en arrière
 
 - Réglages SMTP dans Supabase : hôte `smtp-relay.brevo.com`, port `587`, identifiant `bec204001@smtp-brevo.com`, mot de passe = clé SMTP Brevo « Supabase MotoRoute » (rangée dans le dossier « Secret », sans date d'expiration).
 - **Testé** : « Mot de passe oublié » → e-mail reçu → page « Nouveau mot de passe » → reconnexion OK.
