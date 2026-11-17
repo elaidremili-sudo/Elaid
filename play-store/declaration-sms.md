@@ -154,6 +154,33 @@ d'écran Android) et, pour la réception, sur le second téléphone. Mode essai 
 
 Sous-titres anglais simples (ex. « Crash detected – 2-minute countdown – the rider can cancel »).
 
+### État au 17/11 et plan de tournage (étapes 2 à 9)
+
+Montage v8 relu par 2 agents : étape 1 (anglais, test-105, 0 à 38,9 s) **bonne, à garder**. La suite (ancienne version, en
+français) n'est **pas envoyable** : SMS avec « sang A+ » alors que l'écran dit « non envoyé (accord non donné) », et les étapes 4
+(activation), 8 (fausse alerte) et 9 (désactivation) absentes. Décision d'Elaid (17/11) : **refilmer les étapes 2 à 9 en une prise,
+appli en anglais, avec test-107**.
+
+Préparation : profil au nom neutre (« Rider »), contact nommé « Test contact » (seul le numéro sera flouté) ; ancienne conversation
+SMS supprimée sur le 2ᵉ téléphone ; mode essai (7 touchers 🔑) ; détection désactivée et les deux cases décochées au départ ;
+de préférence ailleurs qu'au domicile ou au travail (position visible) ; 2 à 3 s sur chaque écran.
+
+Téléphone A (une prise) :
+1. My emergencies : numéro ; cocher « I told this contact they may receive my MotoRoute alerts » ; groupe sanguin ; cocher
+   « I agree that my blood type is sent… » (la ligne 🔒 « not sent » disparaît).
+2. 📩 Test the SMS → confirmer (SMS TEST reçu sur B).
+3. Route → Crash detection → Turn on automatic detection.
+4. Simulate a crash → 5 s → I'm fine — cancel (rien ne part).
+5. Simulate a crash → laisser les 2 minutes → « SOS triggered », « SMS sent to… ».
+6. ❌ False alarm – cancel sending → « Tell my contact I'm OK » → SMS prérempli → le motard appuie sur Envoyer.
+7. Route → désactiver la détection.
+
+Téléphone B (filmé pendant 5–6) : SOS reçu (avec groupe sanguin, accord donné) → lien ouvert dans Google Maps ; puis SMS « je vais bien ».
+
+Au montage (corrections des relecteurs) : changer les titres sans fondu ; confirmation du SMS de test et écran final ≥ 3–6 s ;
+remplacer « Countdown shortened » par « Real 2-minute countdown, waiting time cut in editing » ; flouter le numéro, l'avatar Google
+de Maps et toute étiquette « Travail/Domicile ». Scripts : `play-store/montage-video/`.
+
 ---
 
 ## 4. Fiche Play : mettre la sécurité en avant (sinon risque « ne correspond pas à la fonction principale »)
