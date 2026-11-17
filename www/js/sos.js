@@ -333,7 +333,11 @@
     return m < 1 ? W('à l’instant', 'الآن', 'just now') : m < 60 ? W(`il y a ${m} min`, `منذ ${m} د`, `${m} min ago`) : W(`il y a ${Math.round(m / 60)} h`, `منذ ${Math.round(m / 60)} س`, `${Math.round(m / 60)} h ago`);
   }
   function showSos() {
-    if (document.getElementById('mr_sos') || !sosQ.length) { if (!sosQ.length) siren(false); return; }
+    const cur = document.getElementById('mr_sos');
+    // test-108 : sirène coupée seulement si plus aucune alerte n'est affichée (une 2e alerte arrivée juste après « J'ai vu » la garde)
+    if (cur || !sosQ.length) { if (!sosQ.length && !cur) siren(false); return; }
+    // test-108 : le compte à rebours de MA chute passe avant l'alerte d'un autre membre (sinon elle cacherait « Je vais bien »)
+    if (document.querySelector('dialog[open][data-mrfall]')) { setTimeout(showSos, 3000); return; }
     const a = sosQ.shift(), d = document.createElement('dialog');
     const fall = a.kind !== 'sos', who = ESC(a.first_name || W('Un membre', 'عضو', 'A member'));
     const map = a.lat != null && a.lng != null ? `https://maps.google.com/?q=${a.lat},${a.lng}` : '';
