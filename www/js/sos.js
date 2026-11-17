@@ -11,13 +11,16 @@
   /* ---------- Fenêtres d'information MotoRoute (remplace alert()) ---------- */
   const css = document.createElement('style');
   css.textContent = `
-  #mr_note{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,12,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:mrnIn .18s ease-out}
+  dialog#mr_note,dialog#mr_ask,dialog#mr_sos{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;border-radius:0;box-shadow:none;color:inherit;overflow:auto;box-sizing:border-box}
+  dialog#mr_note::backdrop,dialog#mr_ask::backdrop,dialog#mr_sos::backdrop{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+  dialog#mr_note[open],dialog#mr_ask[open],dialog#mr_sos[open]{display:flex}
+  #mr_note{position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,12,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:mrnIn .18s ease-out}
   #mr_note .b{max-width:420px;width:100%;background:var(--card,#1a1d22);color:var(--ink,#f1f1f1);border:1px solid var(--line,#333);border-top:3px solid var(--acc,#f2b705);border-radius:16px;padding:18px 18px 14px;box-shadow:0 18px 50px rgba(0,0,0,.45);font:16px/1.45 Barlow,Cairo,system-ui,sans-serif}
   #mr_note .t{white-space:pre-wrap;word-break:break-word}
   #mr_note .a{display:flex;justify-content:flex-end;margin-top:14px}
   #mr_note button{background:var(--acc,#f2b705);color:var(--on-acc,#111);border:0;border-radius:10px;padding:10px 22px;font:600 16px Barlow,Cairo,sans-serif}
   @keyframes mrnIn{from{opacity:0}to{opacity:1}}
-  #mr_ask{position:fixed;inset:0;z-index:2147483100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,12,.6);animation:mrnIn .18s ease-out}
+  #mr_ask{position:fixed;inset:0;z-index:2147483100;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,12,.6);-webkit-backdrop-filter:none;backdrop-filter:none;animation:mrnIn .18s ease-out}
   #mr_ask .b{max-width:440px;width:100%;max-height:90vh;overflow:auto;background:var(--card,#1a1d22);color:var(--ink,#f1f1f1);border:1px solid var(--line,#333);border-top:3px solid var(--acc,#f2b705);border-radius:16px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.45);font:16px/1.45 Barlow,Cairo,system-ui,sans-serif}
   #mr_ask h3{margin:0 0 8px;font:700 21px 'Barlow Condensed',Cairo,sans-serif}
   #mr_ask .t{white-space:pre-wrap;word-break:break-word}
@@ -25,7 +28,7 @@
   #mr_ask button{border-radius:10px;padding:11px 18px;font:600 16px Barlow,Cairo,sans-serif;border:1px solid var(--line,#444)}
   #mr_ask .y{background:var(--acc,#f2b705);color:var(--on-acc,#111);border-color:transparent}
   #mr_ask .n{background:transparent;color:var(--ink,#f1f1f1)}
-  #mr_sos{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(120,0,0,.82);animation:mrSosP 1s ease-in-out infinite alternate}
+  #mr_sos{position:fixed;inset:0;z-index:2147483600;align-items:center;justify-content:center;padding:18px;background:rgba(120,0,0,.82);-webkit-backdrop-filter:none;backdrop-filter:none;animation:mrSosP 1s ease-in-out infinite alternate}
   @keyframes mrSosP{from{background:rgba(120,0,0,.82)}to{background:rgba(190,10,10,.9)}}
   #mr_sos .b{max-width:440px;width:100%;background:#140708;color:#fff;border:2px solid #ff3b30;border-radius:18px;padding:20px;box-shadow:0 0 60px rgba(255,59,48,.6);font:16px/1.45 Barlow,Cairo,system-ui,sans-serif}
   #mr_sos h2{margin:0 0 6px;font:700 26px 'Barlow Condensed',Cairo,sans-serif;color:#ff6b61}
@@ -36,18 +39,32 @@
   #mr_sos a{background:#ff3b30;color:#fff}#mr_sos button{background:#2a1416;color:#fff;border:1px solid #6b2a2a}`;
   document.head.appendChild(css);
 
+  /* test-108 : chaque fenêtre MotoRoute (#mr_note, #mr_ask, #mr_sos) est sa propre <dialog> ouverte avec showModal(),
+     donc dans la « couche supérieure », calée sur l'écran. Avant, elle était posée DANS la fenêtre ouverte (ex. Mes urgences) :
+     celle-ci a un flou d'arrière-plan (backdrop-filter), qui fait que « position:fixed » se cale sur elle et pas sur l'écran.
+     Quand Mes urgences était défilée vers le bas, la fenêtre apparaissait coupée en haut (vu dans la vidéo Google, 17/11),
+     et un nouveau dessin de Mes urgences (innerHTML) pouvait l'effacer. */
+  const OWN = ['mr_note', 'mr_ask', 'mr_sos'];
+  const parentDlg = () => [...document.querySelectorAll('dialog[open]')].filter(x => !OWN.includes(x.id)).pop() || null;
+  function mount(d) {
+    document.body.appendChild(d);
+    try { if (typeof d.showModal === 'function') { d.showModal(); return; } } catch (e) {}
+    d.setAttribute('open', ''); // repli pour un très vieux navigateur : reste plein écran par le CSS
+  }
+  function unmount(d) { try { if (d.open && typeof d.close === 'function') d.close(); } catch (e) {} d.remove(); }
+
   const queue = [];
   function showNext() {
     if (document.getElementById('mr_note') || !queue.length) return;
-    const msg = queue.shift(), d = document.createElement('div');
+    const msg = queue.shift(), d = document.createElement('dialog');
     d.id = 'mr_note'; d.setAttribute('role', 'alertdialog');
     d.innerHTML = `<div class="b"><div class="t">${ESC(msg)}</div><div class="a"><button type="button">OK</button></div></div>`;
-    const close = () => { d.remove(); setTimeout(showNext, 60); };
+    let gone = false;
+    const close = () => { if (gone) return; gone = true; unmount(d); setTimeout(showNext, 60); };
     d.querySelector('button').onclick = close;
     d.addEventListener('click', e => { if (e.target === d) close(); });
-    // la fenêtre doit passer au-dessus d'une <dialog> ouverte (couche supérieure du navigateur)
-    const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
-    host.appendChild(d);
+    d.addEventListener('close', close); // bouton Retour d'Android ou Échap
+    mount(d);
     setTimeout(() => { try { d.querySelector('button').focus(); } catch (e) {} }, 30);
   }
   window.alert = function (m) { queue.push(m == null ? '' : String(m)); showNext(); };
@@ -57,16 +74,19 @@
   window.mrAsk = function (o) {
     o = o || {};
     return new Promise(res => {
-      const d = document.createElement('div');
+      const d = document.createElement('dialog');
       d.id = 'mr_ask'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'mr_ask_h');
       d.innerHTML = `<div class="b"><h3 id="mr_ask_h">${ESC(o.title || '')}</h3><div class="t">${ESC(o.text || '')}</div><div class="a"><button type="button" class="n" data-v="0">${ESC(o.no || W('Pas maintenant', 'ليس الآن', 'Not now'))}</button><button type="button" class="y" data-v="1">${ESC(o.yes || W('J’accepte', 'أوافق', 'I agree'))}</button></div></div>`;
-      const end = v => { d.remove(); res(v); };
+      let done = false;
+      const end = v => { if (done) return; done = true; unmount(d); res(v); };
       d.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) end(b.dataset.v === '1'); else if (e.target === d) end(false); });
       d.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); end(false); } });
-      const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
-      // bouton Retour d'Android : la fenêtre parente se ferme → on répond « non » au lieu de laisser la question en suspens
-      if (host !== document.body) host.addEventListener('close', () => { if (d.isConnected) end(false); }, { once: true });
-      host.appendChild(d);
+      // bouton Retour d'Android : il ferme la fenêtre du dessus, c'est-à-dire cette question → réponse « non »
+      d.addEventListener('close', () => end(false));
+      const host = parentDlg();
+      // si la fenêtre d'en dessous se ferme (ex. écran de connexion qui s'ouvre), on répond « non » aussi
+      if (host) host.addEventListener('close', () => end(false), { once: true });
+      mount(d);
       setTimeout(() => { try { d.querySelector('.y').focus(); } catch (e) {} }, 30);
     });
   };
@@ -314,7 +334,7 @@
   }
   function showSos() {
     if (document.getElementById('mr_sos') || !sosQ.length) { if (!sosQ.length) siren(false); return; }
-    const a = sosQ.shift(), d = document.createElement('div');
+    const a = sosQ.shift(), d = document.createElement('dialog');
     const fall = a.kind !== 'sos', who = ESC(a.first_name || W('Un membre', 'عضو', 'A member'));
     const map = a.lat != null && a.lng != null ? `https://maps.google.com/?q=${a.lat},${a.lng}` : '';
     d.id = 'mr_sos'; d.dataset.k = keyOf(a); d.setAttribute('role', 'alertdialog');
@@ -322,10 +342,14 @@
       <div class="k">${ago(a.created_at)}</div><div class="m">${ESC(a.msg || '')}</div>
       <div class="r">${map ? `<a href="${map}" target="_blank" rel="noopener">📍 ${W('Voir sa position', 'عرض موقعه', 'See location')}</a>` : ''}
       <button type="button" data-ok="1">✔ ${W('J’ai vu', 'رأيت', 'Seen')}</button></div></div>`;
-    const done = () => { markSeen(keyOf(a)); try { window.mrSpeakStop && window.mrSpeakStop(); } catch (e) {} d.remove(); setTimeout(showSos, 80); };
+    let fin = false;
+    const done = () => { if (fin) return; fin = true; markSeen(keyOf(a)); try { window.mrSpeakStop && window.mrSpeakStop(); } catch (e) {} unmount(d); setTimeout(showSos, 80); };
     d.querySelector('[data-ok]').onclick = done;
-    const host = [...document.querySelectorAll('dialog[open]')].pop() || document.body;
-    host.appendChild(d); if (!a.voice) siren(true);
+    // Échap : l'alerte reste (il faut toucher « J'ai vu »). Si un autre code la ferme quand même (ex. écran de connexion
+    // qui ferme toutes les fenêtres), on la remet en tête de file et on la réaffiche.
+    d.addEventListener('cancel', e => e.preventDefault());
+    d.addEventListener('close', () => { if (fin) return; fin = true; d.remove(); sosQ.unshift(a); setTimeout(showSos, 1500); });
+    mount(d); if (!a.voice) siren(true);
   }
   function receive(a) {
     const u = window.mrUser && window.mrUser();
