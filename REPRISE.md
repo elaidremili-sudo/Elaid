@@ -7,7 +7,7 @@
 - Verdict des relecteurs : **pas prête**. La suite vient de l'ancienne version : SMS avec groupe sanguin alors que l'écran dit « non envoyé » ; activation, fausse alerte et désactivation absentes. Risque : refus de la déclaration SMS.
 - **Décision d'Elaid : refilmer les étapes 2 à 9 en une prise, appli en anglais, test-107.** Plan exact : `play-store/declaration-sms.md`, fin de la section 3. Garder l'étape 1 = v8 de 0 à 38,9 s. Scripts du montage : `play-store/montage-video/`.
 - À regarder : la 2ᵉ fenêtre d'explication SMS s'affiche coupée en haut de l'écran (vu dans la vidéo, ~31 s) — bug d'affichage possible.
-- Toujours en attente du 16/11 : modèles d'e-mails FR/AR qui ne s'appliquent pas (re-tester, sinon message au support Supabase) ; ami sofianejoker03 à confirmer par « Renvoyer l'e-mail ».
+- Toujours en attente du 16/11 : modèles d'e-mails FR/AR qui ne s'appliquent pas (re-tester, sinon message au support Supabase). Compte de l'ami sofianejoker03 : confirmé (17/11 soir, dit par Elaid).
 
 **Point précédent : 16/11 soir — test-107 + e-mails par Gmail (plus de spam).**
 - E-mails d'authentification Supabase envoyés par **Gmail** (smtp.gmail.com, port 587, compte `elaidremilipro@gmail.com`, nom « MotoRoute », mot de passe d'application « Supabase » rangé dans « Secret »). Cause du spam : expéditeur @gmail.com relayé par Brevo (non authentifiable). Test du 16/11 21 h 22 : reçu en boîte de réception Gmail, SPF/DKIM/DMARC = pass. Hotmail pas encore testé. Limite Gmail : 500 e-mails / 24 h.
