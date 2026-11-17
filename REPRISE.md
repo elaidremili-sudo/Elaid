@@ -2,7 +2,12 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 17/11 matin — vidéo Google : on refilme les étapes 2 à 9.**
+**➡️ DERNIER POINT : 17/11, 20 h 25 — test-108 publiée + e-mails en 3 langues (sauvegarde demandée par Elaid).**
+- **Prochaine étape d'Elaid** : installer test-108, vérifier la fenêtre SMS (Mes urgences défilée → Autoriser → Pas maintenant → Autoriser : fenêtre entière), remettre SMS sur « Ne pas autoriser » dans les réglages Android, puis **filmer les étapes 2 à 9 en anglais avec test-108** (plan : `play-store/declaration-sms.md`, fin de la section 3) et envoyer la vidéo → Claude fait le montage avec l'étape 1 (v8, 0 à 38,9 s).
+- Puis : YouTube non répertoriée → Play Console (déclaration SMS, micro/musique, sécurité des données, 16+, 12 testeurs) → SHA-1 de la clé Google dans Google Cloud.
+- Détails de la journée ci-dessous.
+
+**Point du 17/11 matin — vidéo Google : on refilme les étapes 2 à 9.**
 - Montage `motoroute-demo-sms-v8.mp4` (96,9 s, hors dépôt, envoyé à Elaid) : étape 1 refilmée en anglais avec test-105 (ouverture → Not now → I agree → Autoriser), fuites floutées (« Al… », avatars, étiquette « Travail »), relu par 2 agents.
 - Verdict des relecteurs : **pas prête**. La suite vient de l'ancienne version : SMS avec groupe sanguin alors que l'écran dit « non envoyé » ; activation, fausse alerte et désactivation absentes. Risque : refus de la déclaration SMS.
 - **Décision d'Elaid : refilmer les étapes 2 à 9 en une prise, appli en anglais, test-107.** Plan exact : `play-store/declaration-sms.md`, fin de la section 3. Garder l'étape 1 = v8 de 0 à 38,9 s. Scripts du montage : `play-store/montage-video/`.
