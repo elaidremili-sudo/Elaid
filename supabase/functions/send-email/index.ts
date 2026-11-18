@@ -7,7 +7,8 @@
 // Secrets à créer par Elaid (Edge Functions → Secrets), jamais dans le dépôt :
 //   SEND_EMAIL_HOOK_SECRET : la clé « v1,whsec_… » générée dans Authentication → Hooks → Send Email
 //   GMAIL_APP_PASSWORD     : le mot de passe d'application Gmail « Supabase » (rangé dans « Secret »)
-// Optionnel : GMAIL_USER (par défaut elaidremilipro@gmail.com).
+// Optionnel : GMAIL_USER (par défaut elaidremilipro@gmail.com ; motoroute.club@gmail.com depuis le 18/11,
+// avec le mot de passe d'application de CE compte dans GMAIL_APP_PASSWORD).
 //
 // Gmail par le port 465 (SSL) : les fonctions Supabase n'ont pas le droit d'utiliser les ports 25 et 587.
 // Retirer le hook (Authentication → Hooks) suffit pour revenir à l'envoi normal par Supabase.
@@ -15,7 +16,9 @@ import { Webhook } from "npm:standardwebhooks@1.0.0";
 import nodemailer from "npm:nodemailer@6.9.16";
 
 const PROJECT_URL = "https://ixtqlxltwuktpdznbhnx.supabase.co";
-const GMAIL_USER = Deno.env.get("GMAIL_USER") || "elaidremilipro@gmail.com";
+// trim() : un espace ou un retour à la ligne collé avec l'adresse dans le tableau de bord ferait refuser
+// la connexion par Gmail (535 BadCredentials). Ajouté le 18/11 après deux refus au passage à motoroute.club.
+const GMAIL_USER = (Deno.env.get("GMAIL_USER") || "").trim() || "elaidremilipro@gmail.com";
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
@@ -128,10 +131,14 @@ Deno.serve(async (req) => {
       html: m.html,
       text: m.text,
     });
-    console.log("send-email : envoyé", type);
+    console.log("send-email : envoyé", type, "depuis", GMAIL_USER);
     return json({});
   } catch (e) {
-    console.error("send-email : échec", String((e as Error)?.message || e));
+    // L'adresse d'envoi entre guillemets (JSON) pour voir tout caractère caché ; jamais le mot de passe.
+    const pass = Deno.env.get("GMAIL_APP_PASSWORD") || "";
+    console.error("send-email : échec depuis", GMAIL_USER, "(réglage brut :", JSON.stringify(Deno.env.get("GMAIL_USER") ?? null) + ")",
+      "| mot de passe :", pass.replace(/\s+/g, "").length, "caractères",
+      "|", String((e as Error)?.message || e));
     return json({ error: { message: "envoi de l'e-mail impossible" } }, 500);
   }
 });
