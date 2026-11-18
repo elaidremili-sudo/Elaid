@@ -2,7 +2,18 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 17/11, 20 h 25 — test-108 publiée + e-mails en 3 langues (sauvegarde demandée par Elaid).**
+**➡️ DERNIER POINT : 18/11, 22 h 25 — expéditeur des e-mails passé à motoroute.club@gmail.com.**
+- Constat : l'e-mail « mot de passe oublié » d'Alilo (alliloulepatron@gmail.com) arrivait en spam depuis elaidremilipro.
+- Fait : validation en deux étapes activée sur motoroute.club, mot de passe d'application créé dessus (rangé dans « Secret ») ;
+  secrets Supabase : `GMAIL_USER` = motoroute.club@gmail.com, `GMAIL_APP_PASSWORD` remplacé. Premiers essais (22 h 10 à 22 h 16) refusés
+  par Gmail (535 BadCredentials : le 1er mot de passe ne correspondait pas à motoroute.club) ; réglé avec un 2ᵉ mot de passe à 22 h 23. send-email **v6** (commit e66f3df) : adresse nettoyée (trim) et journal
+  d'échec détaillé (adresse, réglage brut, longueur du mot de passe). Vérifié : 22 h 24 « envoyé recovery depuis motoroute.club@gmail.com ».
+- Reste : l'e-mail arrive encore en **spam** chez Alilo (adresse neuve, sans réputation) → « Non-spam » + contact ; alléger l'e-mail
+  (un seul lien) ; vraie solution = « Continuer avec Google ». Retour arrière : supprimer `GMAIL_USER` + remettre le mot de passe
+  d'elaidremilipro (dans « Secret »). Le SMTP de secours de Supabase (hook désactivé) est toujours sur elaidremilipro.
+- Prévu le 19/11 : tournage des étapes 2 à 9 piloté par Claude via le PC de la maison (Desktop Commander + scrcpy, débogage USB sur les 2 téléphones).
+
+**Point du 17/11, 20 h 25 — test-108 publiée + e-mails en 3 langues (sauvegarde demandée par Elaid).**
 - **Prochaine étape d'Elaid** : installer test-108, vérifier la fenêtre SMS (Mes urgences défilée → Autoriser → Pas maintenant → Autoriser : fenêtre entière), remettre SMS sur « Ne pas autoriser » dans les réglages Android, puis **filmer les étapes 2 à 9 en anglais avec test-108** (plan : `play-store/declaration-sms.md`, fin de la section 3) et envoyer la vidéo → Claude fait le montage avec l'étape 1 (v8, 0 à 38,9 s).
 - Puis : YouTube non répertoriée → Play Console (déclaration SMS, micro/musique, sécurité des données, 16+, 12 testeurs) → SHA-1 de la clé Google dans Google Cloud.
 - Détails de la journée ci-dessous.
