@@ -406,7 +406,7 @@
    "label": "RIDER'S PHONE · ×8",
    "title": "Emergency card and consent",
    "sub": [
-    "The rider types a name and blood type (shown 8× faster)."
+    "The rider types a name and blood type (shown 8× faster). Name and blood type are test data, not a real person's."
    ],
    "blur": [
     [
@@ -521,7 +521,7 @@
      116.1,
      99999,
      [
-      "Card saved: Rider · blood type O+ · Test contact (number blurred)."
+      "Card saved: Rider · blood type O+ (test data) · Test contact (number blurred)."
      ]
     ]
    ],
