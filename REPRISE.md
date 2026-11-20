@@ -2,7 +2,14 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 18/11, 22 h 25 — expéditeur des e-mails passé à motoroute.club@gmail.com.**
+**➡️ DERNIER POINT : 20/11, 21 h — test-109 publiée + vidéo Google v11 prête à fabriquer (PC de la maison hors ligne).**
+- Vidéo v10 (265 s, `C:\Users\Hp\Documents\MotoRoute-video-Google-19-11\` et OneDrive\MotoRoute) relue par 3 agents (juridique, avocat du diable, règles Google) : rien de bloquant, corrections faites en v11.
+- **test-109** (commit 3158cc3, APK + AAB dans Releases, relue : « on peut publier ») : aide « Mode essai : tester toute l'alerte » (FR/AR/EN, le mode essai n'est plus une fonction cachée non documentée) ; consigne « Allow restricted settings » cachée quand l'appli vient de Google Play (méthode native `installSource`) ; bouton « C'était une fausse alerte – arrêter l'alerte » ; texte Détection de chute (support, appli ouverte) ; EN « Ads » → « Classifieds ». « Simuler une chute » reste caché par défaut (décision du 07/11).
+- `play-store/declaration-sms.md` : textes 1 et 3 réécrits (plus de « hidden », exemple « Rider », bouton « I'm fine — cancel », SOS/WhatsApp/appel = applis du motard).
+- **Plan v11** : `play-store/montage-video/v11/` (plan-v11.json, montage.py, LISEZMOI-v11.txt avec les 4 vérifications à faire AVANT le rendu, youtube-description.txt avec chapitres calculés, textes 1 et 3 prêts à coller). Durée prévue 4 min 41 s ; étape 9 portée à 10,5 s (règle YouTube des 10 s par chapitre).
+- **Reste** : PC en ligne → copier plan-v11.json comme plan.json, vérifier les 4 points, rendre, audit OCR, planches, chapitres réels → Elaid : YouTube non répertoriée (« pas pour enfants ») puis Play Console. Questions ouvertes à Elaid : groupe sanguin O+ réel ou fictif ? origine/licence des photos de l'appli ? Rappel loi 18-07 : déclaration ANPDP + autorisation de transfert avant la sortie publique.
+
+**Point du 18/11, 22 h 25 — expéditeur des e-mails passé à motoroute.club@gmail.com.**
 - Constat : l'e-mail « mot de passe oublié » d'Alilo (alliloulepatron@gmail.com) arrivait en spam depuis elaidremilipro.
 - Fait : validation en deux étapes activée sur motoroute.club, mot de passe d'application créé dessus (rangé dans « Secret ») ;
   secrets Supabase : `GMAIL_USER` = motoroute.club@gmail.com, `GMAIL_APP_PASSWORD` remplacé. Premiers essais (22 h 10 à 22 h 16) refusés

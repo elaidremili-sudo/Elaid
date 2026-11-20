@@ -1,0 +1,23 @@
+VIDÉO GOOGLE v11 — prête à fabriquer (20/11/2026)
+Le plan v11 (plan.json) remplace le plan v10 dans C:\Users\Hp\motoroute-tournage\montage\ ; montage.py ne change pas.
+
+Ce qui change par rapport à v10 (suite aux 3 relectures) :
+- Plus le mot « hidden » : « Simulate a crash » est présenté comme le bouton du mode essai, expliqué dans l'aide de l'appli (test-109).
+- Carton 2 : l'étape 1 a été tournée à part (20:40) depuis un état neuf (autorisation SMS remise à zéro dans les réglages Android). 14 s au lieu de 11.
+- 0:23 : le bouton rouge SOS ouvre seulement l'appli SMS du motard, message prérempli.
+- Sous-titres recalés sur l'écran : « SMS permission not granted », « Emergency SMS allowed », résultat du SMS de test, « SOS triggered » (le 0:01 restait affiché).
+- Étape 1 : ligne « Allow restricted settings » (version hors Play) rognée par le bas (crop 1080×2120) ; le dernier plan est coupé en deux pour ne pas rogner « Test the SMS ».
+- Étape 5 : sous-titres plus longs à l'écran (gels de 1,5 s et 2,5 s).
+- Étape 7 : « At the end of the take (after 20:30), the contact taps the position… » (ordre réel des gestes).
+- Étape 8 : flou limité aux coordonnées GPS dans l'appli SMS ; cadres jaunes qui ne recouvrent plus l'heure (20:30) ; « Three SMS in total… » affiché 5,2 s au lieu de 2,2 s.
+- Étape 9 : 10,5 s (YouTube exige 10 s par chapitre, sinon aucun chapitre ne s'affiche).
+- Carton final : 18 s, bouton du mode essai, boutons SOS / WhatsApp / appel qui ouvrent les applis du motard.
+Durée prévue : 4 min 41 s.
+
+À vérifier AVANT le rendu (images des sources, grille.py) :
+1. A-etape1 à 64 s, 89 s, 116 s, 140 s et 171 s : la coupe à y = 2120 enlève toute la ligne « If “SMS” is greyed out… Allow restricted settings » sans toucher le bouton « Allow SMS » (bas vers y = 2110). Ajuster 2120 si besoin.
+2. A-etape1 vers 171,8 s et 173,0 s : la fenêtre Android est fermée à 173,0 et l'état « Emergency SMS allowed » est vert.
+3. A-etapes2-9 à 684 s et 701 s : le flou [345,1815,445,70] couvre bien les chiffres GPS (3e ligne du SMS d'alerte) et rien d'autre.
+4. A-etapes2-9 à 203,2 s : l'écran défile vers le résultat (sinon avancer le début).
+
+Après le rendu : audit OCR (audit.py, 5 images/s + 30 images/s sur les passages à risque), planches, puis relever les vrais temps de début d'étape dans le journal pour les chapitres de youtube-description.txt (les temps actuels sont calculés, à confirmer).

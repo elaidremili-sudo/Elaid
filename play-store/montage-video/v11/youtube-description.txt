@@ -1,0 +1,28 @@
+TITRE : MotoRoute – crash detection and emergency SMS (SEND_SMS permission demo)
+Visibilité : Non répertoriée ; public : « Non, elle n'est pas conçue pour les enfants ».
+(Les chapitres ci-dessous sont à recopier tels quels, une ligne chacun ; ils seront revérifiés sur la vidéo v11 rendue.)
+
+DESCRIPTION :
+Demonstration video for the Google Play SMS permissions declaration of MotoRoute, a safety app for motorcycle riders in Algeria (core functionality: physical safety / emergency alert).
+
+Real screen recordings of two phones: the rider's phone and the emergency contact's phone. Test build, test account. Waiting times are cut (no step removed), fast parts are marked ×4 ×8 ×10 ×16, no sound. Personal data (phone number, GPS position, map, names) is blurred. Step 1 was recorded separately (20:40) from a fresh state, after resetting the SMS permission in Android settings; steps 2–9 are one take filmed just before (20:16–20:32).
+
+SEND_SMS is used for two things only:
+1. The automatic crash alert: ONE SMS to each number the rider saved (2 max), after 2 minutes without an answer. Crash detection is off by default and only runs while MotoRoute is open on screen. In this video the alert is started by the test-mode button "Simulate a crash" (explained in the app's help, "Test mode: try the full alert"): same flow, and the SMS starts with "TEST not a real crash".
+2. The test SMS ("MotoRoute test SMS…") that the rider starts and confirms.
+MotoRoute never reads, receives or stores SMS. The SOS, WhatsApp and call buttons open the rider's own apps, pre-filled. After a false alarm nothing is sent automatically: the rider can send a pre-filled message from their own SMS app.
+MotoRoute does not replace emergency services.
+
+0:00 About this video
+0:21 Step 1 – SMS permission: refuse, then allow
+1:25 Step 2 – Emergency card and consent
+1:59 Step 3 – Test SMS started by the rider
+2:22 Step 4 – Crash detection: off by default
+2:35 Step 5 – Crash detected: the rider can cancel
+2:56 Step 6 – No answer for 2 minutes: one SMS
+3:19 Step 7 – The contact receives the position
+3:33 Step 8 – False alarm: no automatic SMS
+4:13 Step 9 – Turned off in one tap
+4:24 Summary
+
+Privacy policy: https://elaidremili-sudo.github.io/Elaid/confidentialite.html
