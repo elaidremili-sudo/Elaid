@@ -336,6 +336,21 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
         }}, 60000);
     }
 
+    // test-109 : d'où vient l'installation (Google Play = com.android.vending). La consigne « paramètres restreints »
+    // ne concerne que les APK installés à la main : l'appli ne l'affiche plus quand elle vient de Play.
+    @PluginMethod
+    public void installSource(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            String pkg = getContext().getPackageName();
+            String inst = Build.VERSION.SDK_INT >= 30
+                ? getContext().getPackageManager().getInstallSourceInfo(pkg).getInstallingPackageName()
+                : getContext().getPackageManager().getInstallerPackageName(pkg);
+            r.put("installer", inst == null ? "" : inst);
+        } catch (Exception e) { r.put("installer", ""); }
+        call.resolve(r);
+    }
+
     @PluginMethod
     public void openSettings(PluginCall call) {
         try {

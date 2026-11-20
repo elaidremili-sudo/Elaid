@@ -22,8 +22,8 @@ La déclaration est demandée au premier envoi d'une version qui contient `SEND_
 | À qui | **Uniquement** aux numéros que le motard a saisis lui-même dans sa fiche d'urgence (**2 au plus**). Le module Android refuse tout autre numéro ; la liste ne peut être changée que quand l'appli est à l'écran. |
 | Combien | **1 SMS** par numéro et par alerte (2 nouveaux essais seulement si le réseau le refuse) ; plafond codé dans le module Android : **6 SMS par 10 minutes**, en comptant chaque morceau d'un long SMS ; le SMS de test ne peut en utiliser que 2. |
 | Contenu | Texte fixe : nom, moto, groupe sanguin (**seulement si le motard a coché l'accord exprès pour ses données de santé**, case non cochée par défaut), coordonnées GPS à 5 décimales. Français/anglais : 1 SMS de 160 caractères max, ex. `MotoRoute SOS: CHUTE Elaid (Z H2) sang O+. GPS 36.12345,4.12345. Pas de reponse 2 min`. En arabe, le message peut partir en 2 ou 3 morceaux (caractères arabes). |
-| Envois déclenchés par le motard | **Un seul** utilise SEND_SMS : le **SMS de test** (« Tester le SMS » dans Mes urgences, ou « Simuler une chute » en mode essai), lancé et confirmé par le motard, **marqué TEST**, vers le premier numéro d'urgence enregistré (pour vérifier que l'alerte partira). Tous les autres SMS manuels (bouton SOS, écran de connexion, version sans SMS) ouvrent l'appli SMS du téléphone avec le message prérempli (lien `sms:`), le motard appuie lui-même sur Envoyer. |
-| Après une fausse alerte | **Aucun SMS automatique** (test-105). Le bouton « Fausse alerte – annuler l'envoi » propose seulement un SMS prérempli (lien `sms:`, sans SEND_SMS) que le motard envoie lui-même pour rassurer ses proches. Il n'existe aucun SMS automatique « je vais bien ». |
+| Envois déclenchés par le motard | **Un seul** utilise SEND_SMS : le **SMS de test** (« Tester le SMS » dans Mes urgences, ou « Simuler une chute » en mode essai), lancé et confirmé par le motard, **étiqueté test** (« MotoRoute test SMS… », ou « TEST pas un vrai accident… » en mode essai), vers le premier numéro d'urgence enregistré (pour vérifier que l'alerte partira). Tous les autres SMS manuels (bouton SOS, écran de connexion, version sans SMS) ouvrent l'appli SMS du téléphone avec le message prérempli (lien `sms:`), le motard appuie lui-même sur Envoyer. |
+| Après une fausse alerte | **Aucun SMS automatique** (test-105). Le bouton « C’était une fausse alerte – arrêter l’alerte » (EN « It was a false alarm – stop the alert » ; avant test-109 et dans la vidéo : « False alarm – cancel sending ») propose seulement un SMS prérempli (lien `sms:`, sans SEND_SMS) que le motard envoie lui-même pour rassurer ses proches. Il n'existe aucun SMS automatique « je vais bien ». |
 | Contact d'urgence | Case **« J'ai prévenu ce contact »** à cocher en enregistrant le numéro (test-105). |
 | Ce qui n'est jamais fait | Lire, recevoir, stocker ou envoyer au serveur des SMS ; SMS publicitaire ; SMS vers un contact du carnet ; SMS payant. |
 
@@ -36,36 +36,49 @@ La déclaration est demandée au premier envoi d'une version qui contient `SEND_
 
 **Is SEND_SMS required for the core functionality? / Indispensable ?** Oui.
 
-### Texte 1 — Description of the feature (à coller)
+### Texte 1 — Description of the feature (à coller) — version du 20/11 (vidéo v11, test-109)
 
 > MotoRoute is a safety app for motorcycle riders in Algeria. Its core safety feature is automatic crash detection with an
 > emergency SMS. The rider turns crash detection on (it is off by default) and saves one or two emergency phone numbers on
-> their emergency card. While crash detection is on and the app is open (typically on the handlebar mount), a crash is
-> detected when the motorcycle was moving at 15 km/h or more in the previous 90 seconds, then an impact above 4 g with the
-> phone tilting over 35° (or above 6 g), then no movement. Without recent GPS speed (e.g. in a tunnel), only an impact above
-> 8 g with tilt counts. The app then shows an alert dialog with a repeating beep and a large "I'm OK – cancel" button for
-> 2 minutes. If the rider does not respond, the app sends one short alert message to those saved numbers only: the rider's
-> name, motorcycle, GPS coordinates and, only if the rider gave explicit consent for their health data, blood type, for example
-> "MotoRoute SOS: CRASH Elaid (Z H2) blood O+. GPS 36.12345,4.12345. No answer 2 min".
-> SEND_SMS is the only SMS-related permission in the app. Besides this automatic alert, SEND_SMS is used for one
-> user-initiated action only: a test SMS marked TEST, started and confirmed by the rider, sent to the first saved emergency
-> number. After a false alarm no SMS is sent automatically: the app only offers a pre-filled SMS (sms: link) that the rider
-> sends from their own SMS app. The app never reads,
-> receives or stores SMS, never sends SMS to any number the rider did not enter, and is limited in code to 6 SMS per
+> their emergency card. While crash detection is on and the app is open on screen (typically on the handlebar mount), a
+> crash is detected when the motorcycle was moving at 15 km/h or more in the previous 90 seconds, then an impact above 4 g
+> with the phone tilting over 35° (or above 6 g), then no movement. Without recent GPS speed (e.g. in a tunnel), only an
+> impact above 8 g with tilt counts. The app then shows an alert dialog with a repeating beep and a large
+> "I'm fine — cancel" button for 2 minutes. If the rider does not respond, the app sends one short alert message to those
+> saved numbers only: the rider's name, motorcycle (if it fits in one SMS), GPS coordinates and, only if the rider gave
+> explicit consent for their health data, blood type, for example
+> "MotoRoute SOS: CRASH Rider (bike) blood O+. GPS 36.12345,4.12345. No answer 2 min".
+> SEND_SMS is the only SMS-related permission in the app and it is used for two things only: (1) this automatic alert;
+> (2) a test SMS that the rider starts and confirms, sent to the first saved emergency number
+> ("MotoRoute test SMS. If you read this, your friend's emergency SMS works.").
+> Test mode: the in-app help ("How does it work?" → "Test mode: try the full alert") tells every rider how to show a
+> "Simulate a crash" button (7 quick taps on the "My account" title) to check the whole alert without crashing. It runs the
+> same flow (2-minute countdown, cancel button, one SMS) and that SMS starts with "TEST not a real crash". Test mode is
+> already turned on for the review account, so the reviewer does not need the 7 taps.
+> Everything else opens another app and never uses SEND_SMS: the red SOS button, the WhatsApp and call buttons open the
+> rider's own SMS, WhatsApp or phone app, pre-filled; after a false alarm the app only offers a pre-filled SMS (sms: link)
+> that the rider sends from their own SMS app. Club features (rides, groups, classifieds) never use SMS. The app never
+> reads, receives or stores SMS, never sends SMS to any number the rider did not enter, and is limited in code to 6 SMS per
 > 10 minutes.
 
 *Traduction :* MotoRoute est une appli de sécurité pour motards en Algérie. Sa fonction de sécurité principale est la
 détection automatique de chute avec SMS d'urgence. Le motard active la détection (désactivée par défaut) et enregistre un
-ou deux numéros d'urgence. Tant que la détection est activée et l'appli ouverte (en général sur le support du guidon), une
-chute est retenue si la moto roulait à 15 km/h ou plus dans les 90 s précédentes, puis choc de plus de 4 g avec téléphone
-basculé de plus de 35° (ou plus de 6 g), puis plus aucun mouvement ; sans vitesse GPS récente (tunnel), seulement un choc
-de plus de 8 g avec bascule. L'appli affiche alors une fenêtre d'alerte avec bip répété et gros bouton « Je vais bien —
-annuler » pendant 2 minutes. Sans réponse, elle envoie un message d'alerte court à ces numéros seulement : nom, moto, coordonnées
-GPS et, seulement avec l'accord exprès du motard, groupe sanguin. SEND_SMS est la seule autorisation SMS de l'appli. En
-dehors de cette alerte, elle ne sert qu'à une action déclenchée par le motard : un SMS de test marqué TEST, lancé et
-confirmé par lui, vers le premier numéro d'urgence enregistré. Après une fausse alerte, aucun SMS automatique : l'appli
-propose seulement un SMS prérempli (lien sms:) que le motard envoie lui-même. L'appli ne lit, ne reçoit ni ne garde
-aucun SMS, n'écrit à aucun numéro que le motard n'a pas saisi, et est limitée dans le code à 6 SMS par 10 minutes.
+ou deux numéros d'urgence. Tant que la détection est activée et l'appli ouverte à l'écran (en général sur le support du
+guidon), une chute est retenue si la moto roulait à 15 km/h ou plus dans les 90 s précédentes, puis choc de plus de 4 g
+avec téléphone basculé de plus de 35° (ou plus de 6 g), puis plus aucun mouvement ; sans vitesse GPS récente (tunnel),
+seulement un choc de plus de 8 g avec bascule. L'appli affiche alors une fenêtre d'alerte avec bip répété et gros bouton
+« Je vais bien — annuler » pendant 2 minutes. Sans réponse, elle envoie un message d'alerte court à ces numéros
+seulement : nom, moto (si elle tient dans un SMS), coordonnées GPS et, seulement avec l'accord exprès du motard, groupe
+sanguin. SEND_SMS est la seule autorisation SMS de l'appli et ne sert qu'à deux choses : (1) cette alerte automatique ;
+(2) un SMS de test lancé et confirmé par le motard, vers le premier numéro d'urgence. Mode essai : l'aide de l'appli
+(« Comment ça marche ? » → « Mode essai : tester toute l'alerte ») explique à tout motard comment faire apparaître le
+bouton « Simuler une chute » (7 touchers rapides sur le titre « Mon compte ») pour vérifier toute l'alerte sans tomber.
+Il lance le même déroulé (2 minutes, bouton annuler, un SMS) et ce SMS commence par « TEST pas un vrai accident ». Le mode
+essai est déjà activé sur le compte d'examen. Tout le reste ouvre une autre appli et n'utilise jamais SEND_SMS : le
+bouton rouge SOS, WhatsApp et l'appel ouvrent l'appli SMS, WhatsApp ou téléphone du motard, message prérempli ; après une
+fausse alerte, l'appli propose seulement un SMS prérempli que le motard envoie lui-même. Les fonctions du club (sorties,
+groupes, annonces) n'utilisent jamais les SMS. L'appli ne lit, ne reçoit ni ne garde aucun SMS, n'écrit à aucun numéro
+que le motard n'a pas saisi, et est limitée dans le code à 6 SMS par 10 minutes.
 
 ### Texte 2 — Why alternatives are not enough (à coller)
 
@@ -104,7 +117,7 @@ Seul un SMS envoyé par le téléphone lui-même transmet la position exacte, pa
 > Crash detection and the emergency SMS are off by default. The SMS permission is only requested after a user action:
 > "My emergencies" → "Allow SMS", or when the rider turns on crash detection. Before Android's permission screen, a
 > dialog explains that the SMS permission is used only to send one alert SMS to the emergency numbers the rider saved, if
-> they crash and do not answer for 2 minutes (and for the test SMS marked TEST that they start themselves), what the SMS
+> they crash and do not answer for 2 minutes (and for the test SMS "MotoRoute test SMS..." that they start themselves), what the SMS
 > contains, and that the app never reads SMS. The dialog has two buttons, "I agree" and "Not now"; "Not now" does not
 > open Android's permission screen and the rider can ask again later from "My emergencies". The blood type is included
 > only if the rider ticks a separate health-data consent box (unticked by default). When saving an emergency number, the
@@ -116,7 +129,7 @@ Seul un SMS envoyé par le téléphone lui-même transmet la position exacte, pa
 *Traduction :* Détection de chute et SMS d'urgence désactivés par défaut. L'autorisation SMS n'est demandée qu'après un
 geste du motard : « Mes urgences » → « Autoriser les SMS », ou à l'activation de la détection de chute. Avant l'écran
 d'Android, une fenêtre explique que l'autorisation sert seulement à envoyer UN SMS d'alerte aux numéros enregistrés en cas
-de chute sans réponse pendant 2 minutes (et au SMS de test marqué TEST lancé par le motard), ce que contient le SMS, et que
+de chute sans réponse pendant 2 minutes (et au SMS de test « MotoRoute test SMS… » lancé par le motard), ce que contient le SMS, et que
 l'appli ne lit jamais les SMS. Deux boutons : « J'accepte » et « Pas maintenant » ; « Pas maintenant » n'ouvre pas l'écran
 d'Android, le motard peut redemander plus tard depuis « Mes urgences ». Le groupe sanguin n'est inclus que si le motard coche
 une case d'accord séparée pour ses données de santé (non cochée par défaut). En enregistrant un numéro d'urgence, il coche
@@ -148,7 +161,7 @@ d'écran Android) et, pour la réception, sur le second téléphone. Mode essai 
    « Je vais bien — annuler » (attente coupée au montage).
 6. **Envoi** : fin du compte à rebours → écran « SMS parti vers … ».
 7. **Réception** : second téléphone, SMS reçu (marqué TEST en mode essai) avec les coordonnées GPS, ouvertes dans Google Maps.
-8. **Fausse alerte** : bouton « Fausse alerte – annuler l'envoi » → **aucun SMS automatique** ; l'appli propose un SMS
+8. **Fausse alerte** : bouton « C’était une fausse alerte – arrêter l’alerte » (dans la vidéo, filmée avant test-109 : « False alarm – cancel sending ») → **aucun SMS automatique** ; l'appli propose un SMS
    prérempli qui s'ouvre dans l'appli SMS du téléphone, le motard appuie lui-même sur Envoyer.
 9. **Désactivation** : Route → Détection de chute désactivée d'un toucher.
 
@@ -172,7 +185,7 @@ Téléphone A (une prise) :
 3. Route → Crash detection → Turn on automatic detection.
 4. Simulate a crash → 5 s → I'm fine — cancel (rien ne part).
 5. Simulate a crash → laisser les 2 minutes → « SOS triggered », « SMS sent to… ».
-6. ❌ False alarm – cancel sending → « Tell my contact I'm OK » → SMS prérempli → le motard appuie sur Envoyer.
+6. ❌ It was a false alarm – stop the alert (vidéo : False alarm – cancel sending) → « Tell my contact I'm OK » → SMS prérempli → le motard appuie sur Envoyer.
 7. Route → désactiver la détection.
 
 Téléphone B (filmé pendant 5–6) : SOS reçu (avec groupe sanguin, accord donné) → lien ouvert dans Google Maps ; puis SMS « je vais bien ».
@@ -212,8 +225,10 @@ mis côté serveur) : le bouton « Simuler une chute » sera visible sans les 7 
 > Login: [e-mail du compte de test] / Password: [mot de passe]. The app requires an account. To see the crash SMS feature:
 > open the "Route" tab → "My emergencies" → "Allow SMS" → "I agree" (or turn on "Crash detection"). "My emergencies"
 > shows the saved test number.
-> Test mode is already enabled on this account: the "Simulate a crash" button is visible in the Route tab (it is hidden
-> for normal users). It starts the real alert flow with a TEST SMS to the saved test number.
+> Test mode is already turned on for this account, so the "Simulate a crash" button is visible in Route → "Crash detection"
+> (once detection is turned on). Any user can turn test mode on as explained in the in-app help ("How does it work?" →
+> "Test mode: try the full alert"). It starts the real alert flow: 2-minute countdown with the "I'm fine — cancel" button,
+> then one SMS starting with "TEST not a real crash" to the saved test number.
 
 ---
 

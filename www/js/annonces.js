@@ -25,7 +25,7 @@
     Object.assign(L.ar, { gear: 'تجهيزات (خوذة، سترة…)', a_tel: 'الهاتف / واتساب للتواصل', photos: 'الصور', gal: '🖼 المعرض', cam: '📷 التقاط صورة',
       hp2: 'تبويب الإعلانات ← «إعلانات الأعضاء»: المس «＋ نشر إعلان» (دراجة، قطعة أو تجهيزات)، أضف حتى 4 صور من معرض هاتفك ورقمك. يراه جميع الأعضاء فورًا ويتصلون بك عبر واتساب أو الهاتف. «متاجر المحترفين»: المتاجر الشريكة وعروضها.' });
     if (L.en) Object.assign(L.en, { gear: 'Gear (helmet, jacket…)', a_tel: 'Phone / WhatsApp to be contacted', photos: 'Photos', gal: '🖼 Gallery', cam: '📷 Take a photo',
-      hp2: 'Ads tab → “Members’ ads”: tap “＋ Post an ad” (bike, part or gear), add up to 4 photos from your phone’s Gallery and your number. All members see it right away and contact you by WhatsApp or call. “Pro shops”: partner stores and their deals.' });
+      hp2: 'Classifieds tab → “Members’ ads”: tap “＋ Post an ad” (bike, part or gear), add up to 4 photos from your phone’s Gallery and your number. All members see it right away and contact you by WhatsApp or call. “Pro shops”: partner stores and their deals.' });
     if (typeof statics == 'function') statics();
   } catch (e) { console.warn('annonces libellés', e); }
 
