@@ -2,7 +2,7 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 20/11, 21 h — test-109 publiée + vidéo Google v11 prête à fabriquer (PC de la maison hors ligne).**
+**➡️ DERNIER POINT : 20/11, 20 h 20 — test-109 publiée + vidéo Google v11 prête à fabriquer (PC de la maison hors ligne).**
 - Vidéo v10 (265 s, `C:\Users\Hp\Documents\MotoRoute-video-Google-19-11\` et OneDrive\MotoRoute) relue par 3 agents (juridique, avocat du diable, règles Google) : rien de bloquant, corrections faites en v11.
 - **test-109** (commit 3158cc3, APK + AAB dans Releases, relue : « on peut publier ») : aide « Mode essai : tester toute l'alerte » (FR/AR/EN, le mode essai n'est plus une fonction cachée non documentée) ; consigne « Allow restricted settings » cachée quand l'appli vient de Google Play (méthode native `installSource`) ; bouton « C'était une fausse alerte – arrêter l'alerte » ; texte Détection de chute (support, appli ouverte) ; EN « Ads » → « Classifieds ». « Simuler une chute » reste caché par défaut (décision du 07/11).
 - `play-store/declaration-sms.md` : textes 1 et 3 réécrits (plus de « hidden », exemple « Rider », bouton « I'm fine — cancel », SOS/WhatsApp/appel = applis du motard).
