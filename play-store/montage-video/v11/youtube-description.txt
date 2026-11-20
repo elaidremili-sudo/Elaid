@@ -1,6 +1,6 @@
 TITRE : MotoRoute – crash detection and emergency SMS (SEND_SMS permission demo)
 Visibilité : Non répertoriée ; public : « Non, elle n'est pas conçue pour les enfants ».
-(Les chapitres ci-dessous sont à recopier tels quels, une ligne chacun ; ils seront revérifiés sur la vidéo v11 rendue.)
+(Chapitres relevés sur la vidéo v11 rendue le 20/11 : à recopier tels quels, une ligne chacun.)
 
 DESCRIPTION :
 Demonstration video for the Google Play SMS permissions declaration of MotoRoute, a safety app for motorcycle riders in Algeria (core functionality: physical safety / emergency alert).
@@ -17,7 +17,7 @@ MotoRoute does not replace emergency services.
 0:21 Step 1 – SMS permission: refuse, then allow
 1:25 Step 2 – Emergency card and consent
 1:59 Step 3 – Test SMS started by the rider
-2:22 Step 4 – Crash detection: off by default
+2:23 Step 4 – Crash detection: off by default
 2:35 Step 5 – Crash detected: the rider can cancel
 2:56 Step 6 – No answer for 2 minutes: one SMS
 3:19 Step 7 – The contact receives the position
