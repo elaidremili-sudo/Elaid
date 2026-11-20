@@ -15,7 +15,7 @@ Ce qui change par rapport à v10 (suite aux 3 relectures) :
 Durée prévue : 4 min 41 s.
 
 À vérifier AVANT le rendu (images des sources, grille.py) :
-1. A-etape1 à 64 s, 89 s, 116 s, 140 s et 171 s : la coupe à y = 2120 enlève toute la ligne « If “SMS” is greyed out… Allow restricted settings » sans toucher le bouton « Allow SMS » (bas vers y = 2110). Ajuster 2120 si besoin.
+1. A-etape1 à 64 s, 89 s, 116 s, 140 s et 171 s : la coupe à y = 2126 (vérifié le 20/11 : bouton jusqu’à ~2115, consigne dès ~2134) enlève toute la ligne « If “SMS” is greyed out… Allow restricted settings » sans toucher le bouton « Allow SMS » (bas vers y = 2110). Ajuster 2120 si besoin.
 2. A-etape1 vers 171,8 s et 173,0 s : la fenêtre Android est fermée à 173,0 et l'état « Emergency SMS allowed » est vert.
 3. A-etapes2-9 à 684 s et 701 s : le flou [345,1815,445,70] couvre bien les chiffres GPS (3e ligne du SMS d'alerte) et rien d'autre.
 4. A-etapes2-9 à 203,2 s : l'écran défile vers le résultat (sinon avancer le début).
