@@ -2,6 +2,8 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
+**➡️ EN COURS (24/11, 16 h, pas publié) — branche `sms-2e-contact`** : le 2ᵉ contact ne recevait pas de SMS si le réseau était faible (3 essais au 1er contact d'abord ; les essais « pas-de-reponse-du-reseau » ne sont pas rendus et remplissaient le plafond commun de 6 → « trop-de-sms » pour le 2ᵉ). Correction : plafond par numéro dans `scripts/patch-android.js` (compilé et testé hors Android, 12/12) + `smsSendAll()` dans `www/index.html` (chaque tour envoie aux contacts encore en échec, en même temps). **Reste** : tester `smsSendAll` dans Chrome (banc `/home/claude/essais-sospush/nav/sms.mjs` hors dépôt : `zz` introuvable depuis page.evaluate, à passer en faux objet z), relecture, puis fusion dans main → test-114.
+
 **➡️ DERNIER POINT : 24/11, 16 h — test-113 : présentation entièrement en arabe aussi (petits écrans dessinés, compteur, bouton, légendes).**
 - `www/presentation.html` : MOCK_AR (écrans dessinés), CAPS_AR (légendes, de droite à gauche sans italique), textes animés en arabe (cnt « المشاركون: 12 », « أنت مسجّل، نلتقي يوم الأحد! ») ; textes traduits en `dir="auto"`, en-tête de l'alerte de chute en `dir="rtl"` ; ligne « فصيلة الدم O+ » avec marques RLM/LRM (sinon « +O »). « Station de Lakhdaria » = محطة الوقود بالأخضرية.
 - Essais Chrome 412 px : parcours arabe des 9 scènes sans français, aucune erreur ; anglais 21/21 ; français inchangé. Relecture de l'arabe par un agent : 1 point moyen (ordre droite-gauche de la ligne groupe sanguin) + 4 retouches, tout corrigé et revu sur capture.
