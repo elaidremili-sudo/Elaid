@@ -2631,8 +2631,8 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type=='motoroute-video-err
     const h = document.getElementById('help'); if (h) h.addEventListener('click', lab);
   }
   let seen = false; try { seen = !!localStorage.getItem(KEY); } catch(e) {}
-  // test-110 : la présentation n'existe qu'en français et en arabe : pas d'ouverture automatique quand l'appli est en anglais
-  if (!seen && L() !== 'en') {
+  // test-112 : la présentation existe aussi en anglais : elle s'ouvre au premier lancement dans toutes les langues
+  if (!seen) {
     setTimeout(open, 400);
     setTimeout(() => { const f = document.getElementById('mr_onb');
       let ok = false; try { ok = !!(f && f.contentDocument && f.contentDocument.body && f.contentDocument.body.children.length); } catch(e) { ok = !!f; }

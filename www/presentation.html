@@ -166,8 +166,8 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   padding:0 max(24px,env(safe-area-inset-right,0px)) 0 max(24px,env(safe-area-inset-left,0px));background:radial-gradient(ellipse at 50% 40%,rgba(6,8,12,.35),rgba(6,8,12,.85))}
 .gate .logo{animation:logo 1.2s cubic-bezier(.2,.8,.2,1) both}
 .gate p{margin:0;color:#e7e2d6}
-.gate-btns{display:flex;gap:10px;margin-top:10px;width:100%;max-width:320px}
-.gate-btns button{flex:1;padding:16px 10px;border:0;border-radius:14px;background:var(--amber);color:#1a1205;font:800 1.15rem var(--display);letter-spacing:.04em;cursor:pointer;box-shadow:0 10px 40px rgba(242,163,58,.35)}
+.gate-btns{display:flex;gap:8px;margin-top:10px;width:100%;max-width:360px}
+.gate-btns button{flex:1;padding:16px 6px;border:0;border-radius:14px;background:var(--amber);color:#1a1205;font:800 1.15rem var(--display);letter-spacing:.04em;cursor:pointer;box-shadow:0 10px 40px rgba(242,163,58,.35)}
 .gate-btns button[lang=ar]{font-family:'Tajawal',sans-serif;font-size:1.2rem}
 .gate-btns button:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .snd{display:flex;align-items:center;gap:8px;font-size:.9rem;color:#e7e2d6;cursor:pointer}
@@ -429,9 +429,10 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     <div class="logo">Moto<b>Route</b></div>
     <p>Présentation avec voix et musique</p>
     <p lang="ar" dir="rtl" style="font-family:Tajawal,sans-serif">عرض بالموسيقى والترجمة</p>
-    <div class="gate-btns"><button type="button" data-lang="fr">Français</button><button type="button" data-lang="ar" lang="ar">العربية</button></div>
-    <label class="snd"><input type="checkbox" id="sndOn" checked> Son et voix / الصوت</label>
-    <button type="button" class="replay" id="later" hidden>Plus tard · لاحقاً</button>
+    <p lang="en">Presentation with music and subtitles</p>
+    <div class="gate-btns"><button type="button" data-lang="fr">Français</button><button type="button" data-lang="ar" lang="ar">العربية</button><button type="button" data-lang="en" lang="en">English</button></div>
+    <label class="snd"><input type="checkbox" id="sndOn" checked> Son et voix / الصوت / Sound</label>
+    <button type="button" class="replay" id="later" hidden>Plus tard · لاحقاً · Later</button>
   </div>
   <div class="hint" id="hint">Touche à droite pour avancer, à gauche pour revenir</div>
 </div>
@@ -923,11 +924,11 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
       const path = $('miniPath'), dot = $('miniDot'), len = path.getTotalLength();
       path.style.strokeDashoffset = len; path.style.strokeDasharray = len;
       tween(2600, k => { const e = ease(k); path.style.strokeDashoffset = len*(1-e); const pt = path.getPointAtLength(len*e); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); });
-      let n = 0; const pc = $('pcount'); pc.textContent = '0 inscrits';
-      later(() => tween(1600, k => { n = Math.round(11*ease(k)); pc.textContent = n + ' inscrits'; }), 900);
-      const btn = $('joinBtn'); btn.className = 'btn'; btn.textContent = 'Rejoindre la sortie';
+      let n = 0; const pc = $('pcount'); pc.textContent = tr('0 inscrits', '0 riders');
+      later(() => tween(1600, k => { n = Math.round(11*ease(k)); pc.textContent = n + tr(' inscrits', ' riders'); }), 900);
+      const btn = $('joinBtn'); btn.className = 'btn'; btn.textContent = tr('Rejoindre la sortie', 'Join the ride');
       later(() => { btn.classList.add('press'); }, 3600);
-      later(() => { btn.classList.add('joined'); btn.textContent = 'Inscrit, à dimanche !'; pc.textContent = '12 inscrits'; }, 3900);
+      later(() => { btn.classList.add('joined'); btn.textContent = tr('Inscrit, à dimanche !', 'You\'re in, see you Sunday!'); pc.textContent = tr('12 inscrits', '12 riders'); }, 3900);
     },
     group(){
       const code = 'KMC-427', el = $('code');
@@ -971,6 +972,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
 
   // ---------- Souvenirs ----------
   const CAPS = ['Tikjda · 26 oct.','Pause café à Lakhdaria','Le groupe au sommet','Retour au coucher du soleil','Col de Tirourda','Plage de Tigzirt'];
+  const CAPS_EN = ['Tikjda · 26 Oct','Coffee break in Lakhdaria','The group at the summit','Riding home at sunset','Tirourda Pass','Tigzirt beach'];
   function samplePhoto(i){
     // photo d'exemple dessinée : montagnes, route et motos
     const c = document.createElement('canvas'); c.width = 400; c.height = 300; const x = c.getContext('2d');
@@ -1003,8 +1005,8 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     const list = photoList(), rots = [-9, 7, -4, 3], offs = [[-18,-14],[16,-6],[-10,8],[6,2]];
     list.forEach((src,i) => {
       const d = document.createElement('div'); d.className = 'pola';
-      const img = new Image(); img.alt = CAPS[i]; img.src = src;
-      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = myPics.length ? 'Sortie du club · photo ' + (i+1) : CAPS[i];
+      const img = new Image(); img.alt = (lang === 'en' ? CAPS_EN : CAPS)[i]; img.src = src;
+      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = myPics.length ? tr('Sortie du club · photo ', 'Club ride · photo ') + (i+1) : (lang === 'en' ? CAPS_EN : CAPS)[i];
       d.append(img, cap); d.dataset.rot = rots[i]; d.dataset.ox = offs[i][0]; d.dataset.oy = offs[i][1];
       box.insertBefore(d, $('trophy'));
     });
@@ -1104,9 +1106,9 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   $('replay').onclick = () => show(0);
   $('cta').onclick = () => {
     // Dans l'application : fermer la présentation et ouvrir l'écran d'inscription
-    const b = $('cta'); b.textContent = 'Ouverture de l’inscription…';
+    const b = $('cta'); b.textContent = tr('Ouverture de l’inscription…', 'Opening sign-up…', 'جارٍ فتح التسجيل…');
     try { window.parent.postMessage({type:'motoroute-onboarding-done', signup:true}, '*'); } catch(e) {}
-    setTimeout(() => { b.textContent = 'Créer mon compte'; }, 1800);
+    setTimeout(() => { b.textContent = TXT[lang].ui.cta; }, 1800);
   };
 
   // ---------- Textes FR / AR et voix off ----------
@@ -1148,6 +1150,32 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
         ["هيّا بنا","أنشئ حسابك في 30 ثانية","انضمّ إلى ناديك وإلى أوّل خرجة هذا الأسبوع."]
       ],
       ui:{skip:'تخطّي', cta:'إنشاء حسابي', replay:'إعادة العرض', tag0:'تطبيق الدرّاجين في الجزائر', tag1:'جرجرة في انتظارك', mine:'ضع صوري', hint:'المس اليمين للتقدّم واليسار للرجوع'}
+    },
+    // test-112 : version anglaise (sous-titres et musique, comme l'arabe ; la voix enregistrée n'existe qu'en français)
+    en:{
+      v:[
+        "Hey, rider! Welcome to MotoRoute, the app for Algeria's motorcyclists! Come on, helmet on. Let's go!",
+        "Fancy a ride this weekend? Pick your outing, check the weather. And boom! One tap, and you're in the group!",
+        "Your club? It fits in your pocket! Enter the code, and chat with the whole crew before you set off.",
+        "What a shot at the summit! Add it from your gallery and the whole club sees it. May the best photo win!",
+        "Phone on the mount, and off you go! Your speed, your lean in every bend: MotoRoute records it all for you.",
+        "A crash? Don't panic, we've got your back! Two minutes to cancel. Otherwise, your group is alerted right away.",
+        "And here's your member card! Your bike, your blood type, and a QR code to bring your friends along.",
+        "Helmets, parts, servicing: enjoy great deals from our partners!",
+        "So, ready to ride? Create your account, and see you on the road!"
+      ],
+      copy:[
+        ["Tikjda Pass · Djurdjura","Ride. Share. Come back in one piece.","Your rides, your club and your safety, all in one app."],
+        ["Rides","Find your next ride","Route, weather on the day, who's coming: you know it all before you set off."],
+        ["Groups","Your club in your pocket","Public or private groups, invitation code and group chat."],
+        ["Memories","Keep every moment","Add group photos from your gallery. The whole club finds them in the ride's album and votes for the best one."],
+        ["Riding","Every bend counts","Speed, lean angle in the bends and a summary of your trip, with your phone on the mount."],
+        ["Safety","We've got your back","After a crash, you have 2 minutes to cancel. Otherwise your group gets your emergency card and your location."],
+        ["Member card","Your card, your QR","Your bike, your blood type and a code to invite your riding friends."],
+        ["Partners","The best local deals","Gear, parts and servicing at partner shops near you."],
+        ["Let's go","Create your account in 30 seconds","Join your club and your first ride this weekend."]
+      ],
+      ui:{skip:'Skip', cta:'Create my account', replay:'Watch again', tag0:"The app for Algeria's motorcyclists", tag1:'The Djurdjura is waiting for you', mine:'Use my photos', hint:'Tap right to go forward, left to go back'}
     }
   };
   // textes français d'origine
@@ -1155,6 +1183,34 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   const tags = document.querySelectorAll('.tagline');
   TXT.fr.ui = {skip:$('skip').textContent, cta:$('cta').textContent, replay:$('replay').textContent, tag0:tags[0].textContent, tag1:tags[1].textContent, mine:'Mettre mes photos', hint:$('hint').textContent};
   let lang = 'fr', voiceOn = true, started = false, speechDone = true, speechEst = 3000;
+  // test-112 : textes écrits pendant les animations (français par défaut ; arabe seulement là où il est donné)
+  function tr(fr, en, ar){ return lang === 'en' ? en : (lang === 'ar' && ar) ? ar : fr; }
+  // test-112 : petits écrans de téléphone dessinés dans les scènes, traduits en anglais (l'arabe les garde en français, comme avant)
+  const MOCK_EN = {
+    '22° · vent 12 km/h':'22° · wind 12 km/h', 'Montée au col de Tikjda':'Ride up to Tikjda Pass',
+    'Dimanche 26 oct. · Départ 08:00 · Station de Lakhdaria':'Sunday 26 Oct · Start 08:00 · Lakhdaria petrol station', '3 h 10':'3 h 10 min',
+    'Niveau moyen':'Intermediate', '0 inscrits':'0 riders', 'Rejoindre la sortie':'Join the ride',
+    'Rejoindre un club avec son code':'Join a club with its code', '48 membres':'48 members', 'TOI':'YOU',
+    'Rendez-vous à 7 h 30 à la station de Lakhdaria.':'Meet at 7:30 at the petrol station in Lakhdaria.',
+    'Je ramène le compresseur pour les pneus.':'I\'m bringing the tyre compressor.', 'Parfait, on y sera !':'Perfect, we\'ll be there!',
+    'Photo de la sortie':'Ride photo', 'Remettre les exemples':'Restore the examples',
+    'Inclinaison':'Lean', 'Vmax':'Top speed', 'Virages':'Bends', 'Angle max':'Max lean',
+    'Chute détectée ?':'Crash detected?', 'Annulation possible':'You can cancel', 'Alerte envoyée au groupe':'Alert sent to the group',
+    'Elaid · Kawasaki Z H2 · Groupe sanguin O+':'Elaid · Kawasaki Z H2 · Blood type O+', 'Position : près du col de Tikjda':'Location: near Tikjda Pass',
+    'Bouira · Niveau intermédiaire':'Bouira · Intermediate', 'Inviter un motard':'Invite a rider',
+    'Scanne ce code pour installer MotoRoute et rejoindre le club.':'Scan this code to install MotoRoute and join the club.',
+    'Partenaire':'Partner', 'Promos réservées aux membres MotoRoute':'Deals for MotoRoute members only',
+    'Casque intégral':'Full-face helmet', 'Kit chaîne':'Chain kit', 'Nouveau':'New', 'Révision':'Service', 'Sur RDV':'By appointment'
+  };
+  let mockNodes = null;
+  function mockLang(){
+    if (!mockNodes) {
+      mockNodes = [];
+      scenes.forEach(sc => { const w = document.createTreeWalker(sc, NodeFilter.SHOW_TEXT); let nd;
+        while ((nd = w.nextNode())) { if (nd.parentElement && nd.parentElement.closest('.copy')) continue; const k = nd.nodeValue.trim(); if (MOCK_EN[k]) mockNodes.push([nd, nd.nodeValue, k]); } });
+    }
+    mockNodes.forEach(([nd, orig, k]) => { nd.nodeValue = lang === 'en' ? orig.replace(k, MOCK_EN[k]) : orig; });
+  }
   function applyLang(){
     const T = TXT[lang], rtl = lang === 'ar';
     scenes.forEach((sc,i) => { const c = sc.querySelector('.copy'); [...c.children].forEach((e,j) => e.textContent = T.copy[i][j]); c.dir = rtl ? 'rtl' : 'ltr'; c.lang = lang; });
@@ -1162,6 +1218,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     tags[0].textContent = T.ui.tag0; tags[1].textContent = T.ui.tag1; $('hint').textContent = T.ui.hint;
     const lab = $('pick').parentNode; lab.firstChild.textContent = T.ui.mine;
     document.documentElement.lang = lang;
+    mockLang();
   }
 
   // ---------- Musique et effets (générés, sans droits) ----------
@@ -1283,7 +1340,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     if (m) { Music.stop(); try { track.pause(); } catch(e) {} speechDone = true; }
     else { Music.start(); if (lang === 'fr' && started) { if (!trackOn) startTrack(); else { try { track.currentTime = Math.max(0, MARKS[cur][0] - .05); track.play().catch(() => {}); } catch(e) {} } } }
     $('muteIc').innerHTML = m ? '<path d="M3 9v6h4l5 5V4L7 9H3Zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/>' : '<path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z"/>';
-    $('mute').setAttribute('aria-label', m ? 'Activer le son' : 'Couper le son');
+    $('mute').setAttribute('aria-label', m ? ({ ar: 'تشغيل الصوت', en: 'Turn sound on' }[lang] || 'Activer le son') : ({ ar: 'كتم الصوت', en: 'Mute' }[lang] || 'Couper le son'));
   }
   $('mute').onclick = () => setMute(voiceOn);
   ['tapL','tapR'].forEach(idn => {
@@ -1335,6 +1392,9 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   show = function(i){ showV(i); playVid(cur); };
 
   const APP = /[?&]app=1/.test(location.search);
+  // test-112 : la langue de l'appli (?lang=) est proposée en premier sur l'écran de départ
+  const QL = (location.search.match(/[?&]lang=(fr|ar|en)\b/) || [])[1];
+  if (QL) { const gb = document.querySelector('.gate-btns'), qb = gb && gb.querySelector('[data-lang="' + QL + '"]'); if (qb) gb.prepend(qb); }
   if (APP) {
     document.querySelectorAll('.mine').forEach(m => m.hidden = true);
     $('later').hidden = false;
