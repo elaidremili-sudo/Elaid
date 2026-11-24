@@ -165,7 +165,7 @@ public class MrSmsPlugin extends Plugin {
     // Android (SharedPreferences) et ne peut être changée que quand l'app est à l'écran (pas en arrière-plan).
     private static final String PREFS = "mr_sos";
     private static final String[] PUBLIC_CALL = { "14", "17", "1548", "112", "115", "1021" };
-    private static final int SMS_MAX = 6;            // SMS au plus…
+    private static final int SMS_MAX = 6;            // SMS au plus PAR NUMÉRO… (test-114 : avant, 6 pour les 2 numéros ensemble)
     private static final long SMS_WINDOW = 600000L;  // …par tranche de 10 minutes
 
     // Forme comparable d'un numéro : chiffres seuls, préfixe international ramené au format local (0…)
@@ -199,12 +199,14 @@ public class MrSmsPlugin extends Plugin {
         } catch (Throwable e) { return false; }
     }
 
-    // Anti-abus : au plus SMS_MAX SMS par tranche de 10 minutes (un vrai SOS n'en envoie que 1 à 3)
+    // Anti-abus : au plus SMS_MAX SMS par numéro et par tranche de 10 minutes (un vrai SOS n'en envoie que 1 à 3 par numéro)
     // 07/11 : le plafond compte les morceaux de SMS (un long message arabe = plusieurs SMS). Un SMS de test ne peut
     // utiliser que 2 places sur 6 : il en reste toujours 4 pour une vraie alerte. Un envoi refusé par le réseau est rendu.
-    private synchronized boolean smsQuota(int parts, boolean test) {
+    // test-114 : un plafond par numéro. Avant, les essais sans réponse du réseau vers le 1er contact remplissaient le
+    // plafond commun et le 2e contact ne recevait rien (« trop-de-sms »). Les numéros restent limités aux 2 de la fiche.
+    private synchronized boolean smsQuota(String num, int parts, boolean test) {
         long now = System.currentTimeMillis();
-        String[] old = prefs().getString("sms_at", "").split(",");
+        String[] old = prefs().getString("sms_at_" + num, "").split(",");
         StringBuilder keep = new StringBuilder();
         int c = 0;
         for (String t : old) {
@@ -212,16 +214,16 @@ public class MrSmsPlugin extends Plugin {
         }
         if (c + parts > (test ? SMS_MAX - 4 : SMS_MAX)) return false;
         for (int i = 0; i < parts; i++) { if (i > 0) keep.append(','); keep.append(now); }
-        prefs().edit().putString("sms_at", keep.toString()).apply();
+        prefs().edit().putString("sms_at_" + num, keep.toString()).apply();
         return true;
     }
 
-    private synchronized void smsRefund(int parts) {
-        String[] old = prefs().getString("sms_at", "").split(",");
+    private synchronized void smsRefund(String num, int parts) {
+        String[] old = prefs().getString("sms_at_" + num, "").split(",");
         java.util.ArrayList<String> l = new java.util.ArrayList<>();
         for (String t : old) if (!t.isEmpty()) l.add(t);
         for (int i = 0; i < parts && !l.isEmpty(); i++) l.remove(l.size() - 1);
-        prefs().edit().putString("sms_at", android.text.TextUtils.join(",", l)).apply();
+        prefs().edit().putString("sms_at_" + num, android.text.TextUtils.join(",", l)).apply();
     }
 
     // Enregistre les numéros d'urgence (2 au plus, comme déclaré à Google Play). Refusé si l'app n'est pas à l'écran.
@@ -263,7 +265,8 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
         final ArrayList<String> parts = sm.divideMessage(msg);
         final int n = parts.size();
         if (n > 3) { call.reject("message-trop-long"); return; }
-        if (!smsQuota(n, call.getBoolean("test", false))) { call.reject("trop-de-sms"); return; }
+        final String qk = norm(to);
+        if (!smsQuota(qk, n, call.getBoolean("test", false))) { call.reject("trop-de-sms"); return; }
         final String tag = Long.toString(System.nanoTime());
         final String aSent = ctx.getPackageName() + ".SMS_SENT." + tag;
         final String aDeliv = ctx.getPackageName() + ".SMS_DELIV." + tag;
@@ -308,7 +311,7 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
                     try { ctx.unregisterReceiver(this); } catch (Exception e) {}
                     if (firstErr[0] == Activity.RESULT_OK) {
                         JSObject r = new JSObject(); r.put("parts", n); r.put("sim", sub); r.put("simName", simLabel(sub)); call.resolve(r);
-                    } else { smsRefund(n); String sl = simLabel(sub); call.reject(why(firstErr[0]) + (sl.isEmpty() ? "" : " · " + sl)); }
+                    } else { smsRefund(qk, n); String sl = simLabel(sub); call.reject(why(firstErr[0]) + (sl.isEmpty() ? "" : " · " + sl)); }
                 }
             }
         };
@@ -324,7 +327,7 @@ ${NO_SMS ? `        if (true) { call.reject("no-sms-build"); return; }\n` : ""} 
             sm.sendMultipartTextMessage(to, null, parts, sIs, dIs);
         } catch (Exception e) {
             done[0] = true;
-            smsRefund(n);
+            smsRefund(qk, n);
             try { ctx.unregisterReceiver(sent); ctx.unregisterReceiver(deliv); } catch (Exception x) {}
             call.reject(e.getMessage() == null ? "erreur" : e.getMessage());
             return;
