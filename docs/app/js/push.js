@@ -12,6 +12,8 @@
   const PN = () => (native() && window.MR_FCM && Capacitor.Plugins && Capacitor.Plugins.PushNotifications) || null;
   const MR = () => (native() && Capacitor.Plugins && Capacitor.Plugins.MrSms) || null;
   const sb = () => window.mrSb, me = () => window.mrUser && window.mrUser();
+  // test-111 : hors ligne, le compte enregistré sur le téléphone suffit pour mettre la sirène en file (comme les groupes, sos.js)
+  const cur = () => me() || (window.mrStoredUser && window.mrStoredUser()) || null;
 
   /* ---------- Lecture vocale de l'alerte reçue ---------- */
   function sayText(d) {
@@ -96,44 +98,53 @@
   }
   // Un seul appel à sos-push. Rend { done, res } pour la file d'attente de sos.js.
   // L'identité de l'expéditeur vient uniquement du jeton de connexion (le serveur ignore tout identifiant du corps).
-  async function callPush(o) {
+  async function callPush(o, x) {
     const c = sb(), u = me();
     if (!c || !u) return { done: false, why: 'nouser' };
-    const body = { lat: o.lat, lng: o.lng, test: o.test === true, self: o.self === true, aid: o.aid || undefined, msg: o.msg, say: o.say };
+    // test-111 : alerte mise en file par un autre compte → jamais envoyée au nom du compte actuel (comme les groupes)
+    if (o.uid && o.uid !== u.id) return { done: true, res: { ok: false, why: 'otheruser' } };
+    // test-111 : « try » = nombre de pannes du SERVEUR (5xx) déjà vues pour cette alerte (x.sf, gardé dans la file ; les coupures
+    // réseau ne comptent pas). À partir de 2, le serveur envoie à ceux qu'il a pu lire si une source reste en panne.
+    const body = { lat: o.lat, lng: o.lng, test: o.test === true, self: o.self === true, aid: o.aid || undefined, msg: o.msg, say: o.say, try: (x && x.sf) || 0 };
     const r = await c.functions.invoke('sos-push', { body });
     if (!r.error) {
       const d = r.data || { ok: false, why: 'erreur' };
       if (d.ok) {
         if (!d.sent && d.recipients) report('sirene-aucun-telephone-atteint', null, { recipients: d.recipients, errors: (d.errors || []).slice(0, 2) });
+        if (d.partial) report('sirene-partielle', null, { partial: d.partial, sent: d.sent, recipients: d.recipients }); // test-111 : envoi incomplet signalé
         return { done: true, res: d };
       }
-      if (d.why === 'trop' || d.why === 'nofcm') { report('sirene-' + d.why, null); return { done: true, res: d }; }
+      if (d.why === 'trop') { report('sirene-' + d.why, null); return { done: true, res: d }; }
+      // test-111 : « nofcm » (clé Firebase absente du serveur) reste en file : l'alerte partira dès que la clé sera remise
       return { done: false, why: d.why || 'erreur', err: new Error('sos-push: ' + (d.why || 'erreur')) };
     }
     // Erreur HTTP : on lit la réponse du serveur (401 = session expirée → on réessaie après rafraîchissement)
     let d = null, st = 0;
     try { const ctx = r.error.context; st = ctx && ctx.status || 0; d = ctx && ctx.json ? await ctx.json() : null; } catch (e) {}
-    if (d && (d.why === 'trop' || d.why === 'nofcm')) { report('sirene-' + d.why, null); return { done: true, res: d }; }
+    if (d && d.why === 'trop') { report('sirene-' + d.why, null); return { done: true, res: d }; }
     if (st === 401) { try { await c.auth.refreshSession(); } catch (e) {} }
-    return { done: false, why: st ? 'http' + st : 'net', err: r.error };
+    if (st >= 500 && x && !(d && d.why === 'nofcm')) x.sf = (x.sf || 0) + 1; // panne du serveur (pas du réseau)
+    return { done: false, why: d && d.why === 'nofcm' ? 'nofcm' : (st ? 'http' + st : 'net'), err: r.error };
   }
   window.mrPushSos = async function (o) {
     o = o || {};
-    const c = sb(), u = me();
+    const c = sb(), u = cur();
     if (!c || !u) return { ok: false, why: 'nouser' };
     // Vraie alerte : passe par la file persistante de sos.js (renvoi automatique quand le réseau revient, sans doublon)
     if (!o.test && !o.self && window.MrSosQueue) {
       try {
-        const x = await window.MrSosQueue.add('push', o);
-        if (x.state === 'pending') return { ok: false, why: 'queued', id: x.id };
+        const x = await window.MrSosQueue.add('push', Object.assign({}, o, { uid: u.id }));
+        if (x.state === 'pending') return { ok: false, why: 'queued', cause: x.why || null, id: x.id };
         return Object.assign({ id: x.id }, x.res || { ok: false, why: x.why || 'net' });
       } catch (e) { report('sirene-file', e); }
     }
+    if (!me()) return { ok: false, why: 'nouser' }; // un essai demande une vraie connexion
     // Tests (sirène de test, réception sur ce téléphone) : 3 essais immédiats, pas de file (un test qui sonnerait 1 h plus tard serait trompeur)
     for (let k = 0; k < 3; k++) {
       try {
         const out = await callPush(o);
         if (out.done) return out.res;
+        if (out.why === 'nofcm') return { ok: false, why: 'nofcm' };
         if (k === 2) { report('sirene-test-echec', out.err, { why: out.why }); return { ok: false, why: 'net' }; }
       } catch (e) { if (k === 2) { report('sirene-test-echec', e); return { ok: false, why: 'net' }; } }
       await new Promise(r => setTimeout(r, 3000));
@@ -158,8 +169,11 @@
     }
     const w = r && r.why;
     if (w === 'nofcm') return '⚠️ ' + W('Alertes sonores pas encore activées sur le serveur.', 'التنبيهات الصوتية غير مفعلة بعد.', 'Siren alerts not enabled on the server yet.');
-    if (w === 'trop') return '⚠️ ' + W('Trop d’alertes en 1 heure (5 au maximum) : alerte sonore non renvoyée.', 'تنبيهات كثيرة خلال ساعة: لم يُرسل.', 'Too many alerts in 1 hour (5 max).');
+    if (w === 'trop') return '⚠️ ' + W(`Trop d’alertes en 1 heure (${r.max || 5} au maximum) : alerte sonore non renvoyée.`, 'تنبيهات كثيرة خلال ساعة: لم يُرسل.', `Too many alerts in 1 hour (${r.max || 5} max).`);
     if (w === 'nouser') return '⚠️ ' + W('Pas connecté : pas d’alerte sonore.', 'غير متصل: لا تنبيه صوتي.', 'Not signed in: no siren alert.');
+    if (w === 'otheruser') return '⚠️ ' + W('Alerte d’un autre compte : sirène non envoyée.', 'تنبيه من حساب آخر: لم تُرسل الصفارة.', 'Alert from another account: siren not sent.');
+    if (w === 'queued' && r.cause === 'nofcm') return '⏳ ' + W('Alertes sonores pas encore activées sur le serveur : sirène en attente, elle partira dès qu’elles le seront (pendant 2 h). Appelle aussi.', 'التنبيهات الصوتية غير مفعلة بعد على الخادم: الصفارة في الانتظار وستُرسل فور تفعيلها (خلال ساعتين). اتصل أيضًا.', 'Siren alerts not enabled on the server yet: the siren is waiting and will go out as soon as they are (for 2 h). Call too.');
+    if (w === 'queued' && /^http5/.test(r.cause || '')) return '⏳ ' + W('Serveur momentanément indisponible : sirène en attente, renvoi automatique (pendant 2 h). Appelle aussi.', 'الخادم غير متاح مؤقتًا: الصفارة في الانتظار وستُعاد تلقائيًا (خلال ساعتين). اتصل أيضًا.', 'Server temporarily unavailable: the siren is waiting and will be resent automatically (for 2 h). Call too.');
     if (w === 'queued') return '⏳ ' + W('Pas d’internet : sirène en attente, elle partira toute seule dès que le réseau revient (pendant 2 h).', 'لا إنترنت: الصفارة في الانتظار وستُرسل فور عودة الشبكة (خلال ساعتين).', 'No internet: siren waiting, it will go out as soon as the network is back (for 2 h).');
     if (w === 'expire') return '❌ ' + W('Pas d’internet pendant 2 h : sirène abandonnée.', 'لا إنترنت لمدة ساعتين: أُلغيت الصفارة.', 'No internet for 2 h: siren dropped.');
     return '❌ ' + W('Pas d’internet : alerte sonore non envoyée.', 'لا إنترنت: لم يُرسل التنبيه الصوتي.', 'No internet: siren alert not sent.');
