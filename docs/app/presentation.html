@@ -924,11 +924,11 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
       const path = $('miniPath'), dot = $('miniDot'), len = path.getTotalLength();
       path.style.strokeDashoffset = len; path.style.strokeDasharray = len;
       tween(2600, k => { const e = ease(k); path.style.strokeDashoffset = len*(1-e); const pt = path.getPointAtLength(len*e); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); });
-      let n = 0; const pc = $('pcount'); pc.textContent = tr('0 inscrits', '0 riders');
-      later(() => tween(1600, k => { n = Math.round(11*ease(k)); pc.textContent = n + tr(' inscrits', ' riders'); }), 900);
-      const btn = $('joinBtn'); btn.className = 'btn'; btn.textContent = tr('Rejoindre la sortie', 'Join the ride');
+      let n = 0; const pc = $('pcount'); const cnt = v => lang === 'ar' ? 'المشاركون: ' + v : v + tr(' inscrits', ' riders'); pc.textContent = cnt(0);
+      later(() => tween(1600, k => { n = Math.round(11*ease(k)); pc.textContent = cnt(n); }), 900);
+      const btn = $('joinBtn'); btn.className = 'btn'; btn.textContent = tr('Rejoindre la sortie', 'Join the ride', 'الانضمام إلى الخرجة');
       later(() => { btn.classList.add('press'); }, 3600);
-      later(() => { btn.classList.add('joined'); btn.textContent = tr('Inscrit, à dimanche !', 'You\'re in, see you Sunday!'); pc.textContent = tr('12 inscrits', '12 riders'); }, 3900);
+      later(() => { btn.classList.add('joined'); btn.textContent = tr('Inscrit, à dimanche !', 'You\'re in, see you Sunday!', 'أنت مسجّل، نلتقي يوم الأحد!'); pc.textContent = cnt(12); }, 3900);
     },
     group(){
       const code = 'KMC-427', el = $('code');
@@ -973,6 +973,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   // ---------- Souvenirs ----------
   const CAPS = ['Tikjda · 26 oct.','Pause café à Lakhdaria','Le groupe au sommet','Retour au coucher du soleil','Col de Tirourda','Plage de Tigzirt'];
   const CAPS_EN = ['Tikjda · 26 Oct','Coffee break in Lakhdaria','The group at the summit','Riding home at sunset','Tirourda Pass','Tigzirt beach'];
+  const CAPS_AR = ['تيكجدة · 26 أكتوبر','استراحة قهوة في الأخضرية','المجموعة في القمّة','العودة عند الغروب','ممرّ تيروردة','شاطئ تيقزيرت'];
   function samplePhoto(i){
     // photo d'exemple dessinée : montagnes, route et motos
     const c = document.createElement('canvas'); c.width = 400; c.height = 300; const x = c.getContext('2d');
@@ -1005,8 +1006,9 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     const list = photoList(), rots = [-9, 7, -4, 3], offs = [[-18,-14],[16,-6],[-10,8],[6,2]];
     list.forEach((src,i) => {
       const d = document.createElement('div'); d.className = 'pola';
-      const img = new Image(); img.alt = (lang === 'en' ? CAPS_EN : CAPS)[i]; img.src = src;
-      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = myPics.length ? tr('Sortie du club · photo ', 'Club ride · photo ') + (i+1) : (lang === 'en' ? CAPS_EN : CAPS)[i];
+      const img = new Image(); img.alt = (lang === 'en' ? CAPS_EN : lang === 'ar' ? CAPS_AR : CAPS)[i]; img.src = src;
+      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = myPics.length ? tr('Sortie du club · photo ', 'Club ride · photo ', 'خرجة النادي · صورة ') + (i+1) : (lang === 'en' ? CAPS_EN : lang === 'ar' ? CAPS_AR : CAPS)[i];
+      if (lang === 'ar') { cap.dir = 'rtl'; cap.style.fontStyle = 'normal'; } // légende arabe : de droite à gauche, sans italique
       d.append(img, cap); d.dataset.rot = rots[i]; d.dataset.ox = offs[i][0]; d.dataset.oy = offs[i][1];
       box.insertBefore(d, $('trophy'));
     });
@@ -1185,7 +1187,7 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
   let lang = 'fr', voiceOn = true, started = false, speechDone = true, speechEst = 3000;
   // test-112 : textes écrits pendant les animations (français par défaut ; arabe seulement là où il est donné)
   function tr(fr, en, ar){ return lang === 'en' ? en : (lang === 'ar' && ar) ? ar : fr; }
-  // test-112 : petits écrans de téléphone dessinés dans les scènes, traduits en anglais (l'arabe les garde en français, comme avant)
+  // test-112 : petits écrans de téléphone dessinés dans les scènes, traduits en anglais ; test-113 : aussi en arabe (MOCK_AR)
   const MOCK_EN = {
     '22° · vent 12 km/h':'22° · wind 12 km/h', 'Montée au col de Tikjda':'Ride up to Tikjda Pass',
     'Dimanche 26 oct. · Départ 08:00 · Station de Lakhdaria':'Sunday 26 Oct · Start 08:00 · Lakhdaria petrol station', '3 h 10':'3 h 10 min',
@@ -1202,14 +1204,38 @@ body{margin:0;background:#06080c;color:var(--paper);font-family:var(--body);over
     'Partenaire':'Partner', 'Promos réservées aux membres MotoRoute':'Deals for MotoRoute members only',
     'Casque intégral':'Full-face helmet', 'Kit chaîne':'Chain kit', 'Nouveau':'New', 'Révision':'Service', 'Sur RDV':'By appointment'
   };
+  const MOCK_AR = {
+    '22° · vent 12 km/h':'22° · رياح 12 كم/سا', 'Montée au col de Tikjda':'الصعود إلى ممرّ تيكجدة',
+    'Dimanche 26 oct. · Départ 08:00 · Station de Lakhdaria':'الأحد 26 أكتوبر · الانطلاق 08:00 · محطة الوقود بالأخضرية',
+    '142 km':'142 كم', '3 h 10':'3 سا 10 د', 'Niveau moyen':'مستوى متوسط', '0 inscrits':'المشاركون: 0', 'Rejoindre la sortie':'الانضمام إلى الخرجة',
+    'Rejoindre un club avec son code':'انضمّ إلى نادٍ برمزه', '48 membres':'48 عضواً', 'KARIM':'كريم', 'ZINA':'زينة', 'TOI':'أنت',
+    'Rendez-vous à 7 h 30 à la station de Lakhdaria.':'الموعد على الساعة 7:30 في محطة الوقود بالأخضرية.',
+    'Je ramène le compresseur pour les pneus.':'سأجلب ضاغط الهواء للعجلات.', 'Parfait, on y sera !':'ممتاز، سنكون هناك!',
+    'Photo de la sortie':'صورة الخرجة', 'Remettre les exemples':'استعادة الأمثلة', 'km/h':'كم/سا',
+    'Inclinaison':'الميلان', 'Vmax':'السرعة القصوى', 'Virages':'المنعطفات', 'Angle max':'أقصى ميلان',
+    'Chute détectée ?':'هل سقطت؟', 'Annulation possible':'يمكنك الإلغاء', 'Alerte envoyée au groupe':'أُرسل التنبيه إلى المجموعة',
+    'Elaid · Kawasaki Z H2 · Groupe sanguin O+':'\u200fElaid · Kawasaki Z H2 · فصيلة الدم O+\u200e', 'Position : près du col de Tikjda':'الموقع: قرب ممرّ تيكجدة',
+    'Bouira · Niveau intermédiaire':'البويرة · مستوى متوسط', 'Inviter un motard':'ادعُ درّاجاً',
+    'Scanne ce code pour installer MotoRoute et rejoindre le club.':'امسح هذا الرمز لتثبيت MotoRoute والانضمام إلى النادي.',
+    'Partenaire':'شريك', 'Promos réservées aux membres MotoRoute':'عروض خاصة بأعضاء MotoRoute',
+    'Casque intégral':'خوذة كاملة', 'Kit chaîne':'طقم السلسلة', 'Nouveau':'جديد', 'Révision':'صيانة دورية', 'Sur RDV':'بموعد مسبق'
+  };
+  const MOCK = { en: MOCK_EN, ar: MOCK_AR };
   let mockNodes = null;
   function mockLang(){
     if (!mockNodes) {
       mockNodes = [];
       scenes.forEach(sc => { const w = document.createTreeWalker(sc, NodeFilter.SHOW_TEXT); let nd;
-        while ((nd = w.nextNode())) { if (nd.parentElement && nd.parentElement.closest('.copy')) continue; const k = nd.nodeValue.trim(); if (MOCK_EN[k]) mockNodes.push([nd, nd.nodeValue, k]); } });
+        while ((nd = w.nextNode())) { if (nd.parentElement && nd.parentElement.closest('.copy')) continue; const k = nd.nodeValue.trim(); if (MOCK_EN[k] || MOCK_AR[k]) mockNodes.push([nd, nd.nodeValue, k]); } });
     }
-    mockNodes.forEach(([nd, orig, k]) => { nd.nodeValue = lang === 'en' ? orig.replace(k, MOCK_EN[k]) : orig; });
+    const M = MOCK[lang] || {};
+    mockNodes.forEach(([nd, orig, k]) => {
+      nd.nodeValue = M[k] ? orig.replace(k, M[k]) : orig;
+      // arabe : le texte traduit suit son propre sens d'écriture (droite à gauche) sans retourner la mise en page
+      const el = nd.parentElement; if (el) { if (lang === 'ar' && M[k]) el.setAttribute('dir', 'auto'); else el.removeAttribute('dir'); }
+      // en-tête de l'alerte de chute : titre à droite en arabe
+      if (k === 'Chute détectée ?' && el && el.parentElement) { if (lang === 'ar') el.parentElement.setAttribute('dir', 'rtl'); else el.parentElement.removeAttribute('dir'); }
+    });
   }
   function applyLang(){
     const T = TXT[lang], rtl = lang === 'ar';

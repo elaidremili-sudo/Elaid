@@ -2,7 +2,12 @@
 
 > **Lire d'abord BILAN-AVANT-FINALISATION.md (audit du 31/10, tâches restantes).**
 
-**➡️ DERNIER POINT : 24/11, 15 h 30 — test-112 : présentation du premier lancement aussi en anglais (en plus de test-111 et sos-push v21 ci-dessous).**
+**➡️ DERNIER POINT : 24/11, 16 h — test-113 : présentation entièrement en arabe aussi (petits écrans dessinés, compteur, bouton, légendes).**
+- `www/presentation.html` : MOCK_AR (écrans dessinés), CAPS_AR (légendes, de droite à gauche sans italique), textes animés en arabe (cnt « المشاركون: 12 », « أنت مسجّل، نلتقي يوم الأحد! ») ; textes traduits en `dir="auto"`, en-tête de l'alerte de chute en `dir="rtl"` ; ligne « فصيلة الدم O+ » avec marques RLM/LRM (sinon « +O »). « Station de Lakhdaria » = محطة الوقود بالأخضرية.
+- Essais Chrome 412 px : parcours arabe des 9 scènes sans français, aucune erreur ; anglais 21/21 ; français inchangé. Relecture de l'arabe par un agent : 1 point moyen (ordre droite-gauche de la ligne groupe sanguin) + 4 retouches, tout corrigé et revu sur capture.
+- **Pour Elaid** : envoyer **MotoRoute-113.aab** (au lieu de 111/112) ; « Accès à l'appli » : texte v13 (inchangé depuis 15 h 30).
+
+**Point du 24/11, 15 h 30 — test-112 : présentation du premier lancement aussi en anglais (en plus de test-111 et sos-push v21 ci-dessous).**
 - Présentation (`www/presentation.html`) : bouton « English » sur l'écran de départ (langue de l'appli proposée en premier, 3 boutons tiennent à 320 px), sous-titres + encadrés + boutons en anglais (TXT.en), petits écrans de téléphone dessinés et textes des animations traduits (MOCK_EN, tr(), CAPS_EN) ; musique et sous-titres comme l'arabe : **pas de voix anglaise** (le téléchargement du modèle Kokoro a été refusé dans la session du 24/11). L'arabe garde ses écrans dessinés en français, comme avant. `index.html` : la présentation s'ouvre au 1er lancement aussi en anglais (avant : jamais en anglais) ; les testeurs déjà installés en anglais la verront une fois (bouton « Later »).
 - Essais Chrome (412 px) : 21/21 (en, fr, ar, parcours anglais des 9 scènes sans français, ouverture au 1er lancement en anglais) ; fr et ar inchangés ; relecture indépendante : « on peut publier », 3 points faibles corrigés (légendes TalkBack, « petrol station », « 3 h 10 min »).
 - **Pour Elaid** : envoyer **MotoRoute-112.aab** (au lieu de la 111) ; « Accès à l'appli » : coller le texte **v13** mis à jour (présentation en anglais + écran « Terms of use »).
