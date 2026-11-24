@@ -1,0 +1,47 @@
+TEXTES À COLLER — YOUTUBE ET PLAY CONSOLE (v12, 24/11/2026, vidéo v11, valables pour test-109 et test-110)
+Corrigés après la vérification du 24/11 contre le code de test-109. Chaque texte tient sur une seule ligne : tout sélectionner, copier, coller.
+Le texte 2 ne change pas (voir declaration-sms.md).
+
+=== YOUTUBE — TITRE ===
+MotoRoute – crash detection and emergency SMS (SEND_SMS permission demo)
+
+=== YOUTUBE — RÉGLAGES ===
+Public : « Non, elle n'est pas conçue pour les enfants ». Visibilité : Non répertoriée.
+
+=== YOUTUBE — DESCRIPTION (tout le bloc, de « Demonstration » au lien) ===
+Demonstration video for the Google Play SMS permissions declaration of MotoRoute, a safety app for motorcycle riders in Algeria (core functionality: physical safety / emergency alert).
+
+Real screen recordings of two phones: the rider's phone and the emergency contact's phone. Test build, test account. Waiting times are cut (no step removed), fast parts are marked ×4 ×8 ×10 ×16, no sound. Personal data (phone number, GPS position, map, names) is blurred. Step 1 was recorded separately (20:40) from a fresh state, after resetting the SMS permission in Android settings; steps 2–9 are one take filmed just before (20:16–20:32).
+
+SEND_SMS is used for two things only:
+1. The automatic crash alert: ONE SMS to each number the rider saved (2 max), after 2 minutes without an answer. Crash detection is off by default and only runs while MotoRoute is open on screen. In this video the alert is started by the test-mode button "Simulate a crash" (explained in the app's help, "Test mode: try the full alert"): same flow, and the SMS starts with "MotoRoute SOS: TEST not a real crash".
+2. The test SMS ("MotoRoute test SMS…") that the rider starts and confirms.
+MotoRoute never reads, receives or stores SMS. The SOS, WhatsApp and call buttons open the rider's own apps, pre-filled. After a false alarm nothing is sent automatically: the rider can send a pre-filled message from their own SMS app.
+MotoRoute does not replace emergency services.
+
+0:00 About this video
+0:21 Step 1 – SMS permission: refuse, then allow
+1:25 Step 2 – Emergency card and consent
+1:59 Step 3 – Test SMS started by the rider
+2:23 Step 4 – Crash detection: off by default
+2:35 Step 5 – Crash detected: the rider can cancel
+2:56 Step 6 – No answer for 2 minutes: one SMS
+3:19 Step 7 – The contact receives the position
+3:33 Step 8 – False alarm: no automatic SMS
+4:13 Step 9 – Turned off in one tap
+4:24 Summary
+
+Privacy policy: https://elaidremili-sudo.github.io/Elaid/confidentialite.html
+
+=== PLAY CONSOLE — TEXTE 1 — Description of the feature ===
+MotoRoute is a safety app for motorcycle riders in Algeria. Its core safety feature is automatic crash detection with an emergency SMS. The rider turns crash detection on (it is off by default) and saves one or two emergency phone numbers on their emergency card. While crash detection is on and the app is open on screen (typically on the handlebar mount), a crash is detected when the motorcycle was moving at 15 km/h or more in the previous 90 seconds, then an impact above 4 g with the phone tilting over 35° (or above 6 g), then no movement. While a ride is also being recorded, the ride data can start the same alert: 25 km/h or more just before, then an impact above 4 g with the phone tilting over 35° or a lean of 50° or more (or an impact above 8 g), then less than 5 km/h. Without recent GPS speed (e.g. in a tunnel), only an impact above 8 g with tilt counts. The app then shows an alert dialog with a repeating beep and a large "I'm fine — cancel" button for 2 minutes. If the rider does not respond, the app sends one short alert message to those saved numbers only: the rider's name, motorcycle (if it fits in one SMS), GPS coordinates and, only if the rider gave explicit consent for their health data, blood type, for example "MotoRoute SOS: CRASH Rider (bike) blood O+. GPS 36.12345,4.12345. No answer 2 min". SEND_SMS is the only SMS-related permission in the app and it is used for two things only: (1) this automatic alert; (2) a test SMS that the rider starts and confirms, sent to the first saved emergency number ("MotoRoute test SMS. If you read this, your friend's emergency SMS works."). Test mode: the in-app help ("How does it work?" → "Test mode: try the full alert") tells every rider how to show a "Simulate a crash" button (7 quick taps on the "My account" title) to check the whole alert without crashing. It runs the same flow (2-minute countdown, cancel button, one SMS to each saved number) and that SMS starts with "MotoRoute SOS: TEST not a real crash". Test mode is already turned on for the review account, so the reviewer does not need the 7 taps (7 taps would hide the button again). Everything else opens another app and never uses SEND_SMS: the red SOS button, the WhatsApp and call buttons open the rider's own SMS, WhatsApp or phone app, pre-filled; after a false alarm the app only offers a pre-filled SMS (sms: link) that the rider sends from their own SMS app. Club features (rides, groups, classifieds) never use SMS. The app never reads, receives or stores SMS, never sends SMS to any number the rider did not enter, and is limited in code to 6 SMS per 10 minutes.
+
+=== PLAY CONSOLE — TEXTE 3 — User disclosure and control ===
+Crash detection and the emergency SMS are off by default. The SMS permission is only requested after a user action that uses SMS: "My emergencies" → "Allow SMS", turning on crash detection, "Test the SMS", or the test-mode "Simulate a crash". Before Android's permission screen, a dialog explains that the SMS permission is used only to send one alert SMS to the emergency numbers the rider saved, if they crash and do not answer for 2 minutes (and for the test SMS "MotoRoute test SMS..." that they start themselves), what the SMS contains, and that the app never reads SMS. The dialog has two buttons, "I agree" and "Not now"; "Not now" does not open Android's permission screen and the rider can ask again later from "My emergencies". The blood type is included only if the rider ticks a separate health-data consent box (unticked by default). When saving an emergency number, the rider is asked to tick "I told this contact" (a reminder is shown while it is not ticked). The rider sees on screen exactly which numbers will be alerted, can cancel during the 2-minute countdown, and can turn the feature off in one tap. After a false alarm, no SMS is sent automatically; the app only offers a pre-filled SMS that the rider sends from their own SMS app. The privacy policy describes the emergency SMS: https://elaidremili-sudo.github.io/Elaid/confidentialite.html
+
+=== PLAY CONSOLE — ACCÈS À L'APPLI (Contenu de l'appli → Accès à l'appli) ===
+Remplacer [mot de passe] par le mot de passe du compte examinateur avant de coller.
+Login: remilielaid2026@gmail.com / Password: [mot de passe]. If the app opens in French: on first launch, a short presentation in French/Arabic may appear: tap "Plus tard · لاحقاً" (later); on the login screen, enter the e-mail in "E-mail" and the password in "Mot de passe", then tap "Se connecter"; then switch the app to English: tap the globe button marked "FR" at the top of the screen and choose "English". The app requires an account. To see the crash SMS feature: open the "Route" tab → "My emergencies" → "Allow SMS" → "I agree" (or turn on "Crash detection"). "My emergencies" shows the saved test number. Test mode is already turned on for this account, so the "Simulate a crash" button is visible in Route → "Crash detection" (once detection is turned on); do not tap the "My account" title 7 times, as that would hide the button again. Any user can turn test mode on as explained in the in-app help ("How does it work?" → "Test mode: try the full alert"). It starts the real alert flow: 2-minute countdown with the "I'm fine — cancel" button, then one SMS starting with "MotoRoute SOS: TEST not a real crash" to each saved number.
+
+=== PLAY CONSOLE — SÉCURITÉ DES DONNÉES (correction) ===
+Cocher la catégorie « Contacts » : collectés, non partagés, pour les fonctionnalités de l'appli. Raison : le nom et le numéro du contact d'urgence de la fiche partent sur le serveur (www/js/fiche-sync.js).

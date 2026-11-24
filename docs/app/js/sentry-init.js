@@ -9,7 +9,8 @@
   var version = window.MR_VERSION || 'web';
 
   // Enlève ce qui suit « ? » ou « # » dans un lien (jetons de connexion, filtres, coordonnées…)
-  function clean(u) { return typeof u === 'string' ? u.replace(/[?#].*$/, '') : u; }
+  // test-110 : les coordonnées placées dans le chemin du lien (calcul d'itinéraire OSRM) sont masquées aussi
+  function clean(u) { return typeof u === 'string' ? scrub(u.replace(/[?#].*$/, '')) : u; }
   // Masque coordonnées GPS, e-mails et numéros de téléphone qui se glisseraient dans un message
   function scrub(s) {
     if (typeof s !== 'string') return s;

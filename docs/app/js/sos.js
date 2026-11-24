@@ -150,9 +150,12 @@
     try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
   };
+  // test-110 : la file en mémoire fait foi ; le stockage n'est relu qu'au démarrage. Avant, si la mémoire du téléphone
+  // était pleine, qsave() échouait, qload() relisait l'ancienne file sans la nouvelle alerte, et l'alerte ne partait jamais.
   function qload() {
+    if (qmem) return qmem;
     try { const a = JSON.parse(localStorage.getItem(QK) || '[]'); if (Array.isArray(a)) return (qmem = a); } catch (e) {}
-    return qmem || (qmem = []);
+    return (qmem = []);
   }
   function qsave(a) {
     // on garde les alertes terminées 24 h (pour afficher leur état), au plus 30 lignes

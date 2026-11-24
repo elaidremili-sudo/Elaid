@@ -19,7 +19,7 @@ Où la remplir : Play Console → MotoRoute → **Contenu de l'appli → Sécuri
 
 ## 2. Types de données (cocher ceux-ci, rien d'autre)
 
-« Partagée » = transmise à un tiers qui l'utilise pour lui-même (ici seulement Google AdMob). Les prestataires qui travaillent pour nous (Supabase, Firebase, Cloudflare, Brevo, Sentry) **ne comptent pas comme partage** selon Google.
+« Partagée » = transmise à un tiers qui l'utilise pour lui-même (ici seulement Google AdMob). Les prestataires qui travaillent pour nous (Supabase, Firebase, Cloudflare, Gmail, Sentry, GitHub Pages, Amazon S3) **ne comptent pas comme partage** selon Google.
 Le nom, la position et le groupe sanguin sont aussi cochés « partagés » par prudence, parce qu'ils partent par SMS vers le contact d'urgence (une personne tierce).
 
 | Catégorie Play | Type | Collectée | Partagée | Obligatoire ? | Pourquoi (cases Play) |
@@ -40,7 +40,9 @@ Le nom, la position et le groupe sanguin sont aussi cochés « partagés » par 
 | Infos et performances de l'appli | **Diagnostics** (modèle de téléphone, version, Sentry) | Oui | **Oui (AdMob)** | Obligatoire | Analyse ; Publicité (AdMob collecte des diagnostics) |
 | Identifiants de l'appareil ou autres | **ID d'appareil ou autres** (identifiant publicitaire AdMob, jeton Firebase) | Oui | **Oui (AdMob)** | Obligatoire | Publicité ou marketing (AdMob) ; Fonctionnalités de l'appli (jeton de notification SOS) |
 
-**Ne pas cocher** : infos financières, contacts du carnet d'adresses (l'appli ne lit pas le carnet, les numéros sont saisis à la main), SMS lus (l'appli n'en lit aucun), historique web, calendrier, fichiers et documents, vidéos envoyées (les vidéos de l'éditeur restent sur le téléphone).
+**Contacts (ajouté le 24/11/2026)** : cocher « Contacts » — collectés, non partagés, obligatoires pour la fiche d'urgence, finalité « Fonctionnalités de l'appli ». Le nom et le numéro du contact d'urgence, saisis à la main, partent sur le serveur (`www/js/fiche-sync.js`, `contact_name`, `contact_phone`). La page de Google sur la déclaration des données range dans « Contacts » les données liées aux contacts de l'utilisateur, et y cite même SEND_SMS : on déclare par prudence (en déclarer trop n'est pas sanctionné, en oublier peut l'être).
+
+**Ne pas cocher** : infos financières, carnet d'adresses du téléphone (l'appli ne le lit pas), SMS lus (l'appli n'en lit aucun), historique web, calendrier, fichiers et documents, vidéos envoyées (les vidéos de l'éditeur restent sur le téléphone).
 
 **Données traitées seulement sur le téléphone** (pas à déclarer) : tracés et statistiques de conduite (sauf « Partager mes trajets » qui est couvert par Position précise), carnet de route, souvenirs, retouche photo.
 
